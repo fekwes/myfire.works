@@ -2,42 +2,66 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ------------------------------------------------------------------ *
+ * Design tokens — "Ink & Lime"
+ * Bold, modern, professional. Signature electric-lime accent on a
+ * warm-ink base; a cool blue as the secondary data colour. Chosen to
+ * read as a premium fintech product, not a template.
+ * ------------------------------------------------------------------ */
+
 :root {
-  --background: #f7f8fa;
-  --foreground: #0f172a;
+  --background: #fafaf7;
+  --foreground: #14161a;
 
   --surface: #ffffff;
-  --surface-muted: #f1f4f8;
-  --border: #e2e8f0;
+  --surface-muted: #f2f2ea;
+  --border: #e5e4dd;
 
-  --primary: #0d6b4f;
+  /* Signature accent — deep lime, readable on light surfaces */
+  --primary: #4d7c0f;
   --primary-foreground: #ffffff;
 
+  /* Bright lime for highlight fills / badges */
+  --brand: #84cc16;
+
+  /* Secondary data / links */
   --accent: #2563eb;
 
-  --muted-foreground: #5b6674;
+  --muted-foreground: #5a616e;
 
   --danger: #dc2626;
-  --success: #0d6b4f;
+  --success: #4d7c0f;
+
+  /* Chart data ramp */
+  --data-1: #4d7c0f;
+  --data-2: #2563eb;
+  --data-3: #d97706;
 }
 
 .dark {
-  --background: #0a0e14;
-  --foreground: #e8ecf1;
+  --background: #0b0c10;
+  --foreground: #f3f5f8;
 
-  --surface: #10151d;
-  --surface-muted: #161c26;
-  --border: #232b38;
+  --surface: #14161c;
+  --surface-muted: #1b1e26;
+  --border: #282c36;
 
-  --primary: #1fa981;
-  --primary-foreground: #06120d;
+  /* Signature accent — electric lime on ink */
+  --primary: #bef264;
+  --primary-foreground: #0c1a05;
 
-  --accent: #5b8def;
+  --brand: #bef264;
 
-  --muted-foreground: #8994a3;
+  --accent: #7dd3fc;
 
-  --danger: #f87171;
-  --success: #1fa981;
+  --muted-foreground: #99a1ae;
+
+  --danger: #fb7185;
+  --success: #bef264;
+
+  --data-1: #bef264;
+  --data-2: #7dd3fc;
+  --data-3: #fbbf24;
 }
 
 @theme inline {
@@ -51,13 +75,19 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
 
+  --color-brand: var(--brand);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
 
   --color-danger: var(--danger);
   --color-success: var(--success);
 
+  --color-data-1: var(--data-1);
+  --color-data-2: var(--data-2);
+  --color-data-3: var(--data-3);
+
   --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-display);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -65,8 +95,21 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 * {
   border-color: var(--border);
+}
+
+::selection {
+  background: var(--brand);
+  color: #0c1a05;
+}
+
+/* Utility: tabular figures for money/stat readouts */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
 }

@@ -78,7 +78,7 @@ function NumberInput({
   step?: number;
 }) {
   return (
-    <div className="flex items-center rounded-lg border border-border bg-background focus-within:ring-2 focus-within:ring-primary/40">
+    <div className="flex items-center rounded-lg border border-border bg-background transition-colors hover:border-muted-foreground/40 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30">
       {prefix && (
         <span className="pl-3 text-sm text-muted-foreground">{prefix}</span>
       )}
@@ -89,7 +89,7 @@ function NumberInput({
         min={min}
         step={step}
         onChange={(e) => onChange(e.target.valueAsNumber)}
-        className="w-full min-w-0 bg-transparent px-3 py-2 text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        className="tabular w-full min-w-0 bg-transparent px-3 py-2 text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
       {suffix && (
         <span className="pr-3 text-sm whitespace-nowrap text-muted-foreground">
@@ -106,7 +106,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 items-end gap-4">
         <Field label="Current age">
           <NumberInput
             value={value.currentAge}
@@ -143,12 +143,13 @@ export function FireForm({ value, onChange }: FireFormProps) {
 
       <div className="rounded-xl border border-border bg-surface-muted p-4">
         <div className="flex items-center gap-1.5">
+          <span className="size-2 rounded-full bg-data-2" />
           <h3 className="text-sm font-semibold text-foreground">
             ISA / GIA — the Bridge
           </h3>
           <Tooltip text="Accessible any time, tax-free. This funds you from retirement until your SIPP unlocks at 58 — the 'bridge' phase." />
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-4">
+        <div className="mt-3 grid grid-cols-2 items-end gap-4">
           <Field label="Current balance">
             <NumberInput
               value={value.isaBalance}
@@ -168,12 +169,13 @@ export function FireForm({ value, onChange }: FireFormProps) {
 
       <div className="rounded-xl border border-border bg-surface-muted p-4">
         <div className="flex items-center gap-1.5">
+          <span className="size-2 rounded-full bg-data-1" />
           <h3 className="text-sm font-semibold text-foreground">
             SIPP — the Pension
           </h3>
           <Tooltip text="Locked until age 58. 25% can be taken tax-free, the rest is taxed as income when drawn — and topped up by your State Pension from 67." />
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-4">
+        <div className="mt-3 grid grid-cols-2 items-end gap-4">
           <Field label="Current balance">
             <NumberInput
               value={value.sippBalance}

@@ -54,11 +54,11 @@ export function AiInsights({ result }: { result: FireSimulationResult }) {
   }
 
   return (
-    <div className="mt-6 rounded-xl border border-border bg-surface-muted p-4">
+    <div className="mt-7 rounded-xl border border-border bg-surface-muted p-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5">
-          <Sparkles className="size-4 text-accent" />
-          <h3 className="text-xs font-medium text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-4 text-primary" />
+          <h3 className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             AI strategy tips
           </h3>
         </div>
@@ -66,7 +66,7 @@ export function AiInsights({ result }: { result: FireSimulationResult }) {
           type="button"
           onClick={handleAnalyze}
           disabled={loading}
-          className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-background disabled:opacity-50"
+          className="rounded-full bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {loading ? "Analyzing…" : tips ? "Regenerate" : "Get tips"}
         </button>
@@ -75,10 +75,10 @@ export function AiInsights({ result }: { result: FireSimulationResult }) {
       {error && <p className="mt-3 text-xs text-danger">{error}</p>}
 
       {tips && (
-        <ul className="mt-3 space-y-3">
+        <ul className="mt-4 space-y-3.5">
           {tips.map((tip) => (
-            <li key={tip.title}>
-              <p className="text-sm font-medium text-foreground">
+            <li key={tip.title} className="border-l-2 border-brand pl-3">
+              <p className="text-sm font-semibold text-foreground">
                 {tip.title}
               </p>
               <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
