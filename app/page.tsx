@@ -1,3 +1,5 @@
+import { FireDashboard } from "@/components/FireDashboard";
+
 export default function Home() {
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
@@ -12,25 +14,7 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-        <section className="rounded-2xl border border-border bg-surface p-6 lg:col-span-2">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Your details
-          </h2>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Input form coming next.
-          </p>
-        </section>
-
-        <section className="rounded-2xl border border-border bg-surface p-6 lg:col-span-3">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Projection
-          </h2>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Dashboard and chart coming next.
-          </p>
-        </section>
-      </div>
+      <FireDashboard />
     </div>
   );
 }
