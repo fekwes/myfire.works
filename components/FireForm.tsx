@@ -30,7 +30,7 @@ interface FireFormProps {
 function Tooltip({ text }: { text: string }) {
   const id = useId();
   return (
-    <span className="group relative inline-flex">
+    <span className="group/tip relative inline-flex">
       <button
         type="button"
         aria-describedby={id}
@@ -38,10 +38,11 @@ function Tooltip({ text }: { text: string }) {
       >
         <Info className="size-3.5" />
       </button>
+      {/* Right-anchored so it never overflows the narrow form column. */}
       <span
         role="tooltip"
         id={id}
-        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-56 -translate-x-1/2 rounded-lg border border-border bg-surface p-2.5 text-xs leading-relaxed text-muted-foreground opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+        className="pointer-events-none absolute bottom-full right-0 z-30 mb-2 w-52 max-w-[calc(100vw-2.5rem)] rounded-lg border border-border bg-surface p-2.5 text-xs leading-relaxed text-muted-foreground opacity-0 shadow-lg transition-opacity group-hover/tip:opacity-100 group-focus-within/tip:opacity-100"
       >
         {text}
       </span>
@@ -53,13 +54,15 @@ function Field({
   label,
   tooltip,
   children,
+  className,
 }: {
   label: string;
   tooltip?: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <label className="block">
+    <label className={`block ${className ?? ""}`}>
       <span className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
         {label}
         {tooltip && <Tooltip text={tooltip} />}
@@ -107,23 +110,23 @@ function NumberInput({
   );
 }
 
-function PotSection({
+function Block({
   title,
   dotClass,
   tooltip,
   children,
 }: {
   title: string;
-  dotClass: string;
-  tooltip: string;
+  dotClass?: string;
+  tooltip?: string;
   children: ReactNode;
 }) {
   return (
     <div className="rounded-xl border border-border bg-surface-muted p-4">
       <div className="flex items-center gap-1.5">
-        <span className={`size-2 rounded-full ${dotClass}`} />
+        {dotClass && <span className={`size-2 rounded-full ${dotClass}`} />}
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        <Tooltip text={tooltip} />
+        {tooltip && <Tooltip text={tooltip} />}
       </div>
       <div className="mt-3 grid grid-cols-2 items-end gap-4">{children}</div>
     </div>
@@ -150,7 +153,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
         </Field>
         <Field
           label="Target retirement age"
-          tooltip="The age you plan to stop working. Your ISA/GIA bridges income until your SIPP unlocks (currently modelled at 57)."
+          tooltip="When you plan to stop working. Your ISA/GIA bridges income until your SIPP unlocks."
         >
           <NumberInput
             value={value.retirementAge}
@@ -163,7 +166,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
 
       <Field
         label="Target net annual income"
-        tooltip="The take-home income you want in retirement, after tax. The engine works out how much to draw from each pot to hit this."
+        tooltip="The take-home income you want in retirement, after tax."
       >
         <NumberInput
           value={value.targetAnnualIncome}
@@ -174,10 +177,10 @@ export function FireForm({ value, onChange }: FireFormProps) {
         />
       </Field>
 
-      <PotSection
+      <Block
         title="ISA — tax-free bridge"
         dotClass="bg-data-2"
-        tooltip="Accessible any time, completely tax-free. Drawn first — it funds the years between retirement and your SIPP unlocking."
+        tooltip="Accessible any time, completely tax-free. Drawn first."
       >
         <Field label="Current balance">
           <NumberInput
@@ -193,12 +196,12 @@ export function FireForm({ value, onChange }: FireFormProps) {
             prefix="£"
           />
         </Field>
-      </PotSection>
+      </Block>
 
-      <PotSection
+      <Block
         title="GIA — taxable bridge"
         dotClass="bg-data-3"
-        tooltip="A General Investment Account. Drawn after the ISA; gains above the £3,000 annual exemption are subject to Capital Gains Tax (18%/24%)."
+        tooltip="Drawn after the ISA; gains above the £3,000 annual exemption pay Capital Gains Tax (18%/24%)."
       >
         <Field label="Current balance">
           <NumberInput
@@ -214,12 +217,12 @@ export function FireForm({ value, onChange }: FireFormProps) {
             prefix="£"
           />
         </Field>
-      </PotSection>
+      </Block>
 
-      <PotSection
+      <Block
         title="SIPP — the pension"
         dotClass="bg-data-1"
-        tooltip="Locked until your access age. 25% can be taken tax-free (up to £268,275); the rest is taxed as income, topped up by your State Pension."
+        tooltip="Locked until your access age. 25% tax-free (up to £268,275); the rest taxed as income."
       >
         <Field label="Current balance">
           <NumberInput
@@ -235,93 +238,78 @@ export function FireForm({ value, onChange }: FireFormProps) {
             prefix="£"
           />
         </Field>
-      </PotSection>
+        <Field
+          label="Access age"
+          className="col-span-2"
+          tooltip="UK minimum pension age is 55 today, rising to 57 in April 2028 — the default here."
+        >
+          <NumberInput
+            value={num(value.sippAccessAge, DEFAULT_ASSUMPTIONS.sippAccessAge)}
+            onChange={(v) => set("sippAccessAge", v)}
+            suffix="yrs"
+            min={value.retirementAge}
+          />
+        </Field>
+      </Block>
 
-      <details className="group rounded-xl border border-border bg-surface-muted">
-        <summary className="flex cursor-pointer items-center justify-between gap-2 p-4 text-sm font-semibold text-foreground marker:content-none">
-          <span className="flex items-center gap-1.5">
-            Assumptions
-            <Tooltip text="UK statutory ages and long-run assumptions. Defaults reflect current rules; edit to model your own case." />
-          </span>
-          <span className="font-mono text-xs text-muted-foreground transition-transform group-open:rotate-180">
-            ▾
-          </span>
-        </summary>
-        <div className="space-y-4 border-t border-border p-4">
-          <div className="grid grid-cols-2 items-end gap-4">
-            <Field
-              label="SIPP access age"
-              tooltip="UK minimum pension age is 55 today, rising to 57 on 6 Apr 2028. Early retirees here reach it after 2028, so the default is 57."
-            >
-              <NumberInput
-                value={num(value.sippAccessAge, DEFAULT_ASSUMPTIONS.sippAccessAge)}
-                onChange={(v) => set("sippAccessAge", v)}
-                suffix="yrs"
-                min={value.retirementAge}
-              />
-            </Field>
-            <Field
-              label="State Pension age"
-              tooltip="66 today, rising to 67 (2026–2028) and 68 (2044–2046). Default is 67."
-            >
-              <NumberInput
-                value={num(
-                  value.statePensionAge,
-                  DEFAULT_ASSUMPTIONS.statePensionAge,
-                )}
-                onChange={(v) => set("statePensionAge", v)}
-                suffix="yrs"
-              />
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 items-end gap-4">
-            <Field
-              label="State Pension"
-              tooltip="Full new State Pension for 2024/25 is £11,502/yr. Lower it if your National Insurance record is incomplete."
-            >
-              <NumberInput
-                value={num(
-                  value.statePensionAnnual,
-                  DEFAULT_ASSUMPTIONS.statePensionAnnual,
-                )}
-                onChange={(v) => set("statePensionAnnual", v)}
-                prefix="£"
-                suffix="/ yr"
-                step={100}
-              />
-            </Field>
-            <Field
-              label="Expected growth"
-              tooltip="Assumed nominal annual investment return, applied to every pot. Not inflation-adjusted."
-            >
-              <NumberInput
-                value={
-                  Math.round(
-                    num(value.growthRate, DEFAULT_ASSUMPTIONS.growthRate) *
-                      1000,
-                  ) / 10
-                }
-                onChange={(v) => set("growthRate", (v || 0) / 100)}
-                suffix="%"
-                step={0.5}
-              />
-            </Field>
-          </div>
-          <Field
-            label="Life expectancy"
-            tooltip="The age the plan must last to. The projection runs every year up to here."
-          >
-            <NumberInput
-              value={num(
-                value.lifeExpectancyAge,
-                DEFAULT_ASSUMPTIONS.lifeExpectancyAge,
-              )}
-              onChange={(v) => set("lifeExpectancyAge", v)}
-              suffix="yrs"
-            />
-          </Field>
-        </div>
-      </details>
+      <Block
+        title="State Pension"
+        tooltip="A flat income from your State Pension age. Lower the amount if your National Insurance record is incomplete."
+      >
+        <Field label="From age">
+          <NumberInput
+            value={num(
+              value.statePensionAge,
+              DEFAULT_ASSUMPTIONS.statePensionAge,
+            )}
+            onChange={(v) => set("statePensionAge", v)}
+            suffix="yrs"
+          />
+        </Field>
+        <Field label="Amount">
+          <NumberInput
+            value={num(
+              value.statePensionAnnual,
+              DEFAULT_ASSUMPTIONS.statePensionAnnual,
+            )}
+            onChange={(v) => set("statePensionAnnual", v)}
+            prefix="£"
+            suffix="/ yr"
+            step={100}
+          />
+        </Field>
+      </Block>
+
+      <div className="grid grid-cols-2 items-end gap-4">
+        <Field
+          label="Expected growth"
+          tooltip="Assumed nominal annual return on all pots. Not inflation-adjusted."
+        >
+          <NumberInput
+            value={
+              Math.round(
+                num(value.growthRate, DEFAULT_ASSUMPTIONS.growthRate) * 1000,
+              ) / 10
+            }
+            onChange={(v) => set("growthRate", (v || 0) / 100)}
+            suffix="%"
+            step={0.5}
+          />
+        </Field>
+        <Field
+          label="Plan lasts to"
+          tooltip="The age the plan must fund. The projection runs every year up to here."
+        >
+          <NumberInput
+            value={num(
+              value.lifeExpectancyAge,
+              DEFAULT_ASSUMPTIONS.lifeExpectancyAge,
+            )}
+            onChange={(v) => set("lifeExpectancyAge", v)}
+            suffix="yrs"
+          />
+        </Field>
+      </div>
     </div>
   );
 }

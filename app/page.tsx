@@ -21,6 +21,18 @@ export default function Home() {
           through to State Pension age — and see exactly when you cross from
           bridge funding to pension drawdown.
         </p>
+        <p className="mt-5 flex items-start gap-2 rounded-lg border border-border bg-surface-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+          <span aria-hidden>ⓘ</span>
+          <span>
+            OnFIRE is an{" "}
+            <span className="font-medium text-foreground">
+              educational tool for learning and exploring
+            </span>{" "}
+            UK FIRE scenarios. It is not financial advice — figures are
+            estimates based on simplified assumptions. Always consult a
+            qualified adviser before making decisions.
+          </span>
+        </p>
       </div>
 
       <FireDashboard />
