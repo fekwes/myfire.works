@@ -1,8 +1,35 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { DEFAULT_FIRE_FORM_VALUES, FireForm } from "@/components/FireForm";
+import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
 import { simulateFire, type FireInputs } from "@/lib/fire-engine";
+import { formatCurrency } from "@/lib/format";
+
+function StatTile({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "success" | "danger";
+}) {
+  const toneClass =
+    tone === "success"
+      ? "text-success"
+      : tone === "danger"
+        ? "text-danger"
+        : "text-foreground";
+
+  return (
+    <div className="rounded-xl border border-border bg-surface-muted p-4">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={`mt-1 text-lg font-semibold ${toneClass}`}>{value}</p>
+    </div>
+  );
+}
 
 export function FireDashboard() {
   const [inputs, setInputs] = useState<FireInputs>(DEFAULT_FIRE_FORM_VALUES);
@@ -21,11 +48,40 @@ export function FireDashboard() {
         <h2 className="text-sm font-medium text-muted-foreground">
           Projection
         </h2>
-        <p className="mt-4 text-sm text-muted-foreground">
-          {result.sustainableToLifeExpectancy
-            ? "Your plan looks sustainable to age 95."
-            : "Your current inputs may not sustain your target income — chart coming next."}
-        </p>
+
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatTile
+            label="Bridge → SIPP at"
+            value={`Age ${result.inputs.sippAccessAge}`}
+          />
+          <StatTile
+            label="Tax-free lump sum"
+            value={formatCurrency(result.taxFreeLumpSum)}
+          />
+          <StatTile
+            label="State Pension from"
+            value={`Age ${result.inputs.statePensionAge}`}
+          />
+          <StatTile
+            label="Sustainable to 95"
+            value={result.sustainableToLifeExpectancy ? "Yes" : "At risk"}
+            tone={result.sustainableToLifeExpectancy ? "success" : "danger"}
+          />
+        </div>
+
+        <div className="mt-6">
+          <h3 className="mb-2 text-xs font-medium text-muted-foreground">
+            Asset balances over time
+          </h3>
+          <AssetTimelineChart result={result} />
+        </div>
+
+        <div className="mt-6">
+          <h3 className="mb-2 text-xs font-medium text-muted-foreground">
+            Net annual income vs. target
+          </h3>
+          <IncomeSafetyChart result={result} />
+        </div>
       </section>
     </div>
   );
