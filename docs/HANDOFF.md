@@ -3,6 +3,11 @@
 Read this first when continuing work in a new session. It's the single source
 of truth for where the project stands and what's next.
 
+> **Repo location (absolute):** `/Users/alberto/Documents/Claude Projects/uk-fire-app`
+> This is the git root. **`cd` into it first** — the parent directory
+> `/Users/alberto/Documents/Claude Projects` is *not* a git repo, so a new
+> session must enter the `uk-fire-app` subfolder before running git/npm.
+
 ## What it is
 
 **OnFIRE** — a UK FIRE (Financial Independence, Retire Early) planner. A
@@ -11,8 +16,8 @@ drawdown across ISA, GIA, SIPP, State Pension and property, with correct UK
 tax, plus Coast FIRE and Monte Carlo confidence modelling.
 
 - **Repo:** https://github.com/fekwes/onfire (private)
-- **Local dir:** `~/Documents/Claude Projects/uk-fire-app` (folder name is
-  still `uk-fire-app`; the GitHub repo was renamed to `onfire`).
+- **Local dir (absolute):** `/Users/alberto/Documents/Claude Projects/uk-fire-app`
+  (folder still named `uk-fire-app`; the GitHub repo was renamed to `onfire`).
 - **Live dev:** `npm run dev` → http://localhost:3000
 
 ## Tech stack
