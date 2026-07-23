@@ -8,11 +8,11 @@ Built with [Next.js](https://nextjs.org), TypeScript, Tailwind CSS, and [Claude 
 
 ## What it does
 
-1. **Bridge phase** — from your target retirement age until age 58, income is drawn tax-free from your ISA/GIA.
-2. **SIPP phase** — at 58, up to £268,275 (25% of the pot) is taken as a tax-free lump sum; the rest is drawn down and taxed against 2024/25 UK income tax bands.
-3. **State Pension phase** — from age 67, State Pension income reduces how much SIPP needs to be withdrawn each year to hit your target.
+1. **Bridge phase** — from your target retirement age until your SIPP unlocks (57 by default; the UK minimum pension age rises to 57 in April 2028), income is drawn from your **ISA** (tax-free) first, then your **GIA** (with Capital Gains Tax on the gains portion of each withdrawal).
+2. **SIPP phase** — at your access age, up to £268,275 (25% of the pot) is taken as a tax-free lump sum; the rest is drawn down and taxed against 2024/25 UK income tax bands.
+3. **State Pension phase** — from State Pension age (67 by default), State Pension income reduces how much SIPP needs to be withdrawn each year to hit your target.
 
-You enter your ages, target income, and current ISA/SIPP balances and contributions; the app simulates every year to age 95 and shows you the asset timeline, the exact year you cross from bridge funding to SIPP funding, and whether your net income holds up in every year.
+You enter your ages, target income, and current ISA/GIA/SIPP balances and contributions — the statutory ages, State Pension amount and growth rate are all editable under **Assumptions**. The app simulates every year to your life-expectancy horizon and shows the asset timeline, the exact year you cross from bridge funding to SIPP funding, and whether your net income holds up in every year.
 
 ## Tech stack
 
@@ -96,7 +96,7 @@ What I actually did:
 
 ## Assumptions & limitations
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#assumptions--simplifications) for the full list — briefly: 2024/25 rest-of-UK tax rates only (no Scottish rates), a flat 5% nominal growth assumption, ISA and GIA treated as a single tax-free bucket (GIA's own CGT/dividend tax isn't modeled), and a fixed 95-year-old life expectancy horizon.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#assumptions--simplifications) for the full list — briefly: 2024/25 rest-of-UK tax rates only (no Scottish rates), a flat nominal growth assumption, GIA Capital Gains Tax modelled in a simplified form (the starting GIA balance is assumed to carry no embedded gain; dividend tax isn't modelled), and a configurable life-expectancy horizon.
 
 ## License
 

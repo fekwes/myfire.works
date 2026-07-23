@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  BASIC_RATE_CEILING,
+  calculateCapitalGainsTax,
   calculatePersonalAllowance,
   calculateTaxFreeLumpSum,
   calculateUkIncomeTax,
+  CGT_ANNUAL_EXEMPT_AMOUNT,
   simulateFire,
+  solveGiaGrossForNet,
   solveGrossIncomeForNet,
   TAX_FREE_LUMP_SUM_CAP,
 } from "./fire-engine";
@@ -79,6 +83,45 @@ describe("calculateTaxFreeLumpSum", () => {
   });
 });
 
+describe("calculateCapitalGainsTax", () => {
+  const fullBand = BASIC_RATE_CEILING;
+
+  it("is £0 when the gain is within the annual exempt amount", () => {
+    expect(calculateCapitalGainsTax(CGT_ANNUAL_EXEMPT_AMOUNT, fullBand)).toBe(0);
+    expect(calculateCapitalGainsTax(1000, fullBand)).toBe(0);
+  });
+
+  it("taxes gains above the exemption at 18% within the basic band", () => {
+    // £10,000 gain − £3,000 exemption = £7,000 taxable @ 18% = £1,260
+    expect(calculateCapitalGainsTax(10000, fullBand)).toBeCloseTo(1260, 2);
+  });
+
+  it("taxes gains at 24% once the basic band is used up by income", () => {
+    // No basic band left → £7,000 taxable @ 24% = £1,680
+    expect(calculateCapitalGainsTax(10000, 0)).toBeCloseTo(1680, 2);
+  });
+
+  it("splits a large gain across the 18% and 24% rates", () => {
+    // £3,000 basic band left, £20,000 gain − £3,000 exemption = £17,000 taxable
+    // £3,000 @ 18% + £14,000 @ 24% = £540 + £3,360 = £3,900
+    expect(calculateCapitalGainsTax(20000, 3000)).toBeCloseTo(3900, 2);
+  });
+});
+
+describe("solveGiaGrossForNet", () => {
+  it("returns the target unchanged when there is no gain", () => {
+    expect(solveGiaGrossForNet(20000, 0, BASIC_RATE_CEILING)).toBe(20000);
+  });
+
+  it("inverts the CGT calc so net-of-CGT matches the target", () => {
+    const gross = solveGiaGrossForNet(20000, 0.5, BASIC_RATE_CEILING);
+    const net =
+      gross - calculateCapitalGainsTax(gross * 0.5, BASIC_RATE_CEILING);
+    expect(net).toBeCloseTo(20000, 1);
+    expect(gross).toBeGreaterThan(20000); // must gross up to cover the CGT
+  });
+});
+
 describe("simulateFire", () => {
   const baseInputs = {
     currentAge: 40,
@@ -121,7 +164,7 @@ describe("simulateFire", () => {
     const lumpSumYear = result.timeline.find(
       (y) => y.taxFreeLumpSumTaken > 0,
     );
-    expect(lumpSumYear?.age).toBe(58);
+    expect(lumpSumYear?.age).toBe(57); // default SIPP access age (2028 NMPA)
   });
 
   it("draws taxable SIPP income once ISA and the tax-free lump sum can't cover the target", () => {
@@ -169,5 +212,42 @@ describe("simulateFire", () => {
       sippBalance: 900000,
     });
     expect(result.sustainableToLifeExpectancy).toBe(true);
+  });
+
+  it("leaves GIA untouched and CGT at zero when no GIA is provided", () => {
+    const result = simulateFire(baseInputs);
+    expect(
+      result.timeline.every(
+        (y) => y.giaBalanceEnd === 0 && y.capitalGainsTaxPaid === 0,
+      ),
+    ).toBe(true);
+    expect(result.giaDepletedAge).toBeNull();
+  });
+
+  it("draws down GIA and charges CGT once gains have accrued", () => {
+    const result = simulateFire({
+      currentAge: 50,
+      retirementAge: 50,
+      targetAnnualIncome: 20000,
+      isaBalance: 0,
+      isaMonthlyContribution: 0,
+      giaBalance: 500000,
+      giaMonthlyContribution: 0,
+      sippBalance: 0,
+      sippMonthlyContribution: 0,
+    });
+    // GIA funds the plan, and CGT appears once per-withdrawal gains exceed
+    // the £3,000 annual exemption.
+    expect(result.timeline.some((y) => y.giaWithdrawal > 0)).toBe(true);
+    expect(
+      result.timeline.some(
+        (y) => y.giaWithdrawal > 0 && y.capitalGainsTaxPaid > 0,
+      ),
+    ).toBe(true);
+    // Net income is grossed up to still hit the target despite CGT.
+    const fundedYear = result.timeline.find(
+      (y) => y.giaWithdrawal > 0 && !y.shortfall,
+    );
+    expect(fundedYear?.netIncome).toBeCloseTo(20000, 0);
   });
 });

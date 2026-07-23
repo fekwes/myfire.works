@@ -73,7 +73,7 @@ Documented here rather than buried in comments, since they materially affect how
 
 - **2024/25 rest-of-UK tax rates only.** Scottish income tax bands are different and not modeled.
 - **Flat 5% nominal annual growth**, applied identically to both the ISA and SIPP pot every year — not inflation-adjusted, not stochastic, not asset-allocation-aware.
-- **ISA and GIA are modeled as a single tax-free "bridge" bucket.** In reality, GIA growth can attract Capital Gains Tax and dividend tax; this app assumes the ISA allowance is doing all the work, which is optimistic if a meaningful chunk of the bridge pot actually sits in a GIA.
+- **GIA Capital Gains Tax is modelled in a simplified form.** The GIA is a separate, taxable bucket drawn after the ISA: each withdrawal realises a gain proportional to the pot's embedded gain, taxed at 18%/24% above the £3,000 annual exempt amount. Two simplifications: the *starting* GIA balance is assumed to carry no embedded gain (cost basis = current value, so early CGT is understated), and **dividend tax is not modelled**.
 - **Contributions stop entirely at the modeled retirement age** — no tapering, no post-retirement part-time income.
 - **The tax-free lump sum is taken as a single event** at `max(retirementAge, sippAccessAge)`, not phased across multiple withdrawals (which some real SIPP providers support and which can have different practical tax timing implications).
 - **State Pension amount is a fixed default** (£11,502/year, the 2024/25 full new State Pension) — it doesn't account for incomplete National Insurance records, which reduce the actual entitlement.

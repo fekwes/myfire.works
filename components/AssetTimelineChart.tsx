@@ -66,10 +66,12 @@ export function AssetTimelineChart({
   const data = result.timeline.map((year) => ({
     age: year.age,
     ISA: Math.round(year.isaBalanceEnd),
+    GIA: Math.round(year.giaBalanceEnd),
     SIPP: Math.round(year.sippBalanceEnd),
   }));
 
   const { sippAccessAge, statePensionAge } = result.inputs;
+  const hasGia = data.some((d) => d.GIA > 0.5);
 
   return (
     <div className="h-72 w-full">
@@ -86,6 +88,10 @@ export function AssetTimelineChart({
             <linearGradient id="sippFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--color-data-1)" stopOpacity={0.35} />
               <stop offset="100%" stopColor="var(--color-data-1)" stopOpacity={0.01} />
+            </linearGradient>
+            <linearGradient id="giaFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-data-3)" stopOpacity={0.3} />
+              <stop offset="100%" stopColor="var(--color-data-3)" stopOpacity={0.01} />
             </linearGradient>
           </defs>
           <CartesianGrid
@@ -138,13 +144,25 @@ export function AssetTimelineChart({
           <Area
             type="monotone"
             dataKey="ISA"
-            name="ISA / GIA"
+            name="ISA"
             stroke="var(--color-data-2)"
             fill="url(#isaFill)"
             strokeWidth={2.5}
             dot={false}
             activeDot={{ r: 4, strokeWidth: 0 }}
           />
+          {hasGia && (
+            <Area
+              type="monotone"
+              dataKey="GIA"
+              name="GIA"
+              stroke="var(--color-data-3)"
+              fill="url(#giaFill)"
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 0 }}
+            />
+          )}
           <Area
             type="monotone"
             dataKey="SIPP"
