@@ -1,21 +1,27 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AiInsights } from "@/components/AiInsights";
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { DEFAULT_FIRE_FORM_VALUES, FireForm } from "@/components/FireForm";
 import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
-import { computeCoastFire } from "@/lib/coast-fire";
-import { simulateFire, type FireInputs } from "@/lib/fire-engine";
+import { computeCoastFire, type CoastFireResult } from "@/lib/coast-fire";
+import {
+  type FireSimulationResult,
+  simulateFire,
+  type FireInputs,
+} from "@/lib/fire-engine";
 import { formatCurrency } from "@/lib/format";
 
 type Mode = "plan" | "coast";
+type ChartTab = "assets" | "income";
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function MonoLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+    <p className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
       {children}
-    </h3>
+    </p>
   );
 }
 
@@ -34,107 +40,147 @@ function StatTile({
       : tone === "danger"
         ? "text-danger"
         : "text-foreground";
-
   return (
-    <div className="rounded-xl border border-border bg-surface-muted p-4 transition-colors hover:border-muted-foreground/30">
-      <p className="font-mono text-[0.68rem] uppercase tracking-wide text-muted-foreground">
+    <div className="rounded-xl border border-border bg-surface-muted p-3.5 transition-colors hover:border-muted-foreground/30">
+      <p className="font-mono text-[0.65rem] uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <p className={`mt-1.5 font-display text-xl font-bold tabular ${valueTone}`}>
+      <p className={`mt-1 font-display text-lg font-bold tabular ${valueTone}`}>
         {value}
       </p>
     </div>
   );
 }
 
-function ModeToggle({
-  mode,
+function Segmented<T extends string>({
+  value,
   onChange,
+  options,
 }: {
-  mode: Mode;
-  onChange: (m: Mode) => void;
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
 }) {
-  const opt = (m: Mode, label: string) => (
-    <button
-      type="button"
-      onClick={() => onChange(m)}
-      aria-pressed={mode === m}
-      className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-        mode === m
-          ? "bg-foreground text-background"
-          : "text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      {label}
-    </button>
-  );
   return (
     <div className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-muted p-1">
-      {opt("plan", "Contributing")}
-      {opt("coast", "Coast FIRE")}
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          aria-pressed={value === o.value}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+            value === o.value
+              ? "bg-foreground text-background"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }
 
-function CoastSummary({ inputs }: { inputs: FireInputs }) {
-  const coast = useMemo(() => computeCoastFire(inputs), [inputs]);
-  const gap = Math.max(0, -coast.surplus);
+/** The north-star band: verdict + the few numbers that matter, at a glance. */
+function PlanSummary({
+  mode,
+  onModeChange,
+  plan,
+  coast,
+}: {
+  mode: Mode;
+  onModeChange: (m: Mode) => void;
+  plan: FireSimulationResult;
+  coast: CoastFireResult;
+}) {
+  const horizon = plan.inputs.lifeExpectancyAge;
+  const firstShortfall = plan.timeline.find(
+    (y) => y.shortfall && y.phase !== "accumulation",
+  )?.age;
+  const lastsTo = firstShortfall ? firstShortfall - 1 : horizon;
+  const sustainable = plan.sustainableToLifeExpectancy;
 
   return (
-    <div
-      className={`mt-4 rounded-xl border p-4 ${
-        coast.isCoastFire
-          ? "border-brand/40 bg-brand/10"
-          : "border-border bg-surface-muted"
-      }`}
-    >
-      <div className="flex items-center gap-2">
-        <span className="text-lg leading-none">🔥</span>
-        <p className="font-display text-base font-bold">
-          {coast.isCoastFire ? "You're Coast FIRE" : "Not coasting yet"}
-        </p>
+    <div className="rounded-2xl border border-border bg-surface p-5 sm:p-7">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <MonoLabel>{mode === "coast" ? "Coast FIRE" : "Your plan"}</MonoLabel>
+          {mode === "coast" ? (
+            <>
+              <h2 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">
+                {coast.isCoastFire ? "You're Coast FIRE 🔥" : "Not coasting yet"}
+              </h2>
+              <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                {coast.isCoastFire
+                  ? `Stop contributing today and your pots still fund your target to age ${coast.coastingResult.inputs.lifeExpectancyAge}.`
+                  : coast.coastAge !== null
+                    ? `Keep contributing until age ${coast.coastAge} and you could then stop and coast.`
+                    : "On these numbers the plan falls short even while contributing to retirement."}
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">
+                {sustainable ? "You're on track 🎉" : "There's a shortfall"}
+              </h2>
+              <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                {sustainable
+                  ? `Your pots fund ${formatCurrency(plan.inputs.targetAnnualIncome)}/yr, after tax, all the way to age ${horizon}.`
+                  : `Your target income runs short from age ${firstShortfall} — raise contributions, trim the target, or retire later.`}
+              </p>
+            </>
+          )}
+        </div>
+        <Segmented
+          value={mode}
+          onChange={onModeChange}
+          options={[
+            { value: "plan", label: "Contributing" },
+            { value: "coast", label: "Coast FIRE" },
+          ]}
+        />
       </div>
-      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-        {coast.isCoastFire ? (
+
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {mode === "coast" ? (
           <>
-            You could stop contributing today and your current pots would still
-            grow to fund your target income to age{" "}
-            {coast.coastingResult.inputs.lifeExpectancyAge}.
-          </>
-        ) : coast.coastAge !== null ? (
-          <>
-            Keep contributing until age{" "}
-            <span className="font-semibold text-foreground">
-              {coast.coastAge}
-            </span>{" "}
-            and you could then stop and coast to your target.
+            <StatTile
+              label="Coast number"
+              value={formatCurrency(coast.coastNumber)}
+            />
+            <StatTile
+              label="Invested today"
+              value={formatCurrency(coast.currentInvested)}
+            />
+            <StatTile
+              label={coast.surplus >= 0 ? "Surplus" : "Gap to coast"}
+              value={formatCurrency(Math.abs(coast.surplus))}
+              tone={coast.surplus >= 0 ? "success" : "danger"}
+            />
+            <StatTile
+              label="Coast age"
+              value={coast.coastAge !== null ? `Age ${coast.coastAge}` : "—"}
+            />
           </>
         ) : (
           <>
-            On these numbers the plan doesn&apos;t reach your target even while
-            contributing to retirement — raise contributions or adjust the plan.
+            <StatTile label="Retire at" value={`Age ${plan.inputs.retirementAge}`} />
+            <StatTile
+              label="SIPP unlocks"
+              value={`Age ${plan.inputs.sippAccessAge}`}
+            />
+            <StatTile
+              label="Tax-free lump sum"
+              value={formatCurrency(plan.taxFreeLumpSum)}
+            />
+            <StatTile
+              label="Plan lasts to"
+              value={sustainable ? `Age ${horizon}+` : `Age ${lastsTo}`}
+              tone={sustainable ? "success" : "danger"}
+            />
           </>
         )}
-      </p>
-
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile
-          label="Coast number"
-          value={formatCurrency(coast.coastNumber)}
-        />
-        <StatTile
-          label="Invested today"
-          value={formatCurrency(coast.currentInvested)}
-        />
-        <StatTile
-          label={coast.surplus >= 0 ? "Surplus" : "Gap to coast"}
-          value={formatCurrency(coast.surplus >= 0 ? coast.surplus : gap)}
-          tone={coast.surplus >= 0 ? "success" : "danger"}
-        />
-        <StatTile
-          label="Coast age"
-          value={coast.coastAge !== null ? `Age ${coast.coastAge}` : "—"}
-        />
       </div>
     </div>
   );
@@ -143,6 +189,7 @@ function CoastSummary({ inputs }: { inputs: FireInputs }) {
 export function FireDashboard() {
   const [inputs, setInputs] = useState<FireInputs>(DEFAULT_FIRE_FORM_VALUES);
   const [mode, setMode] = useState<Mode>("plan");
+  const [chartTab, setChartTab] = useState<ChartTab>("assets");
 
   const planResult = useMemo(() => simulateFire(inputs), [inputs]);
   const coastResult = useMemo(
@@ -155,85 +202,62 @@ export function FireDashboard() {
       }),
     [inputs],
   );
-
-  const result = mode === "coast" ? coastResult : planResult;
-  const sustainable = result.sustainableToLifeExpectancy;
+  const coast = useMemo(() => computeCoastFire(inputs), [inputs]);
+  const shown = mode === "coast" ? coastResult : planResult;
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
-      <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 lg:col-span-2">
-        <SectionLabel>Your details</SectionLabel>
-        <div className="mt-5">
-          <FireForm value={inputs} onChange={setInputs} />
-        </div>
-      </section>
+    <div className="space-y-5">
+      <PlanSummary
+        mode={mode}
+        onModeChange={setMode}
+        plan={planResult}
+        coast={coast}
+      />
 
-      <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 lg:col-span-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <SectionLabel>Projection</SectionLabel>
-          <div className="flex items-center gap-3">
-            <ModeToggle mode={mode} onChange={setMode} />
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                sustainable
-                  ? "bg-brand/15 text-success"
-                  : "bg-danger/15 text-danger"
-              }`}
-            >
-              <span
-                className={`size-1.5 rounded-full ${
-                  sustainable ? "bg-success" : "bg-danger"
-                }`}
-              />
-              {sustainable ? "On track" : "Shortfall"}
-            </span>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
+        <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 lg:col-span-2">
+          <MonoLabel>Your details</MonoLabel>
+          <div className="mt-5">
+            <FireForm value={inputs} onChange={setInputs} />
           </div>
-        </div>
+        </section>
 
-        {mode === "coast" ? (
-          <CoastSummary inputs={inputs} />
-        ) : (
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatTile
-              label="Bridge → SIPP"
-              value={`Age ${result.inputs.sippAccessAge}`}
-            />
-            <StatTile
-              label="Tax-free lump sum"
-              value={formatCurrency(result.taxFreeLumpSum)}
-            />
-            <StatTile
-              label="State Pension"
-              value={`Age ${result.inputs.statePensionAge}`}
-            />
-            <StatTile
-              label="Sustainable to 95"
-              value={sustainable ? "Yes" : "At risk"}
-              tone={sustainable ? "success" : "danger"}
+        <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 lg:col-span-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <MonoLabel>
+              {mode === "coast" ? "If you stop contributing" : "Projection"}
+            </MonoLabel>
+            <Segmented
+              value={chartTab}
+              onChange={setChartTab}
+              options={[
+                { value: "assets", label: "Assets" },
+                { value: "income", label: "Income" },
+              ]}
             />
           </div>
-        )}
-
-        <div className="mt-7">
-          <SectionLabel>
-            {mode === "coast"
-              ? "Asset balances if you stop contributing"
-              : "Asset balances over time"}
-          </SectionLabel>
-          <div className="mt-3">
-            <AssetTimelineChart result={result} />
+          <div className="mt-4">
+            {chartTab === "assets" ? (
+              <AssetTimelineChart result={shown} />
+            ) : (
+              <IncomeSafetyChart result={shown} />
+            )}
           </div>
-        </div>
 
-        <div className="mt-7">
-          <SectionLabel>Net annual income vs. target</SectionLabel>
-          <div className="mt-3">
-            <IncomeSafetyChart result={result} />
-          </div>
-        </div>
+          <AiInsights result={planResult} />
+        </section>
+      </div>
 
-        <AiInsights result={planResult} />
-      </section>
+      <p className="px-1 text-xs text-muted-foreground">
+        Estimates based on simplified assumptions — not financial advice.{" "}
+        <Link
+          href="/methodology"
+          className="underline-offset-2 hover:text-foreground hover:underline"
+        >
+          See the methodology
+        </Link>
+        .
+      </p>
     </div>
   );
 }

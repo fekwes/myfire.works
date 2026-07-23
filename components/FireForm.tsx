@@ -1,8 +1,8 @@
 "use client";
 
-import { Info } from "lucide-react";
+import { ChevronDown, Info } from "lucide-react";
 import type { ReactNode } from "react";
-import { useId } from "react";
+import { useId, useState } from "react";
 import { DEFAULT_ASSUMPTIONS, type FireInputs } from "@/lib/fire-engine";
 
 export const DEFAULT_FIRE_FORM_VALUES: FireInputs = {
@@ -38,7 +38,6 @@ function Tooltip({ text }: { text: string }) {
       >
         <Info className="size-3.5" />
       </button>
-      {/* Right-anchored so it never overflows the narrow form column. */}
       <span
         role="tooltip"
         id={id}
@@ -96,7 +95,7 @@ function NumberInput({
         type="number"
         inputMode="decimal"
         value={Number.isNaN(value) ? "" : value}
-        min={min}
+        min={Number.isFinite(min) ? min : undefined}
         step={step}
         onChange={(e) => onChange(e.target.valueAsNumber)}
         className="tabular w-full min-w-0 bg-transparent px-3 py-2 text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -134,6 +133,8 @@ function Block({
 }
 
 export function FireForm({ value, onChange }: FireFormProps) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   const set = <K extends keyof FireInputs>(key: K, next: FireInputs[K]) =>
     onChange({ ...value, [key]: next });
 
@@ -141,7 +142,8 @@ export function FireForm({ value, onChange }: FireFormProps) {
     v === undefined ? fallback : v;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Essentials — always visible */}
       <div className="grid grid-cols-2 items-end gap-4">
         <Field label="Current age">
           <NumberInput
@@ -152,7 +154,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
           />
         </Field>
         <Field
-          label="Target retirement age"
+          label="Retirement age"
           tooltip="When you plan to stop working. Your ISA/GIA bridges income until your SIPP unlocks."
         >
           <NumberInput
@@ -199,27 +201,6 @@ export function FireForm({ value, onChange }: FireFormProps) {
       </Block>
 
       <Block
-        title="GIA — taxable bridge"
-        dotClass="bg-data-3"
-        tooltip="Drawn after the ISA; gains above the £3,000 annual exemption pay Capital Gains Tax (18%/24%)."
-      >
-        <Field label="Current balance">
-          <NumberInput
-            value={num(value.giaBalance, 0)}
-            onChange={(v) => set("giaBalance", v)}
-            prefix="£"
-          />
-        </Field>
-        <Field label="Monthly contribution">
-          <NumberInput
-            value={num(value.giaMonthlyContribution, 0)}
-            onChange={(v) => set("giaMonthlyContribution", v)}
-            prefix="£"
-          />
-        </Field>
-      </Block>
-
-      <Block
         title="SIPP — the pension"
         dotClass="bg-data-1"
         tooltip="Locked until your access age. 25% tax-free (up to £268,275); the rest taxed as income."
@@ -238,78 +219,127 @@ export function FireForm({ value, onChange }: FireFormProps) {
             prefix="£"
           />
         </Field>
-        <Field
-          label="Access age"
-          className="col-span-2"
-          tooltip="UK minimum pension age is 55 today, rising to 57 in April 2028 — the default here."
-        >
-          <NumberInput
-            value={num(value.sippAccessAge, DEFAULT_ASSUMPTIONS.sippAccessAge)}
-            onChange={(v) => set("sippAccessAge", v)}
-            suffix="yrs"
-            min={value.retirementAge}
-          />
-        </Field>
       </Block>
 
-      <Block
-        title="State Pension"
-        tooltip="A flat income from your State Pension age. Lower the amount if your National Insurance record is incomplete."
+      {/* Progressive disclosure — advanced pots & assumptions */}
+      <button
+        type="button"
+        onClick={() => setShowAdvanced((s) => !s)}
+        aria-expanded={showAdvanced}
+        className="flex w-full items-center justify-between rounded-lg border border-border bg-surface-muted px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-muted-foreground/40"
       >
-        <Field label="From age">
-          <NumberInput
-            value={num(
-              value.statePensionAge,
-              DEFAULT_ASSUMPTIONS.statePensionAge,
-            )}
-            onChange={(v) => set("statePensionAge", v)}
-            suffix="yrs"
-          />
-        </Field>
-        <Field label="Amount">
-          <NumberInput
-            value={num(
-              value.statePensionAnnual,
-              DEFAULT_ASSUMPTIONS.statePensionAnnual,
-            )}
-            onChange={(v) => set("statePensionAnnual", v)}
-            prefix="£"
-            suffix="/ yr"
-            step={100}
-          />
-        </Field>
-      </Block>
+        <span>
+          {showAdvanced ? "Fewer options" : "More options"}
+          <span className="ml-1.5 text-muted-foreground">
+            GIA · State Pension · assumptions
+          </span>
+        </span>
+        <ChevronDown
+          className={`size-4 text-muted-foreground transition-transform ${
+            showAdvanced ? "rotate-180" : ""
+          }`}
+        />
+      </button>
 
-      <div className="grid grid-cols-2 items-end gap-4">
-        <Field
-          label="Expected growth"
-          tooltip="Assumed nominal annual return on all pots. Not inflation-adjusted."
-        >
-          <NumberInput
-            value={
-              Math.round(
-                num(value.growthRate, DEFAULT_ASSUMPTIONS.growthRate) * 1000,
-              ) / 10
-            }
-            onChange={(v) => set("growthRate", (v || 0) / 100)}
-            suffix="%"
-            step={0.5}
-          />
-        </Field>
-        <Field
-          label="Plan lasts to"
-          tooltip="The age the plan must fund. The projection runs every year up to here."
-        >
-          <NumberInput
-            value={num(
-              value.lifeExpectancyAge,
-              DEFAULT_ASSUMPTIONS.lifeExpectancyAge,
-            )}
-            onChange={(v) => set("lifeExpectancyAge", v)}
-            suffix="yrs"
-          />
-        </Field>
-      </div>
+      {showAdvanced && (
+        <div className="space-y-5">
+          <Block
+            title="GIA — taxable bridge"
+            dotClass="bg-data-3"
+            tooltip="Drawn after the ISA; gains above the £3,000 annual exemption pay Capital Gains Tax (18%/24%)."
+          >
+            <Field label="Current balance">
+              <NumberInput
+                value={num(value.giaBalance, 0)}
+                onChange={(v) => set("giaBalance", v)}
+                prefix="£"
+              />
+            </Field>
+            <Field label="Monthly contribution">
+              <NumberInput
+                value={num(value.giaMonthlyContribution, 0)}
+                onChange={(v) => set("giaMonthlyContribution", v)}
+                prefix="£"
+              />
+            </Field>
+          </Block>
+
+          <Block
+            title="State Pension"
+            tooltip="A flat income from your State Pension age. Lower the amount if your National Insurance record is incomplete."
+          >
+            <Field label="From age">
+              <NumberInput
+                value={num(
+                  value.statePensionAge,
+                  DEFAULT_ASSUMPTIONS.statePensionAge,
+                )}
+                onChange={(v) => set("statePensionAge", v)}
+                suffix="yrs"
+              />
+            </Field>
+            <Field label="Amount">
+              <NumberInput
+                value={num(
+                  value.statePensionAnnual,
+                  DEFAULT_ASSUMPTIONS.statePensionAnnual,
+                )}
+                onChange={(v) => set("statePensionAnnual", v)}
+                prefix="£"
+                suffix="/ yr"
+                step={100}
+              />
+            </Field>
+          </Block>
+
+          <Block title="Assumptions">
+            <Field
+              label="SIPP access age"
+              tooltip="UK minimum pension age is 55 today, rising to 57 in April 2028 — the default here."
+            >
+              <NumberInput
+                value={num(
+                  value.sippAccessAge,
+                  DEFAULT_ASSUMPTIONS.sippAccessAge,
+                )}
+                onChange={(v) => set("sippAccessAge", v)}
+                suffix="yrs"
+                min={value.retirementAge}
+              />
+            </Field>
+            <Field
+              label="Expected growth"
+              tooltip="Assumed nominal annual return on all pots. Not inflation-adjusted."
+            >
+              <NumberInput
+                value={
+                  Math.round(
+                    num(value.growthRate, DEFAULT_ASSUMPTIONS.growthRate) *
+                      1000,
+                  ) / 10
+                }
+                onChange={(v) => set("growthRate", (v || 0) / 100)}
+                suffix="%"
+                step={0.5}
+              />
+            </Field>
+            <Field
+              label="Plan lasts to"
+              className="col-span-2"
+              tooltip="The age the plan must fund. The projection runs every year up to here."
+            >
+              <NumberInput
+                value={num(
+                  value.lifeExpectancyAge,
+                  DEFAULT_ASSUMPTIONS.lifeExpectancyAge,
+                )}
+                onChange={(v) => set("lifeExpectancyAge", v)}
+                suffix="yrs"
+              />
+            </Field>
+          </Block>
+        </div>
+      )}
     </div>
   );
 }
