@@ -267,6 +267,41 @@ export default function MethodologyPage() {
           </p>
         </Section>
 
+        <Section
+          id="confidence"
+          eyebrow="Modes"
+          title="Confidence (Monte Carlo)"
+        >
+          <p>
+            The main projection assumes a steady return every year, which hides{" "}
+            <Term>sequence-of-returns risk</Term> — a run of bad early years
+            hurts far more than the same returns later. The{" "}
+            <Term>Confidence</Term> tab instead runs 2,000 randomised market
+            paths and reports the <Term>probability</Term> your plan survives.
+          </p>
+          <ul className="list-disc space-y-1.5 pl-5">
+            <li>
+              Annual returns are drawn from a distribution set by your{" "}
+              <Term>equity/bond allocation</Term> (equity ≈ 7% return / 16%
+              volatility, bonds ≈ 2.5% / 6%, interpolated).
+            </li>
+            <li>
+              Three withdrawal strategies are compared: <Term>flat</Term> (spend
+              the target regardless) and <Term>guardrails ±5% / ±10%</Term>,
+              which trim spending when markets are down and let it recover
+              toward the target when they&apos;re up — flexibility that
+              typically lifts the success rate substantially.
+            </li>
+            <li>
+              Simplifications: the invested pots are modelled as one combined
+              portfolio, guaranteed income is treated as net, and pot
+              withdrawals carry a single effective tax rate taken from your
+              deterministic plan. It&apos;s a confidence estimate, not a
+              guarantee.
+            </li>
+          </ul>
+        </Section>
+
         <Section id="coast" eyebrow="Modes" title="Coast FIRE">
           <p>
             You are <Term>Coast FIRE</Term> if your current pots, with{" "}
@@ -299,9 +334,9 @@ export default function MethodologyPage() {
         >
           <ul className="list-disc space-y-1.5 pl-5">
             <li>
-              A <Term>flat nominal growth rate per pot</Term> is applied each
-              year — not inflation-adjusted, not stochastic (Monte Carlo
-              confidence modelling is on the roadmap).
+              The main projection applies a <Term>flat nominal growth rate per
+              pot</Term> each year — not inflation-adjusted. The{" "}
+              <Term>Confidence</Term> tab adds randomness (see below).
             </li>
             <li>Rest-of-UK tax bands only — Scottish rates aren&apos;t modelled.</li>
             <li>

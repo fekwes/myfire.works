@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AiInsights } from "@/components/AiInsights";
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
+import { ConfidencePanel } from "@/components/ConfidencePanel";
 import { DEFAULT_FIRE_FORM_VALUES, FireForm } from "@/components/FireForm";
 import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
 import { SavedPlans } from "@/components/SavedPlans";
@@ -11,7 +12,7 @@ import { computeCoastFire } from "@/lib/coast-fire";
 import { simulateFire, type FireInputs } from "@/lib/fire-engine";
 import { formatCurrency } from "@/lib/format";
 
-type ChartTab = "assets" | "income";
+type ChartTab = "assets" | "income" | "confidence";
 
 function MonoLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -168,14 +169,17 @@ export function FireDashboard() {
               options={[
                 { value: "assets", label: "Assets" },
                 { value: "income", label: "Income" },
+                { value: "confidence", label: "Confidence" },
               ]}
             />
           </div>
           <div className="mt-4">
             {chartTab === "assets" ? (
               <AssetTimelineChart result={plan} />
-            ) : (
+            ) : chartTab === "income" ? (
               <IncomeSafetyChart result={plan} />
+            ) : (
+              <ConfidencePanel inputs={inputs} />
             )}
           </div>
 
