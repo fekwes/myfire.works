@@ -8,8 +8,10 @@ export interface UkIncomeTaxBands {
   additionalRate: number;
 }
 
-// 2024/25 rest-of-UK income tax bands (Scottish rates are not modelled).
-export const UK_INCOME_TAX_BANDS_2024_25: UkIncomeTaxBands = {
+// 2026/27 rest-of-UK income tax bands (Scottish rates are not modelled).
+// Thresholds are frozen from 2021/22 through to 2030/31, so these match the
+// current published figures.
+export const UK_INCOME_TAX_BANDS_2026_27: UkIncomeTaxBands = {
   personalAllowance: 12570,
   taperThreshold: 100000,
   basicRateBandWidth: 37700,
@@ -19,26 +21,34 @@ export const UK_INCOME_TAX_BANDS_2024_25: UkIncomeTaxBands = {
   additionalRate: 0.45,
 };
 
-/** Income at which the basic-rate band ends (£50,270 for 2024/25). */
+/** Income at which the basic-rate band ends (£50,270 for 2026/27). */
 export const BASIC_RATE_CEILING =
-  UK_INCOME_TAX_BANDS_2024_25.personalAllowance +
-  UK_INCOME_TAX_BANDS_2024_25.basicRateBandWidth;
+  UK_INCOME_TAX_BANDS_2026_27.personalAllowance +
+  UK_INCOME_TAX_BANDS_2026_27.basicRateBandWidth;
 
+/** Lump Sum Allowance — the lifetime cap on tax-free pension cash (frozen). */
 export const TAX_FREE_LUMP_SUM_CAP = 268275;
 
-// Capital Gains Tax, 2024/25 (non-property rates from 30 Oct 2024).
+// Capital Gains Tax, 2026/27 (non-property rates aligned at 18%/24% since
+// 30 Oct 2024; £3,000 annual exempt amount).
 export const CGT_ANNUAL_EXEMPT_AMOUNT = 3000;
 export const CGT_BASIC_RATE = 0.18;
 export const CGT_HIGHER_RATE = 0.24;
 
+export type PensionStrategy = "gradual" | "lump-sum";
+
 export const DEFAULT_ASSUMPTIONS = {
   growthRate: 0.05,
-  statePensionAnnual: 11502, // full new State Pension, 2024/25 (£221.20/week)
+  // Full new State Pension 2026/27: £241.30/week × 52 = £12,547.60/yr.
+  statePensionAnnual: 12547.6,
   statePensionAge: 67,
   // UK Normal Minimum Pension Age is 55 today, rising to 57 on 6 Apr 2028.
   // Early retirees modelled here reach it after 2028, so we default to 57.
   sippAccessAge: 57,
   lifeExpectancyAge: 95,
+  // "gradual" = UFPLS: 25% of every SIPP withdrawal is tax-free (the most
+  // tax-efficient default). "lump-sum" = take the 25% up front as cash.
+  pensionStrategy: "gradual" as PensionStrategy,
 } as const;
 
 export interface FireInputs {
@@ -52,10 +62,15 @@ export interface FireInputs {
   /** General Investment Account — taxable (CGT on gains). Defaults to 0. */
   giaBalance?: number;
   giaMonthlyContribution?: number;
+  /** Per-wrapper nominal growth. Each defaults to `growthRate`. */
+  isaGrowth?: number;
+  giaGrowth?: number;
+  sippGrowth?: number;
   growthRate?: number;
   statePensionAnnual?: number;
   statePensionAge?: number;
   sippAccessAge?: number;
+  pensionStrategy?: PensionStrategy;
   lifeExpectancyAge?: number;
 }
 
@@ -75,7 +90,8 @@ export interface YearSnapshot {
   isaWithdrawal: number;
   giaWithdrawal: number;
   sippGrossWithdrawal: number;
-  taxFreeLumpSumTaken: number;
+  /** Tax-free pension cash taken this year (lump sum, or the 25% UFPLS slice). */
+  pensionTaxFreeTaken: number;
   statePensionIncome: number;
   incomeTaxPaid: number;
   capitalGainsTaxPaid: number;
@@ -86,7 +102,10 @@ export interface YearSnapshot {
 export interface FireSimulationResult {
   inputs: ResolvedFireInputs;
   timeline: YearSnapshot[];
+  /** Upfront tax-free lump sum (only in the "lump-sum" strategy; else 0). */
   taxFreeLumpSum: number;
+  /** Total tax-free pension cash taken across the whole plan. */
+  totalTaxFreePension: number;
   bridgeToSippTransitionAge: number | null;
   isaDepletedAge: number | null;
   giaDepletedAge: number | null;
@@ -95,16 +114,22 @@ export interface FireSimulationResult {
 }
 
 function resolveInputs(inputs: FireInputs): ResolvedFireInputs {
+  const growthRate = inputs.growthRate ?? DEFAULT_ASSUMPTIONS.growthRate;
   return {
     ...inputs,
     giaBalance: inputs.giaBalance ?? 0,
     giaMonthlyContribution: inputs.giaMonthlyContribution ?? 0,
-    growthRate: inputs.growthRate ?? DEFAULT_ASSUMPTIONS.growthRate,
+    growthRate,
+    isaGrowth: inputs.isaGrowth ?? growthRate,
+    giaGrowth: inputs.giaGrowth ?? growthRate,
+    sippGrowth: inputs.sippGrowth ?? growthRate,
     statePensionAnnual:
       inputs.statePensionAnnual ?? DEFAULT_ASSUMPTIONS.statePensionAnnual,
     statePensionAge:
       inputs.statePensionAge ?? DEFAULT_ASSUMPTIONS.statePensionAge,
     sippAccessAge: inputs.sippAccessAge ?? DEFAULT_ASSUMPTIONS.sippAccessAge,
+    pensionStrategy:
+      inputs.pensionStrategy ?? DEFAULT_ASSUMPTIONS.pensionStrategy,
     lifeExpectancyAge:
       inputs.lifeExpectancyAge ?? DEFAULT_ASSUMPTIONS.lifeExpectancyAge,
   };
@@ -112,7 +137,7 @@ function resolveInputs(inputs: FireInputs): ResolvedFireInputs {
 
 export function calculatePersonalAllowance(
   totalIncome: number,
-  bands: UkIncomeTaxBands = UK_INCOME_TAX_BANDS_2024_25,
+  bands: UkIncomeTaxBands = UK_INCOME_TAX_BANDS_2026_27,
 ): number {
   if (totalIncome <= bands.taperThreshold) return bands.personalAllowance;
   const reduction = Math.floor((totalIncome - bands.taperThreshold) / 2);
@@ -121,7 +146,7 @@ export function calculatePersonalAllowance(
 
 export function calculateUkIncomeTax(
   totalIncome: number,
-  bands: UkIncomeTaxBands = UK_INCOME_TAX_BANDS_2024_25,
+  bands: UkIncomeTaxBands = UK_INCOME_TAX_BANDS_2026_27,
 ): number {
   if (totalIncome <= 0) return 0;
 
@@ -182,7 +207,7 @@ export function calculateTaxFreeLumpSum(
 export function solveGrossIncomeForNet(
   targetNet: number,
   otherTaxableIncome: number,
-  bands: UkIncomeTaxBands = UK_INCOME_TAX_BANDS_2024_25,
+  bands: UkIncomeTaxBands = UK_INCOME_TAX_BANDS_2026_27,
 ): number {
   if (targetNet <= 0) return 0;
 
@@ -191,24 +216,37 @@ export function solveGrossIncomeForNet(
     return total - calculateUkIncomeTax(total, bands);
   };
 
-  let lo = 0;
-  let hi = Math.max(targetNet * 2, 1000);
-  while (netOf(hi) < targetNet && hi < 1e8) hi *= 2;
-
-  for (let i = 0; i < 60; i++) {
-    const mid = (lo + hi) / 2;
-    if (netOf(mid) < targetNet) lo = mid;
-    else hi = mid;
-  }
-
-  return hi;
+  return bisect(netOf, targetNet);
 }
 
 /**
- * Finds the gross GIA withdrawal whose net-of-CGT value equals `targetNet`,
- * given a fixed gains fraction for the year. Same bisection approach as the
- * income solver — the gains fraction and exemption are constant within a
- * year, so net-of-CGT is monotonic in the gross amount.
+ * Gross SIPP withdrawal (UFPLS "gradual" strategy) whose net-of-tax value —
+ * with 25% of the withdrawal tax-free up to `remainingLsa`, on top of
+ * `otherTaxableIncome` — equals `targetNet`.
+ */
+export function solveSippGrossForNetGradual(
+  targetNet: number,
+  otherTaxableIncome: number,
+  remainingLsa: number,
+): number {
+  if (targetNet <= 0) return 0;
+
+  const netOf = (gross: number) => {
+    const taxFree = Math.min(0.25 * gross, remainingLsa);
+    const taxable = gross - taxFree;
+    return (
+      taxFree +
+      (otherTaxableIncome + taxable) -
+      calculateUkIncomeTax(otherTaxableIncome + taxable)
+    );
+  };
+
+  return bisect(netOf, targetNet);
+}
+
+/**
+ * Gross GIA withdrawal whose net-of-CGT value equals `targetNet`, for a fixed
+ * gains fraction. Net-of-CGT is monotonic in the gross amount within a year.
  */
 export function solveGiaGrossForNet(
   targetNet: number,
@@ -221,16 +259,19 @@ export function solveGiaGrossForNet(
   const netOf = (gross: number) =>
     gross - calculateCapitalGainsTax(gross * gainFraction, remainingBasicBand);
 
+  return bisect(netOf, targetNet);
+}
+
+/** Bisection for a monotonically increasing net(gross) function. */
+function bisect(netOf: (gross: number) => number, targetNet: number): number {
   let lo = 0;
   let hi = Math.max(targetNet * 2, 1000);
-  while (netOf(hi) < targetNet && hi < 1e8) hi *= 2;
-
+  while (netOf(hi) < targetNet && hi < 1e9) hi *= 2;
   for (let i = 0; i < 60; i++) {
     const mid = (lo + hi) / 2;
     if (netOf(mid) < targetNet) lo = mid;
     else hi = mid;
   }
-
   return hi;
 }
 
@@ -240,23 +281,26 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     currentAge,
     retirementAge,
     targetAnnualIncome,
-    growthRate,
+    isaGrowth,
+    giaGrowth,
+    sippGrowth,
     statePensionAnnual,
     statePensionAge,
     sippAccessAge,
+    pensionStrategy,
     lifeExpectancyAge,
   } = inputs;
 
   let isaBalance = inputs.isaBalance;
   let giaBalance = inputs.giaBalance;
-  // Cost basis for CGT. We assume the starting GIA balance carries no embedded
-  // gain (basis = value); growth accrues as gains, contributions add to basis.
+  // Cost basis for CGT: starting GIA is assumed to carry no embedded gain.
   let giaBasis = inputs.giaBalance;
   let sippBalance = inputs.sippBalance;
 
   const lumpSumAge = Math.max(retirementAge, sippAccessAge);
   let lumpSumTaken = false;
   let taxFreeLumpSum = 0;
+  let lsaUsed = 0; // cumulative tax-free pension cash taken (capped at the LSA)
 
   let bridgeToSippTransitionAge: number | null = null;
   let isaDepletedAge: number | null = null;
@@ -271,13 +315,12 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     const sippBalanceStart = sippBalance;
 
     if (age < retirementAge) {
-      isaBalance =
-        isaBalance * (1 + growthRate) + inputs.isaMonthlyContribution * 12;
+      isaBalance = isaBalance * (1 + isaGrowth) + inputs.isaMonthlyContribution * 12;
       const giaContribution = inputs.giaMonthlyContribution * 12;
-      giaBalance = giaBalance * (1 + growthRate) + giaContribution;
+      giaBalance = giaBalance * (1 + giaGrowth) + giaContribution;
       giaBasis += giaContribution;
       sippBalance =
-        sippBalance * (1 + growthRate) + inputs.sippMonthlyContribution * 12;
+        sippBalance * (1 + sippGrowth) + inputs.sippMonthlyContribution * 12;
 
       timeline.push({
         age,
@@ -291,7 +334,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
         isaWithdrawal: 0,
         giaWithdrawal: 0,
         sippGrossWithdrawal: 0,
-        taxFreeLumpSumTaken: 0,
+        pensionTaxFreeTaken: 0,
         statePensionIncome: 0,
         incomeTaxPaid: 0,
         capitalGainsTaxPaid: 0,
@@ -301,36 +344,55 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       continue;
     }
 
-    isaBalance *= 1 + growthRate;
-    giaBalance *= 1 + growthRate;
-    sippBalance *= 1 + growthRate;
+    isaBalance *= 1 + isaGrowth;
+    giaBalance *= 1 + giaGrowth;
+    sippBalance *= 1 + sippGrowth;
 
-    let lumpSumThisYear = 0;
-    if (!lumpSumTaken && age >= lumpSumAge) {
-      lumpSumThisYear = calculateTaxFreeLumpSum(sippBalance);
-      sippBalance -= lumpSumThisYear;
-      isaBalance += lumpSumThisYear; // tax-free cash sheltered in the ISA
-      taxFreeLumpSum = lumpSumThisYear;
+    const sippAccessible = age >= sippAccessAge;
+
+    // "lump-sum" strategy: take the 25% PCLS once, as cash into the GIA
+    // (it can't fit in an ISA). The remainder is fully taxable on drawdown.
+    let pensionTaxFreeTaken = 0;
+    if (
+      pensionStrategy === "lump-sum" &&
+      sippAccessible &&
+      !lumpSumTaken &&
+      age >= lumpSumAge
+    ) {
+      const lump = Math.min(
+        calculateTaxFreeLumpSum(sippBalance),
+        TAX_FREE_LUMP_SUM_CAP - lsaUsed,
+      );
+      sippBalance -= lump;
+      giaBalance += lump; // cash sheltered in the GIA (basis = amount)
+      giaBasis += lump;
+      taxFreeLumpSum = lump;
+      lsaUsed += lump;
+      pensionTaxFreeTaken += lump;
       lumpSumTaken = true;
     }
 
-    const isBridge = age < sippAccessAge;
-    if (isBridge && bridgeToSippTransitionAge === null) {
+    if (age < sippAccessAge && bridgeToSippTransitionAge === null) {
       bridgeToSippTransitionAge = sippAccessAge;
     }
-
     const statePensionIncome = age >= statePensionAge ? statePensionAnnual : 0;
+    const statePensionNet =
+      statePensionIncome - calculateUkIncomeTax(statePensionIncome);
+
+    // The State Pension is guaranteed income, so the pots only need to cover
+    // the rest of the target — it offsets ISA/GIA/SIPP drawdown alike.
+    let potNeed = Math.max(0, targetAnnualIncome - statePensionNet);
 
     // 1. ISA — tax-free, drawn first.
-    const isaWithdrawal = Math.min(isaBalance, targetAnnualIncome);
+    const isaWithdrawal = Math.min(isaBalance, potNeed);
     isaBalance -= isaWithdrawal;
-    let remainingNeeded = targetAnnualIncome - isaWithdrawal;
+    potNeed -= isaWithdrawal;
 
-    // 2. GIA — CGT on the gains portion of each withdrawal.
+    // 2. GIA — CGT on the gains portion.
     let giaWithdrawal = 0;
     let capitalGainsTaxPaid = 0;
     let netFromGia = 0;
-    if (remainingNeeded > 0 && giaBalance > 0.01) {
+    if (potNeed > 0 && giaBalance > 0.01) {
       const gainFraction =
         giaBalance > 0 ? Math.max(0, (giaBalance - giaBasis) / giaBalance) : 0;
       const remainingBasicBand = Math.max(
@@ -338,7 +400,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
         BASIC_RATE_CEILING - statePensionIncome,
       );
       const desiredGross = solveGiaGrossForNet(
-        remainingNeeded,
+        potNeed,
         gainFraction,
         remainingBasicBand,
       );
@@ -353,29 +415,48 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
         giaBalance > 0 ? giaWithdrawal * (giaBasis / giaBalance) : 0;
       giaBasis = Math.max(0, giaBasis - basisConsumed);
       giaBalance -= giaWithdrawal;
-      remainingNeeded -= netFromGia;
+      potNeed -= netFromGia;
     }
 
-    // 3. SIPP — taxable income drawdown, offset by the State Pension.
+    // 3. SIPP — only once accessible, drawn on top of the State Pension.
+    // In "gradual" (UFPLS) mode, 25% of each withdrawal is tax-free. The
+    // solver targets total net income (pot need + SP net) so the SIPP tax
+    // correctly stacks above the State Pension.
     let sippGrossWithdrawal = 0;
-    let incomeTaxPaid = 0;
-    let netFromSippAndStatePension = 0;
-    if (remainingNeeded > 0) {
-      const desiredGross = solveGrossIncomeForNet(
-        remainingNeeded,
-        statePensionIncome,
-      );
-      sippGrossWithdrawal = Math.min(desiredGross, sippBalance);
+    let taxablePortion = 0;
+    let gradualTaxFree = 0; // tax-free SIPP slice spent as income this year
+    if (sippAccessible && potNeed > 0) {
+      const solverTarget = potNeed + statePensionNet;
+      if (pensionStrategy === "gradual") {
+        const remainingLsa = Math.max(0, TAX_FREE_LUMP_SUM_CAP - lsaUsed);
+        const desiredGross = solveSippGrossForNetGradual(
+          solverTarget,
+          statePensionIncome,
+          remainingLsa,
+        );
+        sippGrossWithdrawal = Math.min(desiredGross, sippBalance);
+        gradualTaxFree = Math.min(0.25 * sippGrossWithdrawal, remainingLsa);
+        lsaUsed += gradualTaxFree;
+        pensionTaxFreeTaken += gradualTaxFree;
+        taxablePortion = sippGrossWithdrawal - gradualTaxFree;
+      } else {
+        const desiredGross = solveGrossIncomeForNet(
+          solverTarget,
+          statePensionIncome,
+        );
+        sippGrossWithdrawal = Math.min(desiredGross, sippBalance);
+        taxablePortion = sippGrossWithdrawal;
+      }
       sippBalance -= sippGrossWithdrawal;
-
-      const totalTaxable = statePensionIncome + sippGrossWithdrawal;
-      incomeTaxPaid = calculateUkIncomeTax(totalTaxable);
-      netFromSippAndStatePension = totalTaxable - incomeTaxPaid;
-    } else if (statePensionIncome > 0) {
-      incomeTaxPaid = calculateUkIncomeTax(statePensionIncome);
-      netFromSippAndStatePension = statePensionIncome - incomeTaxPaid;
     }
 
+    const incomeTaxPaid = calculateUkIncomeTax(
+      statePensionIncome + taxablePortion,
+    );
+    // Net from the taxable side (State Pension + taxable SIPP) plus the
+    // gradual tax-free slice; ISA and GIA are already net.
+    const netFromSippAndStatePension =
+      gradualTaxFree + statePensionIncome + taxablePortion - incomeTaxPaid;
     const netIncome = isaWithdrawal + netFromGia + netFromSippAndStatePension;
     const shortfall = netIncome < targetAnnualIncome - 0.01;
 
@@ -391,7 +472,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
 
     timeline.push({
       age,
-      phase: isBridge
+      phase: age < sippAccessAge
         ? "bridge"
         : age >= statePensionAge
           ? "state-pension"
@@ -405,7 +486,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       isaWithdrawal,
       giaWithdrawal,
       sippGrossWithdrawal,
-      taxFreeLumpSumTaken: lumpSumThisYear,
+      pensionTaxFreeTaken,
       statePensionIncome,
       incomeTaxPaid,
       capitalGainsTaxPaid,
@@ -422,6 +503,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     inputs,
     timeline,
     taxFreeLumpSum,
+    totalTaxFreePension: lsaUsed,
     bridgeToSippTransitionAge,
     isaDepletedAge,
     giaDepletedAge,

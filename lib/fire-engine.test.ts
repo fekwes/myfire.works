@@ -156,15 +156,21 @@ describe("simulateFire", () => {
     }
   });
 
-  it("takes a 25% tax-free lump sum at the SIPP access age", () => {
-    const result = simulateFire(baseInputs);
+  it("takes a 25% tax-free lump sum at the SIPP access age (lump-sum strategy)", () => {
+    const result = simulateFire({
+      ...baseInputs,
+      pensionStrategy: "lump-sum",
+    });
     expect(result.taxFreeLumpSum).toBeGreaterThan(0);
     expect(result.taxFreeLumpSum).toBeLessThanOrEqual(TAX_FREE_LUMP_SUM_CAP);
 
-    const lumpSumYear = result.timeline.find(
-      (y) => y.taxFreeLumpSumTaken > 0,
-    );
+    const lumpSumYear = result.timeline.find((y) => y.pensionTaxFreeTaken > 0);
     expect(lumpSumYear?.age).toBe(57); // default SIPP access age (2028 NMPA)
+  });
+
+  it("takes no upfront lump sum in the default gradual (UFPLS) strategy", () => {
+    const result = simulateFire(baseInputs);
+    expect(result.taxFreeLumpSum).toBe(0);
   });
 
   it("draws taxable SIPP income once ISA and the tax-free lump sum can't cover the target", () => {
@@ -190,7 +196,7 @@ describe("simulateFire", () => {
     );
     expect(statePensionYears.length).toBeGreaterThan(0);
     for (const year of statePensionYears) {
-      expect(year.statePensionIncome).toBeCloseTo(11502, 0);
+      expect(year.statePensionIncome).toBeCloseTo(12547.6, 0); // 2026/27
     }
   });
 
@@ -249,5 +255,58 @@ describe("simulateFire", () => {
       (y) => y.giaWithdrawal > 0 && !y.shortfall,
     );
     expect(fundedYear?.netIncome).toBeCloseTo(20000, 0);
+  });
+
+  it("cannot draw the SIPP before the access age (bridge shortfall)", () => {
+    // Retire at 50 with a small ISA but a large, locked SIPP. The bridge
+    // years (50–56) must fall short — the SIPP can't be touched until 57.
+    const result = simulateFire({
+      currentAge: 50,
+      retirementAge: 50,
+      targetAnnualIncome: 40000,
+      isaBalance: 20000,
+      isaMonthlyContribution: 0,
+      sippBalance: 1_000_000,
+      sippMonthlyContribution: 0,
+    });
+    const bridge = result.timeline.filter((y) => y.phase === "bridge");
+    expect(bridge.every((y) => y.sippGrossWithdrawal === 0)).toBe(true);
+    expect(bridge.some((y) => y.shortfall)).toBe(true);
+  });
+
+  it("routes the tax-free lump sum into the GIA, not the ISA", () => {
+    const result = simulateFire({
+      currentAge: 57,
+      retirementAge: 57,
+      targetAnnualIncome: 10000,
+      isaBalance: 0,
+      isaMonthlyContribution: 0,
+      sippBalance: 400000,
+      sippMonthlyContribution: 0,
+      pensionStrategy: "lump-sum",
+    });
+    const accessYear = result.timeline.find((y) => y.age === 57);
+    expect(accessYear?.giaBalanceStart).toBe(0);
+    expect(accessYear?.giaBalanceEnd ?? 0).toBeGreaterThan(50000); // lump landed here
+    expect(result.taxFreeLumpSum).toBeGreaterThan(0);
+  });
+
+  it("gives 25% of gradual (UFPLS) SIPP withdrawals tax-free", () => {
+    const result = simulateFire({
+      currentAge: 57,
+      retirementAge: 57,
+      targetAnnualIncome: 30000,
+      isaBalance: 0,
+      isaMonthlyContribution: 0,
+      sippBalance: 800000,
+      sippMonthlyContribution: 0,
+      pensionStrategy: "gradual",
+    });
+    const year = result.timeline.find(
+      (y) => y.age === 57 && y.sippGrossWithdrawal > 0,
+    );
+    expect(year?.pensionTaxFreeTaken ?? 0).toBeGreaterThan(0);
+    expect(year?.netIncome).toBeCloseTo(30000, 0);
+    expect(result.totalTaxFreePension).toBeGreaterThan(0);
   });
 });

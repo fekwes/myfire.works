@@ -20,14 +20,14 @@ age >= statePensionAge     → "state-pension"  (SIPP drawdown offset by State P
 **Retired years** all go through the same withdrawal waterfall, regardless of which of the three retired phases they're labeled — the phase label is only used for display (which chart region, which color). Concretely, each retired year:
 
 1. Grows both balances by the growth rate.
-2. If this is the first year at or past `max(retirementAge, sippAccessAge)`, takes the 25% tax-free lump sum out of the SIPP balance once, and **rolls it into the ISA balance** rather than spending it immediately. This is a deliberate modeling choice: in practice people who take a tax-free lump sum they don't need that exact year keep it in an ISA/GIA wrapper, where it keeps compounding tax-efficiently — so the lump sum genuinely extends the tax-free "bridge" pot, sometimes well past age 58. You can see this in the asset chart as a visible bump in the ISA line right at the SIPP access age.
-3. Withdraws from the ISA balance first, up to the target annual income, tax-free.
-4. If that doesn't cover the target, solves for how much *gross* SIPP withdrawal is needed — combined with any State Pension income — to make up the shortfall net of UK income tax (see the gross-up solver, below).
+2. Receives the State Pension (from State Pension age) and subtracts its net value from the target first — guaranteed income offsets pot withdrawals, so the pots only fund the remainder.
+3. Withdraws from the ISA (tax-free), then GIA (CGT on gains), then SIPP — but the SIPP is only accessible from the access age, so bridge years must run on ISA/GIA alone (a shortfall if they can't cover it).
+4. Applies the chosen pension-access strategy: **gradual (UFPLS)** — 25% of each SIPP withdrawal is tax-free (default); or **lump sum** — the 25% is taken up front and placed in the GIA (it can't fit in an ISA's £20k/yr allowance). Gross withdrawals are solved so the net-of-tax income hits the target (see the gross-up solvers).
 5. Records whether the year fell short of the target (`shortfall: true`), which is what the income-safety chart colors red.
 
 ## UK income tax
 
-`calculateUkIncomeTax(totalIncome)` implements the 2024/25 rest-of-UK bands:
+`calculateUkIncomeTax(totalIncome)` implements the 2026/27 rest-of-UK bands:
 
 | Band | Rate |
 |---|---|
@@ -71,12 +71,12 @@ One test originally asserted SIPP drawdown would occur for the app's *default* i
 
 Documented here rather than buried in comments, since they materially affect how literally to take the app's numbers:
 
-- **2024/25 rest-of-UK tax rates only.** Scottish income tax bands are different and not modeled.
+- **2026/27 rest-of-UK tax rates only.** Scottish income tax bands are different and not modeled.
 - **Flat 5% nominal annual growth**, applied identically to both the ISA and SIPP pot every year — not inflation-adjusted, not stochastic, not asset-allocation-aware.
 - **GIA Capital Gains Tax is modelled in a simplified form.** The GIA is a separate, taxable bucket drawn after the ISA: each withdrawal realises a gain proportional to the pot's embedded gain, taxed at 18%/24% above the £3,000 annual exempt amount. Two simplifications: the *starting* GIA balance is assumed to carry no embedded gain (cost basis = current value, so early CGT is understated), and **dividend tax is not modelled**.
 - **Contributions stop entirely at the modeled retirement age** — no tapering, no post-retirement part-time income.
 - **The tax-free lump sum is taken as a single event** at `max(retirementAge, sippAccessAge)`, not phased across multiple withdrawals (which some real SIPP providers support and which can have different practical tax timing implications).
-- **State Pension amount is a fixed default** (£11,502/year, the 2024/25 full new State Pension) — it doesn't account for incomplete National Insurance records, which reduce the actual entitlement.
+- **State Pension amount is a fixed default** (£12,547.60/year — the 2026/27 full new State Pension, £241.30/week) — it doesn't account for incomplete National Insurance records, which reduce the actual entitlement. It offsets pot withdrawals rather than being surplus income.
 - **95-year fixed life expectancy horizon** — no mortality modeling, no partner/joint planning.
 
 None of these are hidden — `DEFAULT_ASSUMPTIONS` in `fire-engine.ts` is the single place they're all defined, and every one is a `FireInputs` field with a sensible default rather than a hardcoded constant, so they're overridable if you want to stress-test different assumptions.

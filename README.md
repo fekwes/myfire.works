@@ -9,7 +9,7 @@ Built with [Next.js](https://nextjs.org), TypeScript, Tailwind CSS, and [Claude 
 ## What it does
 
 1. **Bridge phase** — from your target retirement age until your SIPP unlocks (57 by default; the UK minimum pension age rises to 57 in April 2028), income is drawn from your **ISA** (tax-free) first, then your **GIA** (with Capital Gains Tax on the gains portion of each withdrawal).
-2. **SIPP phase** — at your access age, up to £268,275 (25% of the pot) is taken as a tax-free lump sum; the rest is drawn down and taxed against 2024/25 UK income tax bands.
+2. **SIPP phase** — at your access age, up to £268,275 (25% of the pot) is taken as a tax-free lump sum; the rest is drawn down and taxed against 2026/27 UK income tax bands.
 3. **State Pension phase** — from State Pension age (67 by default), State Pension income reduces how much SIPP needs to be withdrawn each year to hit your target.
 
 You enter your ages, target income, and current ISA/GIA/SIPP balances and contributions — the statutory ages, State Pension amount and growth rate are all editable under **Assumptions**. The app simulates every year to your life-expectancy horizon and shows the asset timeline, the exact year you cross from bridge funding to SIPP funding, and whether your net income holds up in every year.
@@ -28,7 +28,7 @@ You enter your ages, target income, and current ISA/GIA/SIPP balances and contri
 
 [`lib/fire-engine.ts`](lib/fire-engine.ts) is a standalone, fully-tested TypeScript module — no framework dependencies — that models:
 
-- **UK income tax** (2024/25, rest-of-UK rates) including the £100,000–£125,140 personal allowance taper, verified against known HMRC figures (e.g. tax on £200,000 = £76,203, tax exactly at the additional-rate threshold £125,140 = £42,516).
+- **UK income tax** (2026/27, rest-of-UK rates) including the £100,000–£125,140 personal allowance taper, verified against known HMRC figures (e.g. tax on £200,000 = £76,203, tax exactly at the additional-rate threshold £125,140 = £42,516).
 - **A gross-up solver.** Given a target *net* income plus other taxable income (like the State Pension), there's no clean closed-form inverse of a progressive tax function with a tapering allowance — so the engine uses bisection search instead of hand-deriving a band-by-band formula. It's a small, deliberate trade of "clever math" for "obviously correct and easy to verify."
 - **A full year-by-year simulation** — 40+ years, tracking two balances, applying growth, contributions, the one-off lump sum, and the withdrawal waterfall (ISA first, SIPP second) — producing the data the dashboard charts directly.
 
@@ -37,8 +37,8 @@ You enter your ages, target income, and current ISA/GIA/SIPP balances and contri
 ## Getting started
 
 ```bash
-git clone https://github.com/fekwes/uk-fire-app.git
-cd uk-fire-app
+git clone https://github.com/fekwes/onfire.git
+cd onfire
 npm install
 npm run dev
 ```
@@ -96,7 +96,7 @@ What I actually did:
 
 ## Assumptions & limitations
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#assumptions--simplifications) for the full list — briefly: 2024/25 rest-of-UK tax rates only (no Scottish rates), a flat nominal growth assumption, GIA Capital Gains Tax modelled in a simplified form (the starting GIA balance is assumed to carry no embedded gain; dividend tax isn't modelled), and a configurable life-expectancy horizon.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#assumptions--simplifications) for the full list — briefly: 2026/27 rest-of-UK tax rates only (no Scottish rates), a flat nominal growth assumption, GIA Capital Gains Tax modelled in a simplified form (the starting GIA balance is assumed to carry no embedded gain; dividend tax isn't modelled), and a configurable life-expectancy horizon.
 
 ## License
 

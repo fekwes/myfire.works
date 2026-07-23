@@ -112,7 +112,7 @@ export default function MethodologyPage() {
         <Section
           id="income-tax"
           eyebrow="Tax"
-          title="UK Income Tax (2024/25)"
+          title="UK Income Tax (2026/27)"
         >
           <p>
             SIPP drawdown and the State Pension are taxed as income against the
@@ -176,7 +176,7 @@ export default function MethodologyPage() {
               <Term>embedded gain</Term> (value minus cost basis).
             </li>
             <li>
-              The <Term>£3,000 annual exempt amount</Term> (2024/25) is applied
+              The <Term>£3,000 annual exempt amount</Term> (2026/27) is applied
               each year.
             </li>
             <li>
@@ -195,18 +195,31 @@ export default function MethodologyPage() {
         <Section
           id="sipp"
           eyebrow="Pensions"
-          title="SIPP: lump sum & access age"
+          title="SIPP: access age & how you take the 25%"
         >
           <p>
-            At your SIPP access age, <Term>25% can be taken tax-free</Term>, up
-            to a cap of <Term>£268,275</Term>. OnFIRE shelters that lump sum in
-            the ISA so it keeps compounding tax-free; the rest of the pension is
-            drawn as taxable income.
+            You can take <Term>25% of your pension tax-free</Term>, up to a cap
+            of <Term>£268,275</Term> (the Lump Sum Allowance). OnFIRE lets you
+            choose how, under <Term>Lifestyle scenario → Pension access</Term>:
           </p>
+          <ul className="list-disc space-y-1.5 pl-5">
+            <li>
+              <Term>Gradual (UFPLS)</Term> — the default. 25% of every
+              withdrawal is tax-free and the other 75% is taxed as income. This
+              spreads the tax-free allowance and is usually the most efficient.
+            </li>
+            <li>
+              <Term>Lump sum</Term> — take the whole 25% as cash up front. Since
+              it can&apos;t fit in an ISA (£20k/yr limit), OnFIRE places it in
+              your GIA; the rest of the pension is then fully taxable on
+              drawdown.
+            </li>
+          </ul>
           <p>
             The UK <Term>Normal Minimum Pension Age</Term> is 55 today, rising to{" "}
             <Term>57 on 6 April 2028</Term>. Early retirees modelled here reach
-            it after 2028, so the default is 57 — editable in the planner.
+            it after 2028, so the default is 57 — and the SIPP can&apos;t be
+            touched before it (bridge years must run on ISA/GIA).
           </p>
         </Section>
 
@@ -216,10 +229,12 @@ export default function MethodologyPage() {
           title="State Pension"
         >
           <p>
-            From your State Pension age, a flat annual income is added and used
-            to offset SIPP drawdown. The default is the{" "}
-            <Term>full new State Pension</Term> for 2024/25, £11,502/yr — lower
-            it if your National Insurance record is incomplete.
+            From your State Pension age, a flat annual income is added and{" "}
+            <Term>offsets your pot withdrawals</Term> — the pots only fund the
+            rest of the target, so they last longer once it starts. The default
+            is the <Term>full new State Pension</Term> for 2026/27,
+            £12,547.60/yr (£241.30/week, +4.8% triple lock) — lower it if your
+            National Insurance record is incomplete.
           </p>
           <p>
             State Pension age is 66 today, rising to 67 (2026–2028) and 68
@@ -259,9 +274,9 @@ export default function MethodologyPage() {
         >
           <ul className="list-disc space-y-1.5 pl-5">
             <li>
-              A single <Term>flat nominal growth rate</Term> applies to every
-              pot each year — not inflation-adjusted, not stochastic (Monte
-              Carlo confidence modelling is on the roadmap).
+              A <Term>flat nominal growth rate per pot</Term> is applied each
+              year — not inflation-adjusted, not stochastic (Monte Carlo
+              confidence modelling is on the roadmap).
             </li>
             <li>Rest-of-UK tax bands only — Scottish rates aren&apos;t modelled.</li>
             <li>
@@ -269,8 +284,8 @@ export default function MethodologyPage() {
             </li>
             <li>Contributions stop at your retirement age.</li>
             <li>
-              The tax-free lump sum is taken as a single event at your access
-              age.
+              2026/27 tax figures throughout (income tax and CGT thresholds are
+              frozen; State Pension uses the confirmed +4.8% triple-lock rise).
             </li>
             <li>Single-person plan; no partner or joint modelling.</li>
             <li>
