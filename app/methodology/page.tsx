@@ -1,0 +1,303 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Methodology — OnFIRE",
+  description:
+    "Exactly what OnFIRE models: the UK tax rules, statutory ages, GIA/CGT approach, Coast FIRE definition, and every simplifying assumption.",
+};
+
+function MonoLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+      {children}
+    </p>
+  );
+}
+
+function Section({
+  id,
+  eyebrow,
+  title,
+  children,
+}: {
+  id: string;
+  eyebrow: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      id={id}
+      className="scroll-mt-24 rounded-2xl border border-border bg-surface p-6 sm:p-8"
+    >
+      <MonoLabel>{eyebrow}</MonoLabel>
+      <h2 className="mt-2 font-display text-2xl font-bold tracking-tight">
+        {title}
+      </h2>
+      <div className="mt-4 space-y-4 text-sm leading-relaxed text-muted-foreground">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function Term({ children }: { children: React.ReactNode }) {
+  return <span className="font-medium text-foreground">{children}</span>;
+}
+
+export default function MethodologyPage() {
+  return (
+    <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
+      <div className="mb-8 max-w-2xl">
+        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-muted-foreground">
+          <span className="size-1.5 rounded-full bg-brand" />
+          How it works
+        </span>
+        <h1 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl">
+          Methodology
+        </h1>
+        <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+          Everything OnFIRE models, and every corner it cuts. The calculation
+          engine is a single, unit-tested TypeScript module — this page is the
+          plain-English version of what it does.
+        </p>
+        <p className="mt-5 flex items-start gap-2 rounded-lg border border-border bg-surface-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+          <span aria-hidden>ⓘ</span>
+          <span>
+            OnFIRE is an{" "}
+            <Term>educational tool for learning and exploring</Term> UK FIRE
+            scenarios. It is not financial, tax, or investment advice. Tax rules
+            change and individual circumstances vary — always consult a
+            qualified adviser before acting on any figure here.
+          </span>
+        </p>
+      </div>
+
+      <div className="space-y-5">
+        <Section
+          id="projection"
+          eyebrow="The engine"
+          title="A year-by-year projection"
+        >
+          <p>
+            The model simulates every year from your current age to your chosen
+            life-expectancy horizon. Each year, balances grow by the assumed
+            rate, contributions are added while you&apos;re still working, and —
+            once retired — income is drawn from your pots to hit your{" "}
+            <Term>target net (after-tax) income</Term>.
+          </p>
+          <p>Withdrawals follow a tax-efficient waterfall:</p>
+          <ol className="list-decimal space-y-1.5 pl-5">
+            <li>
+              <Term>ISA</Term> first — completely tax-free.
+            </li>
+            <li>
+              <Term>GIA</Term> next — Capital Gains Tax on the gains portion of
+              each withdrawal.
+            </li>
+            <li>
+              <Term>SIPP</Term> last — taxed as income, topped up by your State
+              Pension once it starts.
+            </li>
+          </ol>
+          <p>
+            Because each pot is taxed differently, the engine solves for the{" "}
+            <Term>gross</Term> withdrawal needed to leave you with the right net
+            income after tax — using a bisection search rather than a hand-coded
+            inverse of the progressive tax bands.
+          </p>
+        </Section>
+
+        <Section
+          id="income-tax"
+          eyebrow="Tax"
+          title="UK Income Tax (2024/25)"
+        >
+          <p>
+            SIPP drawdown and the State Pension are taxed as income against the
+            rest-of-UK bands. Scottish rates are not modelled.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[22rem] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-left">
+                  <th className="py-2 pr-4 font-medium text-foreground">Band</th>
+                  <th className="py-2 pr-4 font-medium text-foreground">
+                    Income
+                  </th>
+                  <th className="py-2 font-medium text-foreground">Rate</th>
+                </tr>
+              </thead>
+              <tbody className="tabular">
+                <tr className="border-b border-border">
+                  <td className="py-2 pr-4">Personal allowance</td>
+                  <td className="py-2 pr-4">up to £12,570</td>
+                  <td className="py-2">0%</td>
+                </tr>
+                <tr className="border-b border-border">
+                  <td className="py-2 pr-4">Basic</td>
+                  <td className="py-2 pr-4">to £50,270</td>
+                  <td className="py-2">20%</td>
+                </tr>
+                <tr className="border-b border-border">
+                  <td className="py-2 pr-4">Higher</td>
+                  <td className="py-2 pr-4">to £125,140</td>
+                  <td className="py-2">40%</td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-4">Additional</td>
+                  <td className="py-2 pr-4">above £125,140</td>
+                  <td className="py-2">45%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            The <Term>personal allowance taper</Term> is included: for every £2
+            of income above £100,000, £1 of allowance is lost, reaching zero at
+            £125,140.
+          </p>
+        </Section>
+
+        <Section
+          id="cgt"
+          eyebrow="Tax"
+          title="Capital Gains Tax on the GIA"
+        >
+          <p>
+            A General Investment Account has no tax wrapper, so selling units to
+            fund income can realise a capital gain. OnFIRE models this in a
+            simplified form:
+          </p>
+          <ul className="list-disc space-y-1.5 pl-5">
+            <li>
+              Each withdrawal realises a gain proportional to the pot&apos;s{" "}
+              <Term>embedded gain</Term> (value minus cost basis).
+            </li>
+            <li>
+              The <Term>£3,000 annual exempt amount</Term> (2024/25) is applied
+              each year.
+            </li>
+            <li>
+              Gains above it are taxed at <Term>18%</Term> within the basic-rate
+              band and <Term>24%</Term> above it (non-property rates from 30 Oct
+              2024), stacked on top of your income that year.
+            </li>
+          </ul>
+          <p>
+            Two deliberate simplifications: the starting GIA balance is assumed
+            to carry <Term>no embedded gain</Term> (so early CGT is
+            understated), and <Term>dividend tax is not modelled</Term>.
+          </p>
+        </Section>
+
+        <Section
+          id="sipp"
+          eyebrow="Pensions"
+          title="SIPP: lump sum & access age"
+        >
+          <p>
+            At your SIPP access age, <Term>25% can be taken tax-free</Term>, up
+            to a cap of <Term>£268,275</Term>. OnFIRE shelters that lump sum in
+            the ISA so it keeps compounding tax-free; the rest of the pension is
+            drawn as taxable income.
+          </p>
+          <p>
+            The UK <Term>Normal Minimum Pension Age</Term> is 55 today, rising to{" "}
+            <Term>57 on 6 April 2028</Term>. Early retirees modelled here reach
+            it after 2028, so the default is 57 — editable in the planner.
+          </p>
+        </Section>
+
+        <Section
+          id="state-pension"
+          eyebrow="Pensions"
+          title="State Pension"
+        >
+          <p>
+            From your State Pension age, a flat annual income is added and used
+            to offset SIPP drawdown. The default is the{" "}
+            <Term>full new State Pension</Term> for 2024/25, £11,502/yr — lower
+            it if your National Insurance record is incomplete.
+          </p>
+          <p>
+            State Pension age is 66 today, rising to 67 (2026–2028) and 68
+            (2044–2046). The default is 67, editable in the planner.
+          </p>
+        </Section>
+
+        <Section id="coast" eyebrow="Modes" title="Coast FIRE">
+          <p>
+            You are <Term>Coast FIRE</Term> if your current pots, with{" "}
+            <Term>no further contributions</Term>, would still grow enough to
+            fund your target income for life. The planner&apos;s Coast mode
+            reports:
+          </p>
+          <ul className="list-disc space-y-1.5 pl-5">
+            <li>
+              <Term>Coast number</Term> — the minimum invested today (no
+              contributions) that sustains the plan, found by bisection on the
+              same drawdown engine.
+            </li>
+            <li>
+              <Term>Surplus / gap</Term> — how far your current pots are above
+              or below that number.
+            </li>
+            <li>
+              <Term>Coast age</Term> — the earliest age you could stop
+              contributing and still coast, found by re-running the plan from
+              the balances you&apos;d have reached by each age.
+            </li>
+          </ul>
+        </Section>
+
+        <Section
+          id="assumptions"
+          eyebrow="Caveats"
+          title="Assumptions & simplifications"
+        >
+          <ul className="list-disc space-y-1.5 pl-5">
+            <li>
+              A single <Term>flat nominal growth rate</Term> applies to every
+              pot each year — not inflation-adjusted, not stochastic (Monte
+              Carlo confidence modelling is on the roadmap).
+            </li>
+            <li>Rest-of-UK tax bands only — Scottish rates aren&apos;t modelled.</li>
+            <li>
+              GIA CGT is simplified (no embedded starting gain; no dividend tax).
+            </li>
+            <li>Contributions stop at your retirement age.</li>
+            <li>
+              The tax-free lump sum is taken as a single event at your access
+              age.
+            </li>
+            <li>Single-person plan; no partner or joint modelling.</li>
+            <li>
+              All figures are estimates in today&apos;s terms and will diverge
+              from reality — treat them as a way to compare scenarios, not
+              predict outcomes.
+            </li>
+          </ul>
+        </Section>
+      </div>
+
+      <div className="mt-8 flex flex-wrap items-center gap-4 text-sm">
+        <Link
+          href="/"
+          className="rounded-full bg-foreground px-4 py-2 font-semibold text-background transition-opacity hover:opacity-90"
+        >
+          ← Back to the planner
+        </Link>
+        <a
+          href="https://github.com/fekwes/onfire"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          View the source on GitHub
+        </a>
+      </div>
+    </div>
+  );
+}

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { Nav } from "@/components/Nav";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import "./globals.css";
@@ -43,8 +45,13 @@ export default function RootLayout({
           <div aria-hidden className="app-backdrop" />
           <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
             <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-              <Logo size={30} />
-              <ThemeToggle />
+              <Link href="/" aria-label="OnFIRE home">
+                <Logo size={30} />
+              </Link>
+              <div className="flex items-center gap-2 sm:gap-4">
+                <Nav />
+                <ThemeToggle />
+              </div>
             </div>
           </header>
           <main className="flex flex-1 flex-col">{children}</main>
