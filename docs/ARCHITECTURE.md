@@ -10,12 +10,12 @@ Each year falls into one of four phases, purely a function of age:
 
 ```
 age < retirementAge        → "accumulation"   (still working, contributing, no withdrawals)
-age < sippAccessAge (58)   → "bridge"         (retired, drawing the ISA/GIA tax-free)
+age < sippAccessAge (57)   → "bridge"         (retired, drawing the ISA/GIA tax-free)
 age < statePensionAge (67) → "sipp"           (drawing the SIPP, taxable)
 age >= statePensionAge     → "state-pension"  (SIPP drawdown offset by State Pension)
 ```
 
-**Accumulation years** just grow both balances by the assumed growth rate and add annual contributions (`monthlyContribution * 12`) — no withdrawal logic runs.
+**Accumulation years** just grow each pot (ISA, GIA, SIPP, and any property) by its own growth rate and add annual contributions (`monthlyContribution * 12`) — no withdrawal logic runs.
 
 **Retired years** all go through the same withdrawal waterfall, regardless of which of the three retired phases they're labeled — the phase label is only used for display (which chart region, which color). Concretely, each retired year:
 
@@ -58,7 +58,7 @@ const netOf = (gross: number) => {
 
 ## Testing strategy
 
-`lib/fire-engine.test.ts` has 21 tests in four groups:
+`lib/fire-engine.test.ts` (with `coast-fire.test.ts` and `monte-carlo.test.ts`, 48 tests in total) covers, in four groups:
 
 - **Tax function correctness** — `calculatePersonalAllowance` and `calculateUkIncomeTax` against known HMRC figures at several points, including exactly at the taper boundaries.
 - **Solver correctness** — `solveGrossIncomeForNet` round-trips through `calculateUkIncomeTax` to confirm the net-of-tax result matches the target within a rounding tolerance.
@@ -72,7 +72,7 @@ One test originally asserted SIPP drawdown would occur for the app's *default* i
 Documented here rather than buried in comments, since they materially affect how literally to take the app's numbers:
 
 - **2026/27 rest-of-UK tax rates only.** Scottish income tax bands are different and not modeled.
-- **Flat 5% nominal annual growth**, applied identically to both the ISA and SIPP pot every year — not inflation-adjusted, not stochastic, not asset-allocation-aware.
+- **Flat nominal growth, per pot** (default 5%, editable per wrapper) — not inflation-adjusted, not stochastic in the main projection. The Confidence tab adds Monte Carlo randomness.
 - **GIA Capital Gains Tax is modelled in a simplified form.** The GIA is a separate, taxable bucket drawn after the ISA: each withdrawal realises a gain proportional to the pot's embedded gain, taxed at 18%/24% above the £3,000 annual exempt amount. Two simplifications: the *starting* GIA balance is assumed to carry no embedded gain (cost basis = current value, so early CGT is understated), and **dividend tax is not modelled**.
 - **Contributions stop entirely at the modeled retirement age** — no tapering, no post-retirement part-time income.
 - **The tax-free lump sum is taken as a single event** at `max(retirementAge, sippAccessAge)`, not phased across multiple withdrawals (which some real SIPP providers support and which can have different practical tax timing implications).
