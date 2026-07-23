@@ -44,8 +44,9 @@ summary + progressive disclosure), verified in-browser in both themes.
 - **Maths correctness pass** — fixed 4 real bugs (SIPP drawn before access age; lump-sum→ISA; State-Pension-as-surplus; per-wrapper growth) and moved to **2026/27** UK figures. Hand-verified.
 - **Property** — rental (taxable income offsets target + optional sale w/ residential CGT → GIA) and home (net worth, optional downsize → tax-free cash to GIA). No mortgages.
 - **Login (Supabase)** — code complete and wired; gated on env config. Publishable key is set in `.env.local` (gitignored); the Sign-in UI is live.
+- **Stage 6** — onboarding quiz + landing page. `/` is now a landing page (hero + "Build my plan" CTA), the planner moved to `/planner`, and `/start` is a 7-step quiz that collects the ~6 key inputs, reveals the live `simulateFire` result, and ends with an optional Supabase sign-up ("maybe later" skips). Quiz→planner state is handed over via `localStorage["onfire:plan"]`. Silent defaults (statutory ages, growth, pension strategy, life expectancy) live in `lib/quiz.ts`.
 
-**48 Vitest tests pass. `tsc`/`eslint` clean.**
+**57 Vitest tests pass. `tsc`/`eslint` clean.**
 
 ## Key files
 
@@ -56,7 +57,10 @@ summary + progressive disclosure), verified in-browser in both themes.
 - `components/{AssetTimelineChart,IncomeSafetyChart,ConfidencePanel}.tsx` — charts.
 - `components/{AuthProvider,AuthButton,SavedPlans}.tsx` + `lib/supabase/*` + `middleware.ts` — auth.
 - `app/methodology/page.tsx` — the docs page (keep it in sync with the engine).
-- `docs/ARCHITECTURE.md` (engine deep-dive), `docs/ONBOARDING.md` (Stage 6 spec).
+- `app/page.tsx` (landing), `app/planner/page.tsx` (dashboard), `app/start/page.tsx` (quiz).
+- `components/QuizFlow.tsx` + `components/quiz/QuizPrimitives.tsx` — the onboarding quiz.
+- `lib/quiz.ts` (`assembleQuizInputs` + silent defaults), `lib/plan-storage.ts` (localStorage handoff).
+- `docs/ARCHITECTURE.md` (engine deep-dive), `docs/ONBOARDING.md` (Stage 6 spec, now built).
 
 ## Conventions (please keep)
 
@@ -72,15 +76,17 @@ summary + progressive disclosure), verified in-browser in both themes.
 2. Create an account via the Sign-in popover (I don't create accounts or enter passwords).
 Then saving plans works end-to-end.
 
-## NEXT TASK — Stage 6: onboarding quiz + landing page
+## Stage 6 — DONE
 
-Full spec in **`docs/ONBOARDING.md`**. Summary: move `/` to a landing page,
-current planner to `/planner`, add a `/start` multi-step quiz that collects the
-~6 key inputs (age, retirement age, target income, ISA/SIPP/GIA balances,
-monthly contributions, optional property), reveals the live result, then offers
-sign-up to save (reusing Supabase). Hand off quiz→planner via
-`localStorage["onfire:plan"]`. Silent defaults for statutory ages / growth /
-pension strategy / life expectancy.
+Onboarding quiz + landing page shipped per **`docs/ONBOARDING.md`**: landing at
+`/`, planner at `/planner`, quiz at `/start`, quiz→planner handoff via
+`localStorage["onfire:plan"]`, optional Supabase sign-up at the end. Silent
+defaults centralised in `lib/quiz.ts`. Browser-verified in both themes.
+
+## NEXT TASK — pick from the backlog below
+
+No specific next stage is queued. The polish backlog (below) is the natural
+next thing; a deploy to Vercel would make the portfolio piece shareable.
 
 ## Also nice-to-have polish (backlog)
 

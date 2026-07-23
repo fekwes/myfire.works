@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AiInsights } from "@/components/AiInsights";
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { ConfidencePanel } from "@/components/ConfidencePanel";
@@ -11,6 +11,7 @@ import { SavedPlans } from "@/components/SavedPlans";
 import { computeCoastFire } from "@/lib/coast-fire";
 import { simulateFire, type FireInputs } from "@/lib/fire-engine";
 import { formatCurrency } from "@/lib/format";
+import { loadPlanLocal } from "@/lib/plan-storage";
 
 type ChartTab = "assets" | "income" | "confidence";
 
@@ -82,6 +83,16 @@ function Segmented({
 export function FireDashboard() {
   const [inputs, setInputs] = useState<FireInputs>(DEFAULT_FIRE_FORM_VALUES);
   const [chartTab, setChartTab] = useState<ChartTab>("assets");
+
+  // Pick up a plan handed over from the onboarding quiz (`/start`). Read after
+  // mount to avoid an SSR/client hydration mismatch on the initial render.
+  useEffect(() => {
+    const stored = loadPlanLocal();
+    // Reading persisted state after mount is the SSR-safe handoff path; the
+    // one setState here is intentional and runs once.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (stored) setInputs(stored);
+  }, []);
 
   const plan = useMemo(() => simulateFire(inputs), [inputs]);
   const coast = useMemo(() => computeCoastFire(inputs), [inputs]);

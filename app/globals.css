@@ -123,6 +123,31 @@ body {
 }
 
 /* ------------------------------------------------------------------ *
+ * Onboarding quiz — step transitions. A gentle fade + rise as each
+ * question mounts. Disabled entirely under prefers-reduced-motion.
+ * ------------------------------------------------------------------ */
+@keyframes quiz-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.quiz-step {
+  animation: quiz-step-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quiz-step {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ *
  * Textured backdrop — a faint "financial blueprint" grid that fades
  * out toward the edges, a soft lime glow behind the hero, and a light
  * grain in dark mode for depth. Purely decorative, non-interactive.

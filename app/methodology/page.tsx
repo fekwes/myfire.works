@@ -359,7 +359,7 @@ export default function MethodologyPage() {
 
       <div className="mt-8 flex flex-wrap items-center gap-4 text-sm">
         <Link
-          href="/"
+          href="/planner"
           className="rounded-full bg-foreground px-4 py-2 font-semibold text-background transition-opacity hover:opacity-90"
         >
           ← Back to the planner
