@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { AuthButton } from "@/components/AuthButton";
+import { AuthProvider } from "@/components/AuthProvider";
 import { Logo } from "@/components/Logo";
 import { Nav } from "@/components/Nav";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -42,29 +44,32 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <div aria-hidden className="app-backdrop" />
-          <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
-            <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-              <Link href="/" aria-label="OnFIRE home">
-                <Logo size={30} />
-              </Link>
-              <div className="flex items-center gap-2 sm:gap-4">
-                <Nav />
-                <ThemeToggle />
+          <AuthProvider>
+            <div aria-hidden className="app-backdrop" />
+            <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
+              <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
+                <Link href="/" aria-label="OnFIRE home">
+                  <Logo size={30} />
+                </Link>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Nav />
+                  <AuthButton />
+                  <ThemeToggle />
+                </div>
               </div>
-            </div>
-          </header>
-          <main className="flex flex-1 flex-col">{children}</main>
-          <footer className="border-t border-border">
-            <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-4 py-6 text-xs text-muted-foreground sm:px-6">
-              <p>
-                <span className="font-medium text-foreground">OnFIRE</span> — UK
-                financial independence modelling across ISA, GIA, SIPP and State
-                Pension.
-              </p>
-              <p>For planning purposes only. Not financial advice.</p>
-            </div>
-          </footer>
+            </header>
+            <main className="flex flex-1 flex-col">{children}</main>
+            <footer className="border-t border-border">
+              <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-4 py-6 text-xs text-muted-foreground sm:px-6">
+                <p>
+                  <span className="font-medium text-foreground">OnFIRE</span> —
+                  UK financial independence modelling across ISA, GIA, SIPP and
+                  State Pension.
+                </p>
+                <p>For planning purposes only. Not financial advice.</p>
+              </div>
+            </footer>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -6,6 +6,7 @@ import { AiInsights } from "@/components/AiInsights";
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { DEFAULT_FIRE_FORM_VALUES, FireForm } from "@/components/FireForm";
 import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
+import { SavedPlans } from "@/components/SavedPlans";
 import { computeCoastFire, type CoastFireResult } from "@/lib/coast-fire";
 import {
   type FireSimulationResult,
@@ -217,6 +218,9 @@ export function FireDashboard() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
         <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 lg:col-span-2">
           <MonoLabel>Your details</MonoLabel>
+          <div className="mt-4">
+            <SavedPlans inputs={inputs} onLoad={setInputs} />
+          </div>
           <div className="mt-5">
             <FireForm value={inputs} onChange={setInputs} />
           </div>
