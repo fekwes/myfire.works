@@ -1,0 +1,93 @@
+"use client";
+
+import { Sparkles } from "lucide-react";
+import { useState } from "react";
+import type { FireSimulationResult } from "@/lib/fire-engine";
+
+interface Tip {
+  title: string;
+  detail: string;
+}
+
+export function AiInsights({ result }: { result: FireSimulationResult }) {
+  const [tips, setTips] = useState<Tip[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleAnalyze() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentAge: result.inputs.currentAge,
+          retirementAge: result.inputs.retirementAge,
+          targetAnnualIncome: result.inputs.targetAnnualIncome,
+          isaBalance: result.inputs.isaBalance,
+          sippBalance: result.inputs.sippBalance,
+          sippAccessAge: result.inputs.sippAccessAge,
+          statePensionAge: result.inputs.statePensionAge,
+          taxFreeLumpSum: result.taxFreeLumpSum,
+          sustainableToLifeExpectancy: result.sustainableToLifeExpectancy,
+          isaDepletedAge: result.isaDepletedAge,
+          sippDepletedAge: result.sippDepletedAge,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(
+          (body as { error?: string } | null)?.error ??
+            `Request failed (${res.status})`,
+        );
+      }
+
+      const data = (await res.json()) as { tips: Tip[] };
+      setTips(data.tips);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-6 rounded-xl border border-border bg-surface-muted p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="size-4 text-accent" />
+          <h3 className="text-xs font-medium text-muted-foreground">
+            AI strategy tips
+          </h3>
+        </div>
+        <button
+          type="button"
+          onClick={handleAnalyze}
+          disabled={loading}
+          className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-background disabled:opacity-50"
+        >
+          {loading ? "Analyzing…" : tips ? "Regenerate" : "Get tips"}
+        </button>
+      </div>
+
+      {error && <p className="mt-3 text-xs text-danger">{error}</p>}
+
+      {tips && (
+        <ul className="mt-3 space-y-3">
+          {tips.map((tip) => (
+            <li key={tip.title}>
+              <p className="text-sm font-medium text-foreground">
+                {tip.title}
+              </p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                {tip.detail}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

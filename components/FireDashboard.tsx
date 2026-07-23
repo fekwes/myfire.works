@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AiInsights } from "@/components/AiInsights";
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { DEFAULT_FIRE_FORM_VALUES, FireForm } from "@/components/FireForm";
 import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
@@ -82,6 +83,8 @@ export function FireDashboard() {
           </h3>
           <IncomeSafetyChart result={result} />
         </div>
+
+        <AiInsights result={result} />
       </section>
     </div>
   );
