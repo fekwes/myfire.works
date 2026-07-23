@@ -66,6 +66,25 @@ export interface FireInputs {
   isaGrowth?: number;
   giaGrowth?: number;
   sippGrowth?: number;
+  /**
+   * Rental property: value grows at `rentalGrowth`; `rentalMonthlyIncome` is
+   * taxable rental income (offsets the target in retirement). Optionally sold
+   * at `rentalSaleAge` — residential CGT on the gain, net proceeds into the
+   * GIA, and the rent then stops. 0 / undefined sale age = keep it.
+   */
+  rentalValue?: number;
+  rentalGrowth?: number;
+  rentalMonthlyIncome?: number;
+  rentalSaleAge?: number;
+  /**
+   * Home you live in: net worth only, grows at `homeGrowth`. Optionally
+   * downsized at `downsizeAge`, releasing `downsizeReleaseFraction` of its
+   * value as tax-free cash into the GIA (primary-residence CGT relief).
+   */
+  homeValue?: number;
+  homeGrowth?: number;
+  downsizeAge?: number;
+  downsizeReleaseFraction?: number;
   growthRate?: number;
   statePensionAnnual?: number;
   statePensionAge?: number;
@@ -93,6 +112,12 @@ export interface YearSnapshot {
   /** Tax-free pension cash taken this year (lump sum, or the 25% UFPLS slice). */
   pensionTaxFreeTaken: number;
   statePensionIncome: number;
+  /** Gross rental income received this year (0 once the property is sold). */
+  rentalIncome: number;
+  /** Cash released into the GIA this year from a property sale or downsize. */
+  propertyCashReleased: number;
+  rentalValueEnd: number;
+  homeValueEnd: number;
   incomeTaxPaid: number;
   capitalGainsTaxPaid: number;
   netIncome: number;
@@ -123,6 +148,14 @@ function resolveInputs(inputs: FireInputs): ResolvedFireInputs {
     isaGrowth: inputs.isaGrowth ?? growthRate,
     giaGrowth: inputs.giaGrowth ?? growthRate,
     sippGrowth: inputs.sippGrowth ?? growthRate,
+    rentalValue: inputs.rentalValue ?? 0,
+    rentalGrowth: inputs.rentalGrowth ?? growthRate,
+    rentalMonthlyIncome: inputs.rentalMonthlyIncome ?? 0,
+    rentalSaleAge: inputs.rentalSaleAge ?? 0,
+    homeValue: inputs.homeValue ?? 0,
+    homeGrowth: inputs.homeGrowth ?? growthRate,
+    downsizeAge: inputs.downsizeAge ?? 0,
+    downsizeReleaseFraction: inputs.downsizeReleaseFraction ?? 0,
     statePensionAnnual:
       inputs.statePensionAnnual ?? DEFAULT_ASSUMPTIONS.statePensionAnnual,
     statePensionAge:
@@ -297,6 +330,21 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
   let giaBasis = inputs.giaBalance;
   let sippBalance = inputs.sippBalance;
 
+  // Property. Rental basis assumes the starting value carries no embedded gain.
+  let rentalValue = inputs.rentalValue;
+  const rentalBasis = inputs.rentalValue;
+  let rentalSold = false;
+  let homeValue = inputs.homeValue;
+  let homeDownsized = false;
+  const {
+    rentalGrowth,
+    rentalMonthlyIncome,
+    rentalSaleAge,
+    homeGrowth,
+    downsizeAge,
+    downsizeReleaseFraction,
+  } = inputs;
+
   const lumpSumAge = Math.max(retirementAge, sippAccessAge);
   let lumpSumTaken = false;
   let taxFreeLumpSum = 0;
@@ -321,6 +369,8 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       giaBasis += giaContribution;
       sippBalance =
         sippBalance * (1 + sippGrowth) + inputs.sippMonthlyContribution * 12;
+      rentalValue *= 1 + rentalGrowth;
+      homeValue *= 1 + homeGrowth;
 
       timeline.push({
         age,
@@ -336,6 +386,10 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
         sippGrossWithdrawal: 0,
         pensionTaxFreeTaken: 0,
         statePensionIncome: 0,
+        rentalIncome: 0,
+        propertyCashReleased: 0,
+        rentalValueEnd: rentalValue,
+        homeValueEnd: homeValue,
         incomeTaxPaid: 0,
         capitalGainsTaxPaid: 0,
         netIncome: 0,
@@ -347,11 +401,51 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     isaBalance *= 1 + isaGrowth;
     giaBalance *= 1 + giaGrowth;
     sippBalance *= 1 + sippGrowth;
+    rentalValue *= 1 + rentalGrowth;
+    homeValue *= 1 + homeGrowth;
 
     const sippAccessible = age >= sippAccessAge;
+    if (age < sippAccessAge && bridgeToSippTransitionAge === null) {
+      bridgeToSippTransitionAge = sippAccessAge;
+    }
+    const statePensionIncome = age >= statePensionAge ? statePensionAnnual : 0;
 
-    // "lump-sum" strategy: take the 25% PCLS once, as cash into the GIA
-    // (it can't fit in an ISA). The remainder is fully taxable on drawdown.
+    // Property events — proceeds/released cash flow into the GIA.
+    let propertyCashReleased = 0;
+    let propertyCgt = 0;
+    if (
+      !rentalSold &&
+      rentalSaleAge > 0 &&
+      age >= rentalSaleAge &&
+      rentalValue > 0
+    ) {
+      const gain = Math.max(0, rentalValue - rentalBasis);
+      const band = Math.max(0, BASIC_RATE_CEILING - statePensionIncome);
+      propertyCgt = calculateCapitalGainsTax(gain, band);
+      const proceeds = rentalValue - propertyCgt;
+      giaBalance += proceeds;
+      giaBasis += proceeds;
+      propertyCashReleased += proceeds;
+      rentalValue = 0;
+      rentalSold = true;
+    }
+    if (
+      !homeDownsized &&
+      downsizeAge > 0 &&
+      age >= downsizeAge &&
+      homeValue > 0 &&
+      downsizeReleaseFraction > 0
+    ) {
+      const released = homeValue * downsizeReleaseFraction;
+      giaBalance += released; // tax-free (primary-residence relief)
+      giaBasis += released;
+      propertyCashReleased += released;
+      homeValue -= released;
+      homeDownsized = true;
+    }
+    const rentalIncome = rentalSold ? 0 : rentalMonthlyIncome * 12;
+
+    // "lump-sum" strategy: take the 25% PCLS once, as cash into the GIA.
     let pensionTaxFreeTaken = 0;
     if (
       pensionStrategy === "lump-sum" &&
@@ -372,16 +466,12 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       lumpSumTaken = true;
     }
 
-    if (age < sippAccessAge && bridgeToSippTransitionAge === null) {
-      bridgeToSippTransitionAge = sippAccessAge;
-    }
-    const statePensionIncome = age >= statePensionAge ? statePensionAnnual : 0;
-    const statePensionNet =
-      statePensionIncome - calculateUkIncomeTax(statePensionIncome);
-
-    // The State Pension is guaranteed income, so the pots only need to cover
-    // the rest of the target — it offsets ISA/GIA/SIPP drawdown alike.
-    let potNeed = Math.max(0, targetAnnualIncome - statePensionNet);
+    // Guaranteed taxable income (State Pension + rental) offsets the target;
+    // the pots only need to cover the rest.
+    const otherTaxableIncome = statePensionIncome + rentalIncome;
+    const otherTaxableNet =
+      otherTaxableIncome - calculateUkIncomeTax(otherTaxableIncome);
+    let potNeed = Math.max(0, targetAnnualIncome - otherTaxableNet);
 
     // 1. ISA — tax-free, drawn first.
     const isaWithdrawal = Math.min(isaBalance, potNeed);
@@ -390,14 +480,14 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
 
     // 2. GIA — CGT on the gains portion.
     let giaWithdrawal = 0;
-    let capitalGainsTaxPaid = 0;
+    let giaCgt = 0;
     let netFromGia = 0;
     if (potNeed > 0 && giaBalance > 0.01) {
       const gainFraction =
         giaBalance > 0 ? Math.max(0, (giaBalance - giaBasis) / giaBalance) : 0;
       const remainingBasicBand = Math.max(
         0,
-        BASIC_RATE_CEILING - statePensionIncome,
+        BASIC_RATE_CEILING - otherTaxableIncome,
       );
       const desiredGross = solveGiaGrossForNet(
         potNeed,
@@ -406,11 +496,8 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       );
       giaWithdrawal = Math.min(desiredGross, giaBalance);
       const realisedGain = giaWithdrawal * gainFraction;
-      capitalGainsTaxPaid = calculateCapitalGainsTax(
-        realisedGain,
-        remainingBasicBand,
-      );
-      netFromGia = giaWithdrawal - capitalGainsTaxPaid;
+      giaCgt = calculateCapitalGainsTax(realisedGain, remainingBasicBand);
+      netFromGia = giaWithdrawal - giaCgt;
       const basisConsumed =
         giaBalance > 0 ? giaWithdrawal * (giaBasis / giaBalance) : 0;
       giaBasis = Math.max(0, giaBasis - basisConsumed);
@@ -418,20 +505,17 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       potNeed -= netFromGia;
     }
 
-    // 3. SIPP — only once accessible, drawn on top of the State Pension.
-    // In "gradual" (UFPLS) mode, 25% of each withdrawal is tax-free. The
-    // solver targets total net income (pot need + SP net) so the SIPP tax
-    // correctly stacks above the State Pension.
+    // 3. SIPP — marginal drawdown stacked on the other taxable income.
     let sippGrossWithdrawal = 0;
     let taxablePortion = 0;
     let gradualTaxFree = 0; // tax-free SIPP slice spent as income this year
     if (sippAccessible && potNeed > 0) {
-      const solverTarget = potNeed + statePensionNet;
+      const solverTarget = potNeed + otherTaxableNet;
       if (pensionStrategy === "gradual") {
         const remainingLsa = Math.max(0, TAX_FREE_LUMP_SUM_CAP - lsaUsed);
         const desiredGross = solveSippGrossForNetGradual(
           solverTarget,
-          statePensionIncome,
+          otherTaxableIncome,
           remainingLsa,
         );
         sippGrossWithdrawal = Math.min(desiredGross, sippBalance);
@@ -442,7 +526,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       } else {
         const desiredGross = solveGrossIncomeForNet(
           solverTarget,
-          statePensionIncome,
+          otherTaxableIncome,
         );
         sippGrossWithdrawal = Math.min(desiredGross, sippBalance);
         taxablePortion = sippGrossWithdrawal;
@@ -451,13 +535,14 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     }
 
     const incomeTaxPaid = calculateUkIncomeTax(
-      statePensionIncome + taxablePortion,
+      otherTaxableIncome + taxablePortion,
     );
-    // Net from the taxable side (State Pension + taxable SIPP) plus the
-    // gradual tax-free slice; ISA and GIA are already net.
-    const netFromSippAndStatePension =
-      gradualTaxFree + statePensionIncome + taxablePortion - incomeTaxPaid;
-    const netIncome = isaWithdrawal + netFromGia + netFromSippAndStatePension;
+    const capitalGainsTaxPaid = giaCgt + propertyCgt;
+    // Net from the taxable side (State Pension + rental + taxable SIPP) plus
+    // the gradual tax-free slice; ISA and GIA are already net.
+    const netFromIncomeSide =
+      gradualTaxFree + otherTaxableIncome + taxablePortion - incomeTaxPaid;
+    const netIncome = isaWithdrawal + netFromGia + netFromIncomeSide;
     const shortfall = netIncome < targetAnnualIncome - 0.01;
 
     if (isaBalance <= 0.01 && isaDepletedAge === null && isaBalanceStart > 0) {
@@ -488,6 +573,10 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       sippGrossWithdrawal,
       pensionTaxFreeTaken,
       statePensionIncome,
+      rentalIncome,
+      propertyCashReleased,
+      rentalValueEnd: rentalValue,
+      homeValueEnd: homeValue,
       incomeTaxPaid,
       capitalGainsTaxPaid,
       netIncome,

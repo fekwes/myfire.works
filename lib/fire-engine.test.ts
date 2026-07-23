@@ -309,4 +309,81 @@ describe("simulateFire", () => {
     expect(year?.netIncome).toBeCloseTo(30000, 0);
     expect(result.totalTaxFreePension).toBeGreaterThan(0);
   });
+
+  it("offsets the target with taxable rental income", () => {
+    const result = simulateFire({
+      currentAge: 60,
+      retirementAge: 60,
+      targetAnnualIncome: 30000,
+      isaBalance: 400000,
+      isaMonthlyContribution: 0,
+      sippBalance: 0,
+      sippMonthlyContribution: 0,
+      rentalValue: 200000,
+      rentalMonthlyIncome: 1000, // £12k/yr, under the personal allowance
+    });
+    const y = result.timeline.find((t) => t.age === 60);
+    expect(y?.rentalIncome).toBeCloseTo(12000, 0);
+    // Rental income (net £12k) means the ISA only funds the £18k remainder.
+    expect(y?.isaWithdrawal ?? 0).toBeCloseTo(18000, 0);
+    expect(y?.netIncome).toBeCloseTo(30000, 0);
+  });
+
+  it("sells the rental at the sale age: CGT paid, proceeds into the GIA, rent stops", () => {
+    const result = simulateFire({
+      currentAge: 60,
+      retirementAge: 60,
+      targetAnnualIncome: 20000,
+      isaBalance: 500000,
+      isaMonthlyContribution: 0,
+      sippBalance: 0,
+      sippMonthlyContribution: 0,
+      rentalValue: 200000,
+      rentalGrowth: 0.05,
+      rentalMonthlyIncome: 800,
+      rentalSaleAge: 65,
+    });
+    const before = result.timeline.find((t) => t.age === 64);
+    const saleYear = result.timeline.find((t) => t.age === 65);
+    expect(before?.rentalValueEnd ?? 0).toBeGreaterThan(0);
+    expect(before?.rentalIncome ?? 0).toBeGreaterThan(0);
+    expect(saleYear?.rentalValueEnd).toBe(0);
+    expect(saleYear?.propertyCashReleased ?? 0).toBeGreaterThan(0);
+    expect(saleYear?.capitalGainsTaxPaid ?? 0).toBeGreaterThan(0);
+    expect(saleYear?.rentalIncome).toBe(0);
+  });
+
+  it("downsizes the home into tax-free cash in the GIA", () => {
+    const result = simulateFire({
+      currentAge: 60,
+      retirementAge: 60,
+      targetAnnualIncome: 20000,
+      isaBalance: 400000,
+      isaMonthlyContribution: 0,
+      sippBalance: 0,
+      sippMonthlyContribution: 0,
+      homeValue: 400000,
+      homeGrowth: 0.03,
+      downsizeAge: 70,
+      downsizeReleaseFraction: 0.3,
+    });
+    const before = result.timeline.find((t) => t.age === 69);
+    const dsYear = result.timeline.find((t) => t.age === 70);
+    expect(dsYear?.propertyCashReleased ?? 0).toBeGreaterThan(0);
+    expect(dsYear?.homeValueEnd ?? 0).toBeLessThan(before?.homeValueEnd ?? 0);
+    expect(dsYear?.capitalGainsTaxPaid).toBe(0); // primary residence: tax-free
+  });
+
+  it("ignores property when none is provided", () => {
+    const result = simulateFire(baseInputs);
+    expect(
+      result.timeline.every(
+        (y) =>
+          y.rentalValueEnd === 0 &&
+          y.homeValueEnd === 0 &&
+          y.rentalIncome === 0 &&
+          y.propertyCashReleased === 0,
+      ),
+    ).toBe(true);
+  });
 });

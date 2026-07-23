@@ -192,6 +192,31 @@ export default function MethodologyPage() {
           </p>
         </Section>
 
+        <Section id="property" eyebrow="Assets" title="Property">
+          <p>
+            Under <Term>Other investments</Term> you can add property. There are
+            no mortgages in the model.
+          </p>
+          <ul className="list-disc space-y-1.5 pl-5">
+            <li>
+              <Term>Rental property</Term> — its value grows at your chosen
+              rate, and the <Term>rental income is taxed as income</Term>
+              (stacked with the State Pension and any SIPP drawdown), offsetting
+              your target in retirement. You can optionally sell it at a chosen
+              age: residential CGT (18%/24%) is charged on the gain, the net
+              proceeds move into your GIA, and the rent then stops.
+            </li>
+            <li>
+              <Term>Home you live in</Term> — counts as net worth and grows, but
+              isn&apos;t drawn for income unless you <Term>downsize</Term>.
+              Downsizing at a chosen age releases a share of its value as{" "}
+              <Term>tax-free cash</Term> (private-residence relief) into your
+              GIA. The starting rental value is assumed to carry no embedded
+              gain, same as the GIA.
+            </li>
+          </ul>
+        </Section>
+
         <Section
           id="sipp"
           eyebrow="Pensions"

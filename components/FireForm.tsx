@@ -19,6 +19,14 @@ export const DEFAULT_FIRE_FORM_VALUES: FireInputs = {
   giaBalance: 0,
   giaMonthlyContribution: 0,
   giaGrowth: 0.05,
+  rentalValue: 0,
+  rentalGrowth: 0.03,
+  rentalMonthlyIncome: 0,
+  rentalSaleAge: 0,
+  homeValue: 0,
+  homeGrowth: 0.03,
+  downsizeAge: 0,
+  downsizeReleaseFraction: 0,
   sippBalance: 80000,
   sippMonthlyContribution: 500,
   sippGrowth: 0.05,
@@ -116,19 +124,21 @@ function NumberInput({
   );
 }
 
-/** Growth input: stores a fraction (0.05) but displays a percentage (5). */
+/** Percentage input: stores a fraction (0.05) but displays a percentage (5). */
 function PercentInput({
   value,
   onChange,
+  suffix = "% / yr",
 }: {
   value: number;
   onChange: (fraction: number) => void;
+  suffix?: string;
 }) {
   return (
     <NumberInput
       value={Math.round(value * 1000) / 10}
       onChange={(v) => onChange((v || 0) / 100)}
-      suffix="% / yr"
+      suffix={suffix}
       step={0.5}
     />
   );
@@ -267,7 +277,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
         <span>
           {showAdvanced ? "Fewer options" : "More options"}
           <span className="ml-1.5 text-muted-foreground">
-            other investments · lifestyle scenario
+            GIA · property · lifestyle scenario
           </span>
         </span>
         <ChevronDown
@@ -302,6 +312,79 @@ export function FireForm({ value, onChange }: FireFormProps) {
               <PercentInput
                 value={num(value.giaGrowth, 0.05)}
                 onChange={(v) => set("giaGrowth", v)}
+              />
+            </Field>
+          </Block>
+
+          <Block
+            title="Rental property"
+            dotClass="bg-accent"
+            tooltip="Rental income is taxed as income and offsets your target in retirement. Optionally sell it later — residential CGT applies and the net proceeds move into your GIA."
+          >
+            <Field label="Current value">
+              <NumberInput
+                value={num(value.rentalValue, 0)}
+                onChange={(v) => set("rentalValue", v)}
+                prefix="£"
+              />
+            </Field>
+            <Field label="Monthly rent">
+              <NumberInput
+                value={num(value.rentalMonthlyIncome, 0)}
+                onChange={(v) => set("rentalMonthlyIncome", v)}
+                prefix="£"
+              />
+            </Field>
+            <Field label="Expected growth">
+              <PercentInput
+                value={num(value.rentalGrowth, 0.03)}
+                onChange={(v) => set("rentalGrowth", v)}
+              />
+            </Field>
+            <Field
+              label="Sell at age"
+              tooltip="Leave at 0 to keep it. Otherwise it's sold at this age (residential CGT), proceeds go to your GIA, and the rent stops."
+            >
+              <NumberInput
+                value={num(value.rentalSaleAge, 0)}
+                onChange={(v) => set("rentalSaleAge", v)}
+                suffix="0 = keep"
+              />
+            </Field>
+          </Block>
+
+          <Block
+            title="Home you live in"
+            tooltip="Counts as net worth and grows, but isn't drawn for income — unless you downsize, which releases tax-free cash (primary-residence relief) into your GIA."
+          >
+            <Field label="Current value">
+              <NumberInput
+                value={num(value.homeValue, 0)}
+                onChange={(v) => set("homeValue", v)}
+                prefix="£"
+              />
+            </Field>
+            <Field label="Expected growth">
+              <PercentInput
+                value={num(value.homeGrowth, 0.03)}
+                onChange={(v) => set("homeGrowth", v)}
+              />
+            </Field>
+            <Field
+              label="Downsize at age"
+              tooltip="Leave at 0 for no downsizing. Otherwise release a share of the home's value as tax-free cash at this age."
+            >
+              <NumberInput
+                value={num(value.downsizeAge, 0)}
+                onChange={(v) => set("downsizeAge", v)}
+                suffix="0 = never"
+              />
+            </Field>
+            <Field label="Release">
+              <PercentInput
+                value={num(value.downsizeReleaseFraction, 0)}
+                onChange={(v) => set("downsizeReleaseFraction", v)}
+                suffix="%"
               />
             </Field>
           </Block>
