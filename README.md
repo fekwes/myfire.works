@@ -1,4 +1,4 @@
-# FIRE UK — UK Financial Independence, Retire Early Planner
+# OnFIRE — UK Financial Independence, Retire Early Planner
 
 A dashboard that models a UK FIRE plan across the three phases that actually determine whether early retirement works in the UK: drawing down an **ISA/GIA bridge** before your pension is accessible, taking the **25% tax-free SIPP lump sum** and paying UK income tax on the rest, and letting the **State Pension** offset your drawdown from age 67.
 

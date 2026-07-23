@@ -10,7 +10,7 @@ import { formatCurrency } from "@/lib/format";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+    <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
       {children}
     </h3>
   );
@@ -34,7 +34,7 @@ function StatTile({
 
   return (
     <div className="rounded-xl border border-border bg-surface-muted p-4 transition-colors hover:border-muted-foreground/30">
-      <p className="text-[0.7rem] uppercase tracking-wide text-muted-foreground">
+      <p className="font-mono text-[0.68rem] uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <p

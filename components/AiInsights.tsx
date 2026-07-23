@@ -58,7 +58,7 @@ export function AiInsights({ result }: { result: FireSimulationResult }) {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Sparkles className="size-4 text-primary" />
-          <h3 className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             AI strategy tips
           </h3>
         </div>
