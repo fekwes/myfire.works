@@ -5,6 +5,7 @@ import { AuthButton } from "@/components/AuthButton";
 import { AuthProvider } from "@/components/AuthProvider";
 import { Logo } from "@/components/Logo";
 import { Nav } from "@/components/Nav";
+import { PlanProvider } from "@/components/PlanProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import "./globals.css";
@@ -79,6 +80,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <AuthProvider>
+            <PlanProvider>
             <div aria-hidden className="app-backdrop" />
             <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
               <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
@@ -103,6 +105,7 @@ export default function RootLayout({
                 <p>For planning purposes only. Not financial advice.</p>
               </div>
             </footer>
+            </PlanProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
