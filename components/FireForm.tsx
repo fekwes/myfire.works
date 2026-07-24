@@ -3,6 +3,7 @@
 import { ChevronDown, Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
+import { FundSelect } from "@/components/FundSelect";
 import {
   DEFAULT_ASSUMPTIONS,
   DEFAULT_INFLATION_RATE,
@@ -236,7 +237,17 @@ export function FireForm({ value, onChange }: FireFormProps) {
             prefix="£"
           />
         </Field>
-        <Field label="Expected growth" className="col-span-2">
+        <Field
+          label="Fund"
+          className="col-span-2"
+          tooltip="Pick a Vanguard UK fund to set a fee-aware growth rate, or leave it custom and type your own."
+        >
+          <FundSelect
+            growth={value.isaGrowth}
+            onPick={(g) => set("isaGrowth", g)}
+          />
+        </Field>
+        <Field label="Expected growth (net of fees)" className="col-span-2">
           <PercentInput
             value={num(value.isaGrowth, 0.05)}
             onChange={(v) => set("isaGrowth", v)}
@@ -263,7 +274,17 @@ export function FireForm({ value, onChange }: FireFormProps) {
             prefix="£"
           />
         </Field>
-        <Field label="Expected growth" className="col-span-2">
+        <Field
+          label="Fund"
+          className="col-span-2"
+          tooltip="Pick a Vanguard UK fund to set a fee-aware growth rate, or leave it custom and type your own."
+        >
+          <FundSelect
+            growth={value.sippGrowth}
+            onPick={(g) => set("sippGrowth", g)}
+          />
+        </Field>
+        <Field label="Expected growth (net of fees)" className="col-span-2">
           <PercentInput
             value={num(value.sippGrowth, 0.05)}
             onChange={(v) => set("sippGrowth", v)}
@@ -311,7 +332,17 @@ export function FireForm({ value, onChange }: FireFormProps) {
                 prefix="£"
               />
             </Field>
-            <Field label="Expected growth" className="col-span-2">
+            <Field
+              label="Fund"
+              className="col-span-2"
+              tooltip="Pick a Vanguard UK fund to set a fee-aware growth rate, or leave it custom and type your own."
+            >
+              <FundSelect
+                growth={value.giaGrowth}
+                onPick={(g) => set("giaGrowth", g)}
+              />
+            </Field>
+            <Field label="Expected growth (net of fees)" className="col-span-2">
               <PercentInput
                 value={num(value.giaGrowth, 0.05)}
                 onChange={(v) => set("giaGrowth", v)}
