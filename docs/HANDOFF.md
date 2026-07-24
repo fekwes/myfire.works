@@ -50,8 +50,14 @@ summary + progressive disclosure), verified in-browser in both themes.
   - **Net worth incl. property** — a net-worth stat + a dashed net-worth line on the asset chart, so a home/rental is finally visible.
   - **Inflation / real terms** — the engine grows the spending target by `inflationRate` (form/quiz default 2.5%, engine default 0); the planner has a **Today's £ / Future £** toggle that deflates the projection. Sub-simulations (`fire-number`, `coast-fire`) pre-inflate the target via `inflatedTargetAt` so verdicts stay consistent. Tax bands + State Pension held at 2026/27 nominal (fiscal drag).
   - **Polish** — full SEO/OpenGraph metadata + dynamic `opengraph-image` + sitemap/robots, branded 404 + error pages, removed dead starter SVGs, `NEXT_PUBLIC_SITE_URL` env var.
+- **Tabbed restructure** (the app is now onboarding + a tabbed core app):
+  - **Onboarding:** `/` (landing) and `/start` (quiz). The landing shows a "Continue to your planner" CTA (and the logo routes to `/planner`) once a plan exists.
+  - **Core tabs:** **Planner** (`/planner` — analysis + a compact `QuickLevers` row, Share/Export actions), **Your Finances** (`/finances` — the full `FireForm` + saved plans), **Methodology**, and an **Account** page (`/account` — password change + delete-my-data, reached from the auth dropdown).
+  - **Shared state:** `components/PlanProvider.tsx` holds the one active plan (localStorage-backed) so Planner and Your Finances edit the same data. `usePlan()` is the hook.
+  - **Share/Export:** `lib/share.ts` (URL-encoded read-only links → `/planner?p=`, with a "Make it mine" adopt flow) and `lib/export.ts` (CSV timeline + JSON + print, via `components/PlanActions.tsx`). No backend.
+  - **Account deletion** currently removes the user's saved-plan rows + local plan and signs out; full auth-record deletion needs a service-role server route (`SUPABASE_SERVICE_ROLE_KEY`) — not yet built.
 
-**66 Vitest tests pass. `tsc`/`eslint` clean.**
+**74 Vitest tests pass. `tsc`/`eslint` clean. Production build green.**
 
 ## Key files
 

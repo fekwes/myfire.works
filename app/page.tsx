@@ -1,5 +1,5 @@
-import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { LandingCta } from "@/components/LandingCta";
 
 const HIGHLIGHTS = [
   {
@@ -39,25 +39,7 @@ export default function Landing() {
           bridge funding to pension drawdown.
         </p>
 
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Link
-            href="/start"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-90"
-          >
-            Build my plan
-            <ArrowRight className="size-4" />
-          </Link>
-          <Link
-            href="/planner"
-            className="inline-flex items-center justify-center rounded-full border border-border bg-surface px-6 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Skip to the planner
-          </Link>
-        </div>
-
-        <p className="mt-4 text-xs text-muted-foreground">
-          Takes about two minutes. No account needed to see your result.
-        </p>
+        <LandingCta />
       </section>
 
       {/* Highlights */}

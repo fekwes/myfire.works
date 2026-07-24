@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
 import { AuthButton } from "@/components/AuthButton";
 import { AuthProvider } from "@/components/AuthProvider";
-import { Logo } from "@/components/Logo";
+import { HeaderLogo } from "@/components/HeaderLogo";
 import { Nav } from "@/components/Nav";
 import { PlanProvider } from "@/components/PlanProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -84,9 +83,7 @@ export default function RootLayout({
             <div aria-hidden className="app-backdrop" />
             <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
               <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-                <Link href="/" aria-label="OnFIRE home">
-                  <Logo size={30} />
-                </Link>
+                <HeaderLogo />
                 <div className="flex items-center gap-2 sm:gap-3">
                   <Nav />
                   <AuthButton />
