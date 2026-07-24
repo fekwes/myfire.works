@@ -87,6 +87,14 @@ summary + progressive disclosure), verified in-browser in both themes.
 2. Create an account via the Sign-in popover (I don't create accounts or enter passwords).
 Then saving plans works end-to-end.
 
+## Going public — checklist
+
+- **AI endpoint is rate-limited** (`lib/rate-limit.ts` + `app/api/analyze/route.ts`): per-IP 5/min + 40/day, global 500/day, `429` + `Retry-After`. In-memory per instance — for multi-instance/serverless production, swap the store for Upstash/Vercel KV behind the `RateLimiter` interface (the limiter is the only thing to change).
+- **Privacy note** lives at `/privacy` (linked in the footer). Keep it accurate if data flows change.
+- **Supabase graceful-off:** auth UI, saved plans and the Account tab all degrade to friendly states when `NEXT_PUBLIC_SUPABASE_*` is unset, so a public launch without Supabase is safe.
+- **Analytics/monitoring (recommended, not bundled):** if you want usage/error data, prefer a cookieless, privacy-friendly option enabled at deploy time (e.g. Vercel Analytics) rather than a third-party script — keeps the CSP clean and the `/privacy` promise true. The app already has a branded `error.tsx` boundary.
+- **Full account deletion** (auth record, not just data) needs a service-role server route + `SUPABASE_SERVICE_ROLE_KEY` — not built yet; `/account` currently deletes the user's data and signs out.
+
 ## Stage 6 — DONE
 
 Onboarding quiz + landing page shipped per **`docs/ONBOARDING.md`**: landing at

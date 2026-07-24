@@ -1,8 +1,42 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { formatCurrency } from "@/lib/format";
+import { createRateLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
+
+// The AI tips call is the one paid, abusable endpoint. Limit it per client IP
+// (a short burst window + a daily cap) plus a global daily backstop so a single
+// instance can't run away with the Anthropic budget. In-memory per instance —
+// swap for a shared store (Upstash/KV) behind the same interface in production.
+const perMinute = createRateLimiter({ windowMs: 60_000, max: 5 });
+const perDay = createRateLimiter({ windowMs: 86_400_000, max: 40 });
+const globalPerDay = createRateLimiter({ windowMs: 86_400_000, max: 500 });
+
+/** Best-effort client IP from proxy headers (Vercel/most hosts set these). */
+function clientIp(request: Request): string {
+  const fwd = request.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]!.trim();
+  return request.headers.get("x-real-ip") ?? "unknown";
+}
+
+function limited(request: Request): number | null {
+  const ip = clientIp(request);
+  const checks = [perMinute.check(ip), perDay.check(ip), globalPerDay.check("global")];
+  const blocked = checks.find((c) => !c.allowed);
+  return blocked ? Math.ceil(blocked.retryAfterMs / 1000) : null;
+}
+
+/** Reject obviously malformed/oversized bodies before doing any paid work. */
+function isValidBody(body: unknown): body is AnalyzeRequest {
+  if (typeof body !== "object" || body === null) return false;
+  const b = body as Record<string, unknown>;
+  return (
+    typeof b.currentAge === "number" &&
+    typeof b.retirementAge === "number" &&
+    typeof b.targetAnnualIncome === "number"
+  );
+}
 
 interface AnalyzeRequest {
   currentAge: number;
@@ -51,6 +85,15 @@ const TIPS_SCHEMA = {
 };
 
 export async function POST(request: Request) {
+  // Rate-limit first — protect the endpoint from volume regardless of config.
+  const retryAfter = limited(request);
+  if (retryAfter !== null) {
+    return NextResponse.json(
+      { error: "You've hit the AI tips limit — please try again shortly." },
+      { status: 429, headers: { "Retry-After": String(retryAfter) } },
+    );
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -59,7 +102,22 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json()) as AnalyzeRequest;
+  // Cap the request size before parsing, then validate the shape.
+  const raw = await request.text();
+  if (raw.length > 4000) {
+    return NextResponse.json({ error: "Request too large." }, { status: 413 });
+  }
+  let body: AnalyzeRequest;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!isValidBody(parsed)) throw new Error("invalid");
+    body = parsed;
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body." },
+      { status: 400 },
+    );
+  }
 
   const summary = `
 UK FIRE simulation summary:

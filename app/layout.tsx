@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import { AuthButton } from "@/components/AuthButton";
 import { AuthProvider } from "@/components/AuthProvider";
 import { HeaderLogo } from "@/components/HeaderLogo";
@@ -93,13 +94,27 @@ export default function RootLayout({
             </header>
             <main className="flex flex-1 flex-col">{children}</main>
             <footer className="border-t border-border">
-              <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-4 py-6 text-xs text-muted-foreground sm:px-6">
+              <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-xs text-muted-foreground sm:px-6">
                 <p>
                   <span className="font-medium text-foreground">OnFIRE</span> —
                   UK financial independence modelling across ISA, GIA, SIPP and
                   State Pension.
                 </p>
-                <p>For planning purposes only. Not financial advice.</p>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <span>For planning purposes only. Not financial advice.</span>
+                  <Link
+                    href="/methodology"
+                    className="underline-offset-2 hover:text-foreground hover:underline"
+                  >
+                    Methodology
+                  </Link>
+                  <Link
+                    href="/privacy"
+                    className="underline-offset-2 hover:text-foreground hover:underline"
+                  >
+                    Privacy
+                  </Link>
+                </div>
               </div>
             </footer>
             </PlanProvider>
