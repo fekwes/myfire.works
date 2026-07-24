@@ -66,7 +66,7 @@ function Tooltip({ text }: { text: string }) {
   );
 }
 
-function Field({
+export function Field({
   label,
   tooltip,
   children,
@@ -88,7 +88,7 @@ function Field({
   );
 }
 
-function NumberInput({
+export function NumberInput({
   value,
   onChange,
   prefix,

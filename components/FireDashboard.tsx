@@ -5,10 +5,9 @@ import { useMemo, useState } from "react";
 import { AiInsights } from "@/components/AiInsights";
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { ConfidencePanel } from "@/components/ConfidencePanel";
-import { FireForm } from "@/components/FireForm";
 import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
 import { usePlan } from "@/components/PlanProvider";
-import { SavedPlans } from "@/components/SavedPlans";
+import { QuickLevers } from "@/components/QuickLevers";
 import { computeCoastFire } from "@/lib/coast-fire";
 import { simulateFire } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
@@ -82,7 +81,7 @@ function Segmented({
 }
 
 export function FireDashboard() {
-  const { inputs, setInputs } = usePlan();
+  const { inputs } = usePlan();
   const [chartTab, setChartTab] = useState<ChartTab>("assets");
   // Default to today's money — the frame most people reason in.
   const [realTerms, setRealTerms] = useState(true);
@@ -249,43 +248,33 @@ export function FireDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
-        <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 lg:col-span-2">
-          <MonoLabel>Your details</MonoLabel>
-          <div className="mt-4">
-            <SavedPlans inputs={inputs} onLoad={setInputs} />
-          </div>
-          <div className="mt-5">
-            <FireForm value={inputs} onChange={setInputs} />
-          </div>
-        </section>
+      <QuickLevers />
 
-        <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 lg:col-span-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <MonoLabel>Projection</MonoLabel>
-            <Segmented
-              value={chartTab}
-              onChange={setChartTab}
-              options={[
-                { value: "assets", label: "Assets" },
-                { value: "income", label: "Income" },
-                { value: "confidence", label: "Confidence" },
-              ]}
-            />
-          </div>
-          <div className="mt-4">
-            {chartTab === "assets" ? (
-              <AssetTimelineChart result={plan} realTerms={real} />
-            ) : chartTab === "income" ? (
-              <IncomeSafetyChart result={plan} />
-            ) : (
-              <ConfidencePanel inputs={inputs} />
-            )}
-          </div>
+      <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <MonoLabel>Projection</MonoLabel>
+          <Segmented
+            value={chartTab}
+            onChange={setChartTab}
+            options={[
+              { value: "assets", label: "Assets" },
+              { value: "income", label: "Income" },
+              { value: "confidence", label: "Confidence" },
+            ]}
+          />
+        </div>
+        <div className="mt-4">
+          {chartTab === "assets" ? (
+            <AssetTimelineChart result={plan} realTerms={real} />
+          ) : chartTab === "income" ? (
+            <IncomeSafetyChart result={plan} />
+          ) : (
+            <ConfidencePanel inputs={inputs} />
+          )}
+        </div>
 
-          <AiInsights result={plan} />
-        </section>
-      </div>
+        <AiInsights result={plan} />
+      </section>
 
       <p className="px-1 text-xs text-muted-foreground">
         Estimates based on simplified assumptions — not financial advice.{" "}
