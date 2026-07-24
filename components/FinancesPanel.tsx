@@ -51,13 +51,8 @@ export function FinancesPanel() {
         </Card>
       )}
 
-      <Card>
-        <h2 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Your details
-        </h2>
-        <div className="mt-5">
-          <FireForm value={inputs} onChange={setInputs} />
-        </div>
+      <Card padding="lg">
+        <FireForm value={inputs} onChange={setInputs} />
       </Card>
 
       <FeeDragCard />

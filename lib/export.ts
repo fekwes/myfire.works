@@ -22,6 +22,7 @@ const CSV_COLUMNS: {
   { header: "Tax-free pension", value: (y) => Math.round(y.pensionTaxFreeTaken) },
   { header: "State pension", value: (y) => Math.round(y.statePensionIncome) },
   { header: "Rental income", value: (y) => Math.round(y.rentalIncome) },
+  { header: "Part-time income", value: (y) => Math.round(y.partTimeIncome) },
   { header: "Income tax", value: (y) => Math.round(y.incomeTaxPaid) },
   { header: "Capital gains tax", value: (y) => Math.round(y.capitalGainsTaxPaid) },
   { header: "Net income", value: (y) => Math.round(y.netIncome) },

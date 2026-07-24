@@ -349,7 +349,19 @@ export default function MethodologyPage() {
             <li>
               GIA CGT is simplified (no embedded starting gain; no dividend tax).
             </li>
-            <li>Contributions stop at your retirement age.</li>
+            <li>
+              Contributions stop at your retirement age. Optional{" "}
+              <Term>part-time (Barista FIRE) income</Term> can be added — taxable
+              earnings from retirement until an age you choose, offsetting your
+              target so the pots draw down less early on.
+            </li>
+            <li>
+              Onboarding is <Term>persona-first</Term>: the quiz asks a FIRE
+              goal, a lifestyle, and your ages. Lifestyle targets use the{" "}
+              <Term>UK PLSA Retirement Living Standards 2025</Term> (single,
+              excluding housing): Minimum £13,400, Moderate £31,700, Comfortable
+              £43,900 — all editable afterwards.
+            </li>
             <li>
               2026/27 tax figures throughout (income tax and CGT thresholds are
               frozen; State Pension uses the confirmed +4.8% triple-lock rise).

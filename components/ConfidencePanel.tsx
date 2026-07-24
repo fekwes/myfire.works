@@ -17,6 +17,7 @@ import {
   type MonteCarloResult,
   type StrategyResult,
 } from "@/lib/monte-carlo";
+import { setChecklistFlag } from "@/lib/checklist";
 import { formatCurrency, formatCurrencyCompact } from "@/lib/format";
 import { portfolioAllocation } from "@/lib/vanguard-funds";
 
@@ -82,6 +83,7 @@ export function ConfidencePanel({ inputs }: { inputs: FireInputs }) {
 
   function run() {
     setLoading(true);
+    setChecklistFlag("confidence");
     // Yield so the loading state paints before the (~100ms) computation.
     setTimeout(() => {
       setResult(runMonteCarlo(inputs, { equityFraction: equityPct / 100, sims: 2000 }));

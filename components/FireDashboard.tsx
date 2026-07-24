@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AiInsights } from "@/components/AiInsights";
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { ConfidencePanel } from "@/components/ConfidencePanel";
 import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
 import { PlanActions } from "@/components/PlanActions";
-import { PlannerIntro } from "@/components/PlannerIntro";
+import { PlanChecklist } from "@/components/PlanChecklist";
 import { usePlan } from "@/components/PlanProvider";
 import { QuickLevers } from "@/components/QuickLevers";
 import { Card } from "@/components/ui";
@@ -99,6 +99,14 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
   // Default to today's money — the frame most people reason in.
   const [realTerms, setRealTerms] = useState(true);
 
+  // Deep link from the checklist: /planner#confidence opens the Confidence tab.
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#confidence") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setChartTab("confidence");
+    }
+  }, []);
+
   const makeItMine = () => {
     if (shared) setInputs(shared);
     router.push("/planner");
@@ -173,7 +181,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
         </div>
       )}
 
-      {!readOnly && <PlannerIntro />}
+      {!readOnly && <PlanChecklist />}
 
       {/* North-star summary — the heaviest card in the hierarchy. */}
       <Card padding="lg">
@@ -293,7 +301,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
       {!readOnly && <QuickLevers />}
       {!readOnly && <WhatIfCard />}
 
-      <Card padding="md">
+      <Card padding="md" id="confidence" className="scroll-mt-24">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <MonoLabel>Projection</MonoLabel>
           <Segmented

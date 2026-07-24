@@ -466,3 +466,66 @@ describe("simulateFire — inflation (real-terms target)", () => {
     );
   });
 });
+
+describe("simulateFire — part-time (Barista) income", () => {
+  const base = {
+    currentAge: 45,
+    retirementAge: 50,
+    targetAnnualIncome: 30000,
+    isaBalance: 300000,
+    isaMonthlyContribution: 0,
+    sippBalance: 200000,
+    sippMonthlyContribution: 0,
+  };
+
+  it("offsets the target so the pots draw down less while it lasts", () => {
+    const without = simulateFire(base);
+    const withBarista = simulateFire({
+      ...base,
+      partTimeAnnualIncome: 15000,
+      partTimeUntilAge: 55,
+    });
+    const isaAt50 = (r: ReturnType<typeof simulateFire>) =>
+      r.timeline.find((y) => y.age === 50)!.isaWithdrawal;
+    // A working retirement year pulls less from the ISA than a non-working one.
+    expect(isaAt50(withBarista)).toBeLessThan(isaAt50(without));
+    expect(withBarista.timeline.find((y) => y.age === 50)!.partTimeIncome).toBe(
+      15000,
+    );
+  });
+
+  it("stops at partTimeUntilAge", () => {
+    const r = simulateFire({
+      ...base,
+      partTimeAnnualIncome: 15000,
+      partTimeUntilAge: 55,
+    });
+    expect(r.timeline.find((y) => y.age === 54)!.partTimeIncome).toBe(15000);
+    expect(r.timeline.find((y) => y.age === 55)!.partTimeIncome).toBe(0);
+  });
+
+  it("is taxed as income (an otherwise tax-free ISA bridge year now pays tax)", () => {
+    const r = simulateFire({
+      ...base,
+      partTimeAnnualIncome: 20000, // above the £12,570 personal allowance
+      partTimeUntilAge: 55,
+    });
+    // Bridge years are ISA-funded and normally tax-free; part-time earnings
+    // push taxable income above the allowance.
+    expect(r.timeline.find((y) => y.age === 50)!.incomeTaxPaid).toBeGreaterThan(0);
+  });
+
+  it("grows the part-time income with inflation", () => {
+    const r = simulateFire({
+      ...base,
+      partTimeAnnualIncome: 15000,
+      partTimeUntilAge: 55,
+      inflationRate: 0.03,
+    });
+    // At age 52 it's inflated 7 years from currentAge 45.
+    expect(r.timeline.find((y) => y.age === 52)!.partTimeIncome).toBeCloseTo(
+      15000 * 1.03 ** 7,
+      0,
+    );
+  });
+});

@@ -1,123 +1,113 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_ASSUMPTIONS, simulateFire } from "./fire-engine";
-import { DEFAULT_INFLATION_RATE } from "./fire-engine";
+import { DEFAULT_ASSUMPTIONS, DEFAULT_INFLATION_RATE, simulateFire } from "./fire-engine";
 import {
+  applyPersona,
   assembleQuizInputs,
-  growthForInvestingStyle,
+  BARISTA_ANNUAL_INCOME,
+  initialQuizState,
+  lifestyleIncome,
+  PERSONA_BY_ID,
+  PLSA_LIFESTYLES,
   QUIZ_POT_GROWTH,
   QUIZ_PROPERTY_GROWTH,
-  type QuizState,
 } from "./quiz";
-import { FUND_BY_ID, netGrowth } from "./vanguard-funds";
 
-describe("growthForInvestingStyle", () => {
-  it("maps a style to its fund's net-of-fees growth", () => {
-    expect(growthForInvestingStyle("adventurous")).toBeCloseTo(
-      netGrowth(FUND_BY_ID.vwrp),
-      10,
-    );
+describe("lifestyleIncome", () => {
+  it("returns the PLSA figure for a named lifestyle", () => {
+    expect(lifestyleIncome("moderate", 0)).toBe(31700);
+    expect(lifestyleIncome("comfortable", 0)).toBe(43900);
+    expect(lifestyleIncome("minimum", 0)).toBe(13400);
   });
 
-  it("falls back to the neutral default when unsure", () => {
-    expect(growthForInvestingStyle("unsure")).toBe(QUIZ_POT_GROWTH);
+  it("returns the custom amount for a custom lifestyle", () => {
+    expect(lifestyleIncome("custom", 55000)).toBe(55000);
+  });
+});
+
+describe("applyPersona", () => {
+  it("pulls in the persona's lifestyle and retirement age", () => {
+    const s = applyPersona(initialQuizState(), "lean");
+    expect(s.persona).toBe("lean");
+    expect(s.lifestyle).toBe("minimum");
+    expect(s.retirementAge).toBe(PERSONA_BY_ID.lean.retirementAge);
   });
 
-  it("feeds the chosen growth through assembleQuizInputs", () => {
-    const g = growthForInvestingStyle("mostly-shares");
-    const inputs = assembleQuizInputs({ isaBalance: 1000 }, g);
-    expect(inputs.isaGrowth).toBe(g);
-    expect(inputs.sippGrowth).toBe(g);
-    expect(inputs.giaGrowth).toBe(g);
+  it("seeds a custom income for Fat FIRE", () => {
+    const s = applyPersona(initialQuizState(), "fat");
+    expect(s.lifestyle).toBe("custom");
+    expect(s.customIncome).toBe(60000);
   });
 });
 
 describe("assembleQuizInputs", () => {
-  const answers: QuizState = {
-    currentAge: 40,
-    retirementAge: 52,
-    targetAnnualIncome: 30000,
-    isaBalance: 120000,
-    isaMonthlyContribution: 800,
-    sippBalance: 90000,
-    sippMonthlyContribution: 400,
-    giaBalance: 15000,
-  };
+  const base = initialQuizState();
 
-  it("carries over the answers the quiz collects", () => {
-    const inputs = assembleQuizInputs(answers);
-    expect(inputs.currentAge).toBe(40);
-    expect(inputs.retirementAge).toBe(52);
-    expect(inputs.targetAnnualIncome).toBe(30000);
-    expect(inputs.isaBalance).toBe(120000);
-    expect(inputs.isaMonthlyContribution).toBe(800);
-    expect(inputs.sippBalance).toBe(90000);
-    expect(inputs.sippMonthlyContribution).toBe(400);
-    expect(inputs.giaBalance).toBe(15000);
+  it("takes its target income from the chosen lifestyle", () => {
+    const inputs = assembleQuizInputs({ ...base, lifestyle: "moderate" });
+    expect(inputs.targetAnnualIncome).toBe(31700);
   });
 
-  it("applies the documented silent defaults for everything not asked", () => {
-    const inputs = assembleQuizInputs(answers);
-    // Statutory ages + pension strategy come from the engine defaults.
+  it("uses the custom income when lifestyle is custom", () => {
+    const inputs = assembleQuizInputs({
+      ...base,
+      lifestyle: "custom",
+      customIncome: 52000,
+    });
+    expect(inputs.targetAnnualIncome).toBe(52000);
+  });
+
+  it("carries the ages through and applies documented defaults", () => {
+    const inputs = assembleQuizInputs({
+      ...base,
+      currentAge: 42,
+      retirementAge: 58,
+    });
+    expect(inputs.currentAge).toBe(42);
+    expect(inputs.retirementAge).toBe(58);
     expect(inputs.sippAccessAge).toBe(DEFAULT_ASSUMPTIONS.sippAccessAge);
-    expect(inputs.statePensionAge).toBe(DEFAULT_ASSUMPTIONS.statePensionAge);
-    expect(inputs.statePensionAnnual).toBe(
-      DEFAULT_ASSUMPTIONS.statePensionAnnual,
-    );
-    expect(inputs.statePensionAnnual).toBe(12547.6);
+    expect(inputs.statePensionAnnual).toBe(DEFAULT_ASSUMPTIONS.statePensionAnnual);
     expect(inputs.pensionStrategy).toBe(DEFAULT_ASSUMPTIONS.pensionStrategy);
-    expect(inputs.lifeExpectancyAge).toBe(
-      DEFAULT_ASSUMPTIONS.lifeExpectancyAge,
-    );
-    // Growth: pots at 5%, property at 3%.
     expect(inputs.isaGrowth).toBe(QUIZ_POT_GROWTH);
-    expect(inputs.giaGrowth).toBe(QUIZ_POT_GROWTH);
-    expect(inputs.sippGrowth).toBe(QUIZ_POT_GROWTH);
     expect(inputs.homeGrowth).toBe(QUIZ_PROPERTY_GROWTH);
-    expect(inputs.rentalGrowth).toBe(QUIZ_PROPERTY_GROWTH);
-    // Inflation defaulted so quiz plans are modelled in real terms.
     expect(inputs.inflationRate).toBe(DEFAULT_INFLATION_RATE);
-    // Never auto-contributed to the GIA, never auto-sold/downsized.
-    expect(inputs.giaMonthlyContribution).toBe(0);
-    expect(inputs.rentalSaleAge).toBe(0);
-    expect(inputs.downsizeAge).toBe(0);
-    expect(inputs.downsizeReleaseFraction).toBe(0);
   });
 
-  it("defaults omitted balances and property to zero", () => {
-    const inputs = assembleQuizInputs({
-      currentAge: 30,
-      retirementAge: 50,
-      targetAnnualIncome: 25000,
-    });
+  it("starts balances at zero with placeholder contributions", () => {
+    const inputs = assembleQuizInputs(base);
     expect(inputs.isaBalance).toBe(0);
-    expect(inputs.isaMonthlyContribution).toBe(0);
     expect(inputs.sippBalance).toBe(0);
-    expect(inputs.sippMonthlyContribution).toBe(0);
     expect(inputs.giaBalance).toBe(0);
-    expect(inputs.homeValue).toBe(0);
-    expect(inputs.rentalValue).toBe(0);
-    expect(inputs.rentalMonthlyIncome).toBe(0);
+    expect(inputs.isaMonthlyContribution).toBeGreaterThan(0);
+    expect(inputs.sippMonthlyContribution).toBeGreaterThan(0);
   });
 
-  it("carries optional property answers through", () => {
-    const inputs = assembleQuizInputs({
-      ...answers,
-      homeValue: 350000,
-      rentalValue: 200000,
-      rentalMonthlyIncome: 900,
-    });
-    expect(inputs.homeValue).toBe(350000);
-    expect(inputs.rentalValue).toBe(200000);
-    expect(inputs.rentalMonthlyIncome).toBe(900);
+  it("gives the Barista persona part-time income to State Pension age", () => {
+    const inputs = assembleQuizInputs(applyPersona(base, "barista"));
+    expect(inputs.partTimeAnnualIncome).toBe(BARISTA_ANNUAL_INCOME);
+    expect(inputs.partTimeUntilAge).toBe(DEFAULT_ASSUMPTIONS.statePensionAge);
+  });
+
+  it("gives non-Barista personas no part-time income", () => {
+    for (const id of ["standard", "lean", "fat", "coast"] as const) {
+      const inputs = assembleQuizInputs(applyPersona(base, id));
+      expect(inputs.partTimeAnnualIncome).toBe(0);
+    }
   });
 
   it("produces inputs the engine can simulate to completion", () => {
-    const result = simulateFire(assembleQuizInputs(answers));
-    // Runs from currentAge to the default life-expectancy horizon inclusive.
+    const inputs = assembleQuizInputs({ ...base, currentAge: 40 });
+    const result = simulateFire(inputs);
     expect(result.timeline).toHaveLength(
       DEFAULT_ASSUMPTIONS.lifeExpectancyAge - 40 + 1,
     );
     expect(result.timeline[0].age).toBe(40);
-    expect(result.inputs.sippAccessAge).toBe(57);
+  });
+
+  it("exposes exactly the three PLSA lifestyle bands", () => {
+    expect(PLSA_LIFESTYLES.map((l) => l.id)).toEqual([
+      "minimum",
+      "moderate",
+      "comfortable",
+    ]);
   });
 });

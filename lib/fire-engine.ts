@@ -89,6 +89,15 @@ export interface FireInputs {
   rentalMonthlyIncome?: number;
   rentalSaleAge?: number;
   /**
+   * "Barista FIRE" part-time work in early retirement: taxable employment
+   * income received each retirement year from `retirementAge` until
+   * `partTimeUntilAge` (exclusive). Quoted in today's money and grown by
+   * inflation, it offsets the target like rental income so the pots draw down
+   * less early on. 0 / undefined = none.
+   */
+  partTimeAnnualIncome?: number;
+  partTimeUntilAge?: number;
+  /**
    * Home you live in: net worth only, grows at `homeGrowth`. Optionally
    * downsized at `downsizeAge`, releasing `downsizeReleaseFraction` of its
    * value as tax-free cash into the GIA (primary-residence CGT relief).
@@ -126,6 +135,8 @@ export interface YearSnapshot {
   statePensionIncome: number;
   /** Gross rental income received this year (0 once the property is sold). */
   rentalIncome: number;
+  /** Taxable part-time ("Barista") income received this year. */
+  partTimeIncome: number;
   /** Cash released into the GIA this year from a property sale or downsize. */
   propertyCashReleased: number;
   rentalValueEnd: number;
@@ -165,6 +176,8 @@ function resolveInputs(inputs: FireInputs): ResolvedFireInputs {
     rentalGrowth: inputs.rentalGrowth ?? growthRate,
     rentalMonthlyIncome: inputs.rentalMonthlyIncome ?? 0,
     rentalSaleAge: inputs.rentalSaleAge ?? 0,
+    partTimeAnnualIncome: inputs.partTimeAnnualIncome ?? 0,
+    partTimeUntilAge: inputs.partTimeUntilAge ?? 0,
     homeValue: inputs.homeValue ?? 0,
     homeGrowth: inputs.homeGrowth ?? growthRate,
     downsizeAge: inputs.downsizeAge ?? 0,
@@ -366,6 +379,8 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     rentalGrowth,
     rentalMonthlyIncome,
     rentalSaleAge,
+    partTimeAnnualIncome,
+    partTimeUntilAge,
     homeGrowth,
     downsizeAge,
     downsizeReleaseFraction,
@@ -413,6 +428,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
         pensionTaxFreeTaken: 0,
         statePensionIncome: 0,
         rentalIncome: 0,
+        partTimeIncome: 0,
         propertyCashReleased: 0,
         rentalValueEnd: rentalValue,
         homeValueEnd: homeValue,
@@ -478,6 +494,11 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       homeDownsized = true;
     }
     const rentalIncome = rentalSold ? 0 : rentalMonthlyIncome * 12;
+    // Barista FIRE: part-time work income until it stops, in nominal terms.
+    const partTimeIncome =
+      partTimeAnnualIncome > 0 && age < partTimeUntilAge
+        ? partTimeAnnualIncome * inflationFactor
+        : 0;
 
     // "lump-sum" strategy: take the 25% PCLS once, as cash into the GIA.
     let pensionTaxFreeTaken = 0;
@@ -500,9 +521,10 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       lumpSumTaken = true;
     }
 
-    // Guaranteed taxable income (State Pension + rental) offsets the target;
-    // the pots only need to cover the rest.
-    const otherTaxableIncome = statePensionIncome + rentalIncome;
+    // Guaranteed taxable income (State Pension + rental + part-time work)
+    // offsets the target; the pots only need to cover the rest.
+    const otherTaxableIncome =
+      statePensionIncome + rentalIncome + partTimeIncome;
     const otherTaxableNet =
       otherTaxableIncome - calculateUkIncomeTax(otherTaxableIncome);
     let potNeed = Math.max(0, yearTarget - otherTaxableNet);
@@ -608,6 +630,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       pensionTaxFreeTaken,
       statePensionIncome,
       rentalIncome,
+      partTimeIncome,
       propertyCashReleased,
       rentalValueEnd: rentalValue,
       homeValueEnd: homeValue,
