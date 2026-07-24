@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI, Type } from "@google/genai";
 import { NextResponse } from "next/server";
 import { formatCurrency } from "@/lib/format";
 import { createRateLimiter } from "@/lib/rate-limit";
@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 // The AI tips call is the one paid, abusable endpoint. Limit it per client IP
 // (a short burst window + a daily cap) plus a global daily backstop so a single
-// instance can't run away with the Anthropic budget. In-memory per instance —
+// instance can't run away with the AI provider's quota. In-memory per instance —
 // swap for a shared store (Upstash/KV) behind the same interface in production.
 const perMinute = createRateLimiter({ windowMs: 60_000, max: 5 });
 const perDay = createRateLimiter({ windowMs: 86_400_000, max: 40 });
@@ -62,26 +62,26 @@ interface AnalyzeResponse {
   tips: { title: string; detail: string }[];
 }
 
+// Gemini structured-output schema (uses the SDK's Type enum).
 const TIPS_SCHEMA = {
-  type: "object",
+  type: Type.OBJECT,
   properties: {
     tips: {
-      type: "array",
+      type: Type.ARRAY,
+      minItems: "3",
+      maxItems: "3",
       items: {
-        type: "object",
+        type: Type.OBJECT,
         properties: {
-          title: { type: "string" },
-          detail: { type: "string" },
+          title: { type: Type.STRING },
+          detail: { type: Type.STRING },
         },
         required: ["title", "detail"],
-        additionalProperties: false,
+        propertyOrdering: ["title", "detail"],
       },
-      minItems: 3,
-      maxItems: 3,
     },
   },
   required: ["tips"],
-  additionalProperties: false,
 };
 
 export async function POST(request: Request) {
@@ -94,10 +94,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY is not configured on the server." },
+      { error: "GEMINI_API_KEY is not configured on the server." },
       { status: 500 },
     );
   }
@@ -135,43 +135,36 @@ UK FIRE simulation summary:
 - SIPP depleted at age: ${body.sippDepletedAge ?? "never"}
 `.trim();
 
-  const client = new Anthropic({ apiKey });
+  const ai = new GoogleGenAI({ apiKey });
 
   try {
-    const response = await client.messages.create({
-      model: "claude-opus-4-8",
-      max_tokens: 1024,
-      output_config: {
-        effort: "medium",
-        format: { type: "json_schema", schema: TIPS_SCHEMA },
+    const response = await ai.models.generateContent({
+      // "latest" tracks the current Flash model so it won't retire underneath us.
+      model: "gemini-flash-latest",
+      contents: `Based on this simulation, give exactly 3 tailored UK strategy tips — covering the SIPP tax-relief vs ISA-bridge balance, using the GIA and its CGT allowance efficiently, and closing (or banking) the gap to the FIRE number — given current UK income tax bands:\n\n${summary}`,
+      config: {
+        systemInstruction:
+          "You are a UK financial planning assistant specializing in FIRE (Financial Independence, Retire Early) strategy. Give tailored, concrete tips referencing current UK tax rules (ISA/GIA, SIPP 25% tax-free lump sum, income tax bands, State Pension). Keep tips educational, not regulated financial advice.",
+        responseMimeType: "application/json",
+        responseSchema: TIPS_SCHEMA,
+        temperature: 0.7,
       },
-      system:
-        "You are a UK financial planning assistant specializing in FIRE (Financial Independence, Retire Early) strategy. Give tailored, concrete tips referencing current UK tax rules (ISA/GIA, SIPP 25% tax-free lump sum, income tax bands, State Pension). Keep tips educational, not regulated financial advice.",
-      messages: [
-        {
-          role: "user",
-          content: `Based on this simulation, give exactly 3 tailored UK strategy tips — covering the SIPP tax-relief vs ISA-bridge balance, using the GIA and its CGT allowance efficiently, and closing (or banking) the gap to the FIRE number — given current UK income tax bands:\n\n${summary}`,
-        },
-      ],
     });
 
-    const textBlock = response.content.find((block) => block.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
+    const text = response.text;
+    if (!text) {
       return NextResponse.json(
         { error: "No response generated." },
         { status: 502 },
       );
     }
 
-    const parsed = JSON.parse(textBlock.text) as AnalyzeResponse;
+    const parsed = JSON.parse(text) as AnalyzeResponse;
     return NextResponse.json(parsed);
   } catch (error) {
-    if (error instanceof Anthropic.APIError) {
-      return NextResponse.json(
-        { error: `Anthropic API error: ${error.message}` },
-        { status: error.status ?? 502 },
-      );
-    }
-    throw error;
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "AI request failed." },
+      { status: 502 },
+    );
   }
 }
