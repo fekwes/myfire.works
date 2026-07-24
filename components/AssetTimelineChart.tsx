@@ -61,20 +61,32 @@ function ChartTooltip({
 
 export function AssetTimelineChart({
   result,
+  realTerms = false,
 }: {
   result: FireSimulationResult;
+  /** Show values in today's money (deflated by the plan's inflation rate). */
+  realTerms?: boolean;
 }) {
+  const { currentAge, inflationRate } = result.inputs;
+  const deflate = (value: number, age: number) =>
+    realTerms && inflationRate > 0
+      ? value / (1 + inflationRate) ** (age - currentAge)
+      : value;
+
   const data = result.timeline.map((year) => ({
     age: year.age,
-    ISA: Math.round(year.isaBalanceEnd),
-    GIA: Math.round(year.giaBalanceEnd),
-    SIPP: Math.round(year.sippBalanceEnd),
+    ISA: Math.round(deflate(year.isaBalanceEnd, year.age)),
+    GIA: Math.round(deflate(year.giaBalanceEnd, year.age)),
+    SIPP: Math.round(deflate(year.sippBalanceEnd, year.age)),
     "Net worth": Math.round(
-      year.isaBalanceEnd +
-        year.giaBalanceEnd +
-        year.sippBalanceEnd +
-        year.rentalValueEnd +
-        year.homeValueEnd,
+      deflate(
+        year.isaBalanceEnd +
+          year.giaBalanceEnd +
+          year.sippBalanceEnd +
+          year.rentalValueEnd +
+          year.homeValueEnd,
+        year.age,
+      ),
     ),
   }));
 

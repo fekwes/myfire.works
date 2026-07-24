@@ -1,6 +1,7 @@
 import {
   type FireInputs,
   type FireSimulationResult,
+  inflatedTargetAt,
   simulateFire,
 } from "./fire-engine";
 
@@ -94,6 +95,9 @@ function solveCoastAge(inputs: FireInputs): number | null {
       zeroContributions({
         ...inputs,
         currentAge: age,
+        // Carry inflation accrued up to this age (moving currentAge forward
+        // would otherwise reset the target's inflation baseline).
+        targetAnnualIncome: inflatedTargetAt(inputs, age),
         isaBalance: isa,
         giaBalance: gia,
         sippBalance: sipp,

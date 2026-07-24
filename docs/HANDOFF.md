@@ -45,8 +45,13 @@ summary + progressive disclosure), verified in-browser in both themes.
 - **Property** — rental (taxable income offsets target + optional sale w/ residential CGT → GIA) and home (net worth, optional downsize → tax-free cash to GIA). No mortgages.
 - **Login (Supabase)** — code complete and wired; gated on env config. Publishable key is set in `.env.local` (gitignored); the Sign-in UI is live.
 - **Stage 6** — onboarding quiz + landing page. `/` is now a landing page (hero + "Build my plan" CTA), the planner moved to `/planner`, and `/start` is a 7-step quiz that collects the ~6 key inputs, reveals the live `simulateFire` result, and ends with an optional Supabase sign-up ("maybe later" skips). Quiz→planner state is handed over via `localStorage["onfire:plan"]`. Silent defaults (statutory ages, growth, pension strategy, life expectancy) live in `lib/quiz.ts`.
+- **v1 finishing pass** (post-Stage-6):
+  - **FIRE number** — `lib/fire-number.ts` bisects the pot needed at retirement vs. what you're on course for; surfaced prominently in the planner + reused in the AI prompt.
+  - **Net worth incl. property** — a net-worth stat + a dashed net-worth line on the asset chart, so a home/rental is finally visible.
+  - **Inflation / real terms** — the engine grows the spending target by `inflationRate` (form/quiz default 2.5%, engine default 0); the planner has a **Today's £ / Future £** toggle that deflates the projection. Sub-simulations (`fire-number`, `coast-fire`) pre-inflate the target via `inflatedTargetAt` so verdicts stay consistent. Tax bands + State Pension held at 2026/27 nominal (fiscal drag).
+  - **Polish** — full SEO/OpenGraph metadata + dynamic `opengraph-image` + sitemap/robots, branded 404 + error pages, removed dead starter SVGs, `NEXT_PUBLIC_SITE_URL` env var.
 
-**57 Vitest tests pass. `tsc`/`eslint` clean.**
+**66 Vitest tests pass. `tsc`/`eslint` clean.**
 
 ## Key files
 

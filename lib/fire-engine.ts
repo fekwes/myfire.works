@@ -51,10 +51,22 @@ export const DEFAULT_ASSUMPTIONS = {
   pensionStrategy: "gradual" as PensionStrategy,
 } as const;
 
+/** Default annual inflation the planner/quiz apply (Bank of England target ~2%,
+ *  nudged to 2.5% to be a touch conservative). The engine itself defaults to 0. */
+export const DEFAULT_INFLATION_RATE = 0.025;
+
 export interface FireInputs {
   currentAge: number;
   retirementAge: number;
   targetAnnualIncome: number;
+  /**
+   * Annual price inflation. The spending target is quoted in today's money and
+   * grown by this each year (so the nominal amount withdrawn rises over time).
+   * Pots grow at their nominal `growthRate`; tax bands and the State Pension
+   * are held at 2026/27 nominal levels (so fiscal drag is modelled). Defaults
+   * to 0 in the engine — a purely nominal projection.
+   */
+  inflationRate?: number;
   isaBalance: number;
   isaMonthlyContribution: number;
   sippBalance: number;
@@ -142,6 +154,7 @@ function resolveInputs(inputs: FireInputs): ResolvedFireInputs {
   const growthRate = inputs.growthRate ?? DEFAULT_ASSUMPTIONS.growthRate;
   return {
     ...inputs,
+    inflationRate: inputs.inflationRate ?? 0,
     giaBalance: inputs.giaBalance ?? 0,
     giaMonthlyContribution: inputs.giaMonthlyContribution ?? 0,
     growthRate,
@@ -166,6 +179,18 @@ function resolveInputs(inputs: FireInputs): ResolvedFireInputs {
     lifeExpectancyAge:
       inputs.lifeExpectancyAge ?? DEFAULT_ASSUMPTIONS.lifeExpectancyAge,
   };
+}
+
+/**
+ * The spending target grown to its nominal value at `atAge` (today's-money
+ * target compounded by inflation from `currentAge`). Sub-simulations that move
+ * `currentAge` forward — e.g. re-running the plan from retirement — must
+ * pre-inflate the target to that age with this, or inflation silently resets.
+ */
+export function inflatedTargetAt(inputs: FireInputs, atAge: number): number {
+  const inflationRate = inputs.inflationRate ?? 0;
+  const years = Math.max(0, atAge - inputs.currentAge);
+  return inputs.targetAnnualIncome * (1 + inflationRate) ** years;
 }
 
 export function calculatePersonalAllowance(
@@ -314,6 +339,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     currentAge,
     retirementAge,
     targetAnnualIncome,
+    inflationRate,
     isaGrowth,
     giaGrowth,
     sippGrowth,
@@ -404,6 +430,11 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     rentalValue *= 1 + rentalGrowth;
     homeValue *= 1 + homeGrowth;
 
+    // The target is quoted in today's money; its nominal value rises with
+    // inflation, so later retirement years must withdraw more to fund it.
+    const yearTarget =
+      targetAnnualIncome * (1 + inflationRate) ** (age - currentAge);
+
     const sippAccessible = age >= sippAccessAge;
     if (age < sippAccessAge && bridgeToSippTransitionAge === null) {
       bridgeToSippTransitionAge = sippAccessAge;
@@ -471,7 +502,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     const otherTaxableIncome = statePensionIncome + rentalIncome;
     const otherTaxableNet =
       otherTaxableIncome - calculateUkIncomeTax(otherTaxableIncome);
-    let potNeed = Math.max(0, targetAnnualIncome - otherTaxableNet);
+    let potNeed = Math.max(0, yearTarget - otherTaxableNet);
 
     // 1. ISA — tax-free, drawn first.
     const isaWithdrawal = Math.min(isaBalance, potNeed);
@@ -543,7 +574,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     const netFromIncomeSide =
       gradualTaxFree + otherTaxableIncome + taxablePortion - incomeTaxPaid;
     const netIncome = isaWithdrawal + netFromGia + netFromIncomeSide;
-    const shortfall = netIncome < targetAnnualIncome - 0.01;
+    const shortfall = netIncome < yearTarget - 0.01;
 
     if (isaBalance <= 0.01 && isaDepletedAge === null && isaBalanceStart > 0) {
       isaDepletedAge = age;

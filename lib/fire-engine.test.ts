@@ -387,3 +387,58 @@ describe("simulateFire", () => {
     ).toBe(true);
   });
 });
+
+describe("simulateFire — inflation (real-terms target)", () => {
+  // A pure ISA-funded bridge so the first retired year draws exactly the
+  // nominal target (tax-free, no other income).
+  const infBase = {
+    currentAge: 40,
+    retirementAge: 50,
+    targetAnnualIncome: 25000,
+    isaBalance: 1_000_000,
+    isaMonthlyContribution: 0,
+    sippBalance: 0,
+    sippMonthlyContribution: 0,
+    statePensionAnnual: 0,
+  };
+
+  it("keeps the target nominal when inflation is 0", () => {
+    const first = simulateFire({ ...infBase, inflationRate: 0 }).timeline.find(
+      (y) => y.age === 50,
+    );
+    expect(first?.isaWithdrawal).toBeCloseTo(25000, 0);
+  });
+
+  it("grows the nominal target by inflation each year", () => {
+    const r = simulateFire({ ...infBase, inflationRate: 0.03 });
+    // 10 years from currentAge to first retired year, 20 years by age 60.
+    expect(r.timeline.find((y) => y.age === 50)?.isaWithdrawal).toBeCloseTo(
+      25000 * 1.03 ** 10,
+      0,
+    );
+    expect(r.timeline.find((y) => y.age === 60)?.isaWithdrawal).toBeCloseTo(
+      25000 * 1.03 ** 20,
+      0,
+    );
+  });
+
+  it("turns a marginally-sustainable plan into a shortfall", () => {
+    const marginal = {
+      currentAge: 55,
+      retirementAge: 55,
+      targetAnnualIncome: 30000,
+      isaBalance: 850_000,
+      isaMonthlyContribution: 0,
+      sippBalance: 0,
+      sippMonthlyContribution: 0,
+      statePensionAnnual: 0,
+    };
+    expect(
+      simulateFire({ ...marginal, inflationRate: 0 }).sustainableToLifeExpectancy,
+    ).toBe(true);
+    expect(
+      simulateFire({ ...marginal, inflationRate: 0.05 })
+        .sustainableToLifeExpectancy,
+    ).toBe(false);
+  });
+});

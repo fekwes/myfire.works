@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeFireNumber } from "./fire-number";
-import type { FireInputs } from "./fire-engine";
+import { type FireInputs, simulateFire } from "./fire-engine";
 
 describe("computeFireNumber", () => {
   const base: FireInputs = {
@@ -46,5 +46,22 @@ describe("computeFireNumber", () => {
     const { fireNumber } = computeFireNumber(base);
     expect(fireNumber).toBeGreaterThan(0);
     expect(Number.isFinite(fireNumber)).toBe(true);
+  });
+
+  it("its verdict agrees with the plan's sustainability, incl. under inflation", () => {
+    // The FIRE-number sub-simulation must carry inflation to retirement, so
+    // `onTrack` cannot disagree with the full plan's actual outcome.
+    for (const inflationRate of [0, 0.025, 0.05]) {
+      const inputs = { ...base, inflationRate };
+      expect(computeFireNumber(inputs).onTrack).toBe(
+        simulateFire(inputs).sustainableToLifeExpectancy,
+      );
+    }
+  });
+
+  it("requires a bigger pot as inflation rises", () => {
+    const flat = computeFireNumber({ ...base, inflationRate: 0 }).fireNumber;
+    const infl = computeFireNumber({ ...base, inflationRate: 0.04 }).fireNumber;
+    expect(infl).toBeGreaterThan(flat);
   });
 });

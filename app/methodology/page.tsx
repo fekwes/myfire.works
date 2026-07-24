@@ -334,9 +334,14 @@ export default function MethodologyPage() {
         >
           <ul className="list-disc space-y-1.5 pl-5">
             <li>
-              The main projection applies a <Term>flat nominal growth rate per
-              pot</Term> each year — not inflation-adjusted. The{" "}
-              <Term>Confidence</Term> tab adds randomness (see below).
+              Pots grow at a <Term>flat nominal growth rate per pot</Term> each
+              year. Your target income is quoted in today&apos;s money and grown
+              by an <Term>inflation rate</Term> (default 2.5%), so later
+              withdrawals rise; the planner&apos;s{" "}
+              <Term>Today&apos;s £ / Future £</Term> toggle switches the
+              projection between the two. Tax bands and the State Pension are
+              held at 2026/27 levels, so <Term>fiscal drag</Term> is captured.
+              The <Term>Confidence</Term> tab adds randomness (see below).
             </li>
             <li>Rest-of-UK tax bands only — Scottish rates aren&apos;t modelled.</li>
             <li>

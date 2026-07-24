@@ -84,6 +84,8 @@ function Segmented({
 export function FireDashboard() {
   const [inputs, setInputs] = useState<FireInputs>(DEFAULT_FIRE_FORM_VALUES);
   const [chartTab, setChartTab] = useState<ChartTab>("assets");
+  // Default to today's money — the frame most people reason in.
+  const [realTerms, setRealTerms] = useState(true);
 
   // Pick up a plan handed over from the onboarding quiz (`/start`). Read after
   // mount to avoid an SSR/client hydration mismatch on the initial render.
@@ -106,6 +108,26 @@ export function FireDashboard() {
     (inputs.rentalValue ?? 0) +
     (inputs.homeValue ?? 0);
   const propertyValue = (inputs.rentalValue ?? 0) + (inputs.homeValue ?? 0);
+
+  // Real-terms display. When on, deflate future-money figures back to today's
+  // money by the plan's inflation rate. Only meaningful when inflation > 0.
+  const infl = inputs.inflationRate ?? 0;
+  const showRealToggle = infl > 0;
+  const real = showRealToggle && realTerms;
+  const deflateAt = (age: number) =>
+    real ? 1 / (1 + infl) ** (age - inputs.currentAge) : 1;
+
+  const retireDefl = deflateAt(plan.inputs.retirementAge);
+  const fireNumberDisplay = fire.fireNumber * retireDefl;
+  const projectedDisplay = fire.projectedAtRetirement * retireDefl;
+  const surplusDisplay = projectedDisplay - fireNumberDisplay;
+  const taxFreePensionDisplay = real
+    ? plan.timeline.reduce(
+        (sum, y) => sum + y.pensionTaxFreeTaken * deflateAt(y.age),
+        0,
+      )
+    : plan.totalTaxFreePension;
+  const moneyFrame = real ? "today's money" : "future money";
 
   const horizon = plan.inputs.lifeExpectancyAge;
   const firstShortfall = plan.timeline.find(
@@ -141,18 +163,49 @@ export function FireDashboard() {
               </p>
             )}
           </div>
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-              sustainable ? "bg-brand/15 text-success" : "bg-danger/15 text-danger"
-            }`}
-          >
+          <div className="flex flex-col items-end gap-2">
             <span
-              className={`size-1.5 rounded-full ${
-                sustainable ? "bg-success" : "bg-danger"
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                sustainable ? "bg-brand/15 text-success" : "bg-danger/15 text-danger"
               }`}
-            />
-            {sustainable ? "On track" : "Shortfall"}
-          </span>
+            >
+              <span
+                className={`size-1.5 rounded-full ${
+                  sustainable ? "bg-success" : "bg-danger"
+                }`}
+              />
+              {sustainable ? "On track" : "Shortfall"}
+            </span>
+            {showRealToggle && (
+              <div className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-muted p-1">
+                {(
+                  [
+                    { v: true, label: "Today's £" },
+                    { v: false, label: "Future £" },
+                  ] as const
+                ).map((o) => (
+                  <button
+                    key={o.label}
+                    type="button"
+                    onClick={() => setRealTerms(o.v)}
+                    aria-pressed={realTerms === o.v}
+                    title={
+                      o.v
+                        ? "Show figures in today's money (deflated by inflation)"
+                        : "Show the actual future pounds withdrawn"
+                    }
+                    className={`rounded-full px-2.5 py-0.5 text-[0.7rem] font-semibold transition-colors ${
+                      realTerms === o.v
+                        ? "bg-foreground text-background"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* FIRE number — the pot needed at retirement vs. what you're on course
@@ -161,10 +214,11 @@ export function FireDashboard() {
           <div>
             <MonoLabel>Your FIRE number</MonoLabel>
             <p className="mt-1.5 font-display text-2xl font-bold tabular sm:text-3xl">
-              {formatCurrency(fire.fireNumber)}
+              {formatCurrency(fireNumberDisplay)}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              the pot you need at age {plan.inputs.retirementAge}, then draw down
+              the pot you need at age {plan.inputs.retirementAge}
+              {showRealToggle ? ` (in ${moneyFrame})` : ""}, then draw down
               tax-efficiently.
             </p>
           </div>
@@ -177,12 +231,12 @@ export function FireDashboard() {
                 fire.onTrack ? "text-success" : "text-danger"
               }`}
             >
-              {formatCurrency(fire.projectedAtRetirement)}
+              {formatCurrency(projectedDisplay)}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {fire.onTrack
-                ? `${formatCurrency(fire.surplus)} to spare`
-                : `${formatCurrency(-fire.surplus)} short`}
+                ? `${formatCurrency(surplusDisplay)} to spare`
+                : `${formatCurrency(-surplusDisplay)} short`}
             </p>
           </div>
         </div>
@@ -195,7 +249,7 @@ export function FireDashboard() {
           />
           <StatTile
             label="Tax-free pension"
-            value={formatCurrency(plan.totalTaxFreePension)}
+            value={formatCurrency(taxFreePensionDisplay)}
           />
           <StatTile
             label="Plan lasts to"
@@ -231,7 +285,7 @@ export function FireDashboard() {
           </div>
           <div className="mt-4">
             {chartTab === "assets" ? (
-              <AssetTimelineChart result={plan} />
+              <AssetTimelineChart result={plan} realTerms={real} />
             ) : chartTab === "income" ? (
               <IncomeSafetyChart result={plan} />
             ) : (

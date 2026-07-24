@@ -1,4 +1,8 @@
-import { DEFAULT_ASSUMPTIONS, type FireInputs } from "./fire-engine";
+import {
+  DEFAULT_ASSUMPTIONS,
+  DEFAULT_INFLATION_RATE,
+  type FireInputs,
+} from "./fire-engine";
 
 /**
  * The onboarding quiz collects only the handful of inputs that materially move
@@ -66,6 +70,7 @@ export function assembleQuizInputs(state: QuizState): FireInputs {
 
     // Not asked — sensible silent defaults.
     giaMonthlyContribution: 0,
+    inflationRate: DEFAULT_INFLATION_RATE,
     growthRate: QUIZ_POT_GROWTH,
     isaGrowth: QUIZ_POT_GROWTH,
     giaGrowth: QUIZ_POT_GROWTH,

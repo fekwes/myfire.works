@@ -1,4 +1,8 @@
-import { simulateFire, type FireInputs } from "./fire-engine";
+import {
+  type FireInputs,
+  inflatedTargetAt,
+  simulateFire,
+} from "./fire-engine";
 
 export interface FireNumberResult {
   /** Projected invested pot (ISA + GIA + SIPP) at the start of retirement. */
@@ -49,11 +53,15 @@ export function computeFireNumber(inputs: FireInputs): FireNumberResult {
       : { isa: 0.4, gia: 0, sipp: 0.6 };
 
   // A candidate pot at retirement sustains the plan? Re-run from retirement.
+  // The target must carry the inflation already accrued by retirement, else
+  // shifting `currentAge` forward would reset the inflation baseline.
+  const targetAtRetirement = inflatedTargetAt(inputs, retirementAge);
   const sustainsAt = (amount: number) =>
     simulateFire(
       zeroContributions({
         ...inputs,
         currentAge: retirementAge,
+        targetAnnualIncome: targetAtRetirement,
         isaBalance: amount * weights.isa,
         giaBalance: amount * weights.gia,
         sippBalance: amount * weights.sipp,

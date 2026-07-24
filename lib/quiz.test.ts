@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_ASSUMPTIONS, simulateFire } from "./fire-engine";
+import { DEFAULT_INFLATION_RATE } from "./fire-engine";
 import {
   assembleQuizInputs,
   QUIZ_POT_GROWTH,
@@ -50,6 +51,8 @@ describe("assembleQuizInputs", () => {
     expect(inputs.sippGrowth).toBe(QUIZ_POT_GROWTH);
     expect(inputs.homeGrowth).toBe(QUIZ_PROPERTY_GROWTH);
     expect(inputs.rentalGrowth).toBe(QUIZ_PROPERTY_GROWTH);
+    // Inflation defaulted so quiz plans are modelled in real terms.
+    expect(inputs.inflationRate).toBe(DEFAULT_INFLATION_RATE);
     // Never auto-contributed to the GIA, never auto-sold/downsized.
     expect(inputs.giaMonthlyContribution).toBe(0);
     expect(inputs.rentalSaleAge).toBe(0);
