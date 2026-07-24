@@ -6,6 +6,7 @@ import { AiInsights } from "@/components/AiInsights";
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { ConfidencePanel } from "@/components/ConfidencePanel";
 import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
+import { PlanActions } from "@/components/PlanActions";
 import { usePlan } from "@/components/PlanProvider";
 import { QuickLevers } from "@/components/QuickLevers";
 import { computeCoastFire } from "@/lib/coast-fire";
@@ -133,6 +134,13 @@ export function FireDashboard() {
 
   return (
     <div className="space-y-5">
+      <div className="no-print flex items-center justify-between gap-3">
+        <h1 className="font-display text-lg font-bold tracking-tight">
+          Your planner
+        </h1>
+        <PlanActions />
+      </div>
+
       {/* North-star summary */}
       <div className="rounded-2xl border border-border bg-surface p-5 sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
