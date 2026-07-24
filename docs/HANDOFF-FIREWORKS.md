@@ -146,4 +146,40 @@ green quality gate; live on `myfire.works`.
 
 ## 6. Kickoff prompt for the next session
 
-> Paste this into a new chat (see the copy in the chat message that accompanied this file).
+Paste this into a new chat to continue:
+
+```
+You're continuing the "Fireworks" project (formerly OnFIRE) in repo fekwes/onfire.
+
+FIRST: read docs/HANDOFF-FIREWORKS.md end to end — it has the full context, repo
+map, deploy/env notes, known issues, and the two plans. Then skim docs/DESIGN.md,
+docs/ARCHITECTURE.md, and app/globals.css.
+
+Work on branch claude/onfire-stage-6-onboarding-tghour (restart it from latest main
+if needed; never push to main directly). Keep the quality gate green on every
+commit: npm test, npx tsc --noEmit, npx eslint ., npm run build. Never commit
+secrets. Don't open a PR unless I ask.
+
+We're doing TWO things, in order:
+
+1) REBRAND to "Fireworks" (domain myfire.works). Lean into the double meaning:
+   FIRE (financial independence) × fireworks (the celebratory moment, sparks,
+   launch/trajectory). I want a genuinely high-quality, professional identity with
+   attention to detail — not generic or AI-looking. Deliver: naming/voice, a
+   distinctive logo + wordmark (SVG light/dark, favicon, OG image), a refreshed
+   design system (palette + type pairing + tokens in app/globals.css + components/ui
+   + docs/DESIGN.md), and restrained, reduced-motion-safe micro-interactions.
+   Collect 3–5 visual references and explain your rationale BEFORE building. Propose
+   the direction and check with me before rolling it across the app.
+
+2) After the brand direction is agreed, a FULL UX/UI overhaul: audit every screen
+   and the whole journey (landing → quiz → planner → finances → confidence →
+   account), fix the non-linear/rough parts, rework fonts/colours/proportions and
+   the data-viz as one coherent system (use the dataviz skill for charts), and
+   rebuild screen-by-screen behind the new brand — engine/business logic untouched.
+   Also fix saved "Profiles" (see handoff §2a): make Load/multiple/name-on-save
+   first-class; saves made from now must stay loadable.
+
+Start with Task 1: give me the naming/voice options + logo & design-system
+direction with references, and ask me anything you need before implementing.
+```
