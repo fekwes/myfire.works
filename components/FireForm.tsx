@@ -292,7 +292,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
           <Block
             title="Other investments — GIA"
             dotClass="bg-data-3"
-            tooltip="A General Investment Account: drawn after the ISA, with Capital Gains Tax on gains above the £3,000 exemption. (Property support is coming.)"
+            tooltip="A General Investment Account: drawn after the ISA, with Capital Gains Tax on gains above the £3,000 exemption."
           >
             <Field label="Current balance">
               <NumberInput

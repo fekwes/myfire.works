@@ -25,10 +25,44 @@ const bricolage = Bricolage_Grotesque({
   weight: ["500", "600", "700", "800"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const description =
+  "OnFIRE models your UK Financial Independence, Retire Early plan across ISA, GIA, SIPP, State Pension and property — with correct 2026/27 tax, Coast FIRE and Monte Carlo confidence.";
+
 export const metadata: Metadata = {
-  title: "OnFIRE — UK FIRE Planner",
-  description:
-    "OnFIRE models your UK Financial Independence, Retire Early plan across ISA, GIA, SIPP and State Pension.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "OnFIRE — UK FIRE Planner",
+    template: "%s · OnFIRE",
+  },
+  description,
+  applicationName: "OnFIRE",
+  keywords: [
+    "FIRE",
+    "UK FIRE",
+    "financial independence",
+    "retire early",
+    "ISA",
+    "SIPP",
+    "pension drawdown",
+    "State Pension",
+    "Coast FIRE",
+    "retirement planner",
+  ],
+  authors: [{ name: "fekwes", url: "https://github.com/fekwes" }],
+  openGraph: {
+    type: "website",
+    siteName: "OnFIRE",
+    title: "OnFIRE — UK FIRE Planner",
+    description,
+    url: siteUrl,
+    locale: "en_GB",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "OnFIRE — UK FIRE Planner",
+    description,
+  },
 };
 
 export default function RootLayout({

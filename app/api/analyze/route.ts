@@ -9,7 +9,13 @@ interface AnalyzeRequest {
   retirementAge: number;
   targetAnnualIncome: number;
   isaBalance: number;
+  isaMonthlyContribution: number;
+  giaBalance: number;
   sippBalance: number;
+  sippMonthlyContribution: number;
+  propertyValue: number;
+  fireNumber: number;
+  projectedAtRetirement: number;
   sippAccessAge: number;
   statePensionAge: number;
   taxFreeLumpSum: number;
@@ -59,7 +65,11 @@ export async function POST(request: Request) {
 UK FIRE simulation summary:
 - Current age: ${body.currentAge}, target retirement age: ${body.retirementAge}
 - Target net annual income: ${formatCurrency(body.targetAnnualIncome)}
-- ISA/GIA balance: ${formatCurrency(body.isaBalance)}, SIPP balance: ${formatCurrency(body.sippBalance)}
+- ISA balance: ${formatCurrency(body.isaBalance)} (adding ${formatCurrency(body.isaMonthlyContribution)}/mo)
+- GIA (taxable) balance: ${formatCurrency(body.giaBalance)}
+- SIPP balance: ${formatCurrency(body.sippBalance)} (adding ${formatCurrency(body.sippMonthlyContribution)}/mo)
+- Property value: ${formatCurrency(body.propertyValue)}
+- FIRE number (pot needed at retirement): ${formatCurrency(body.fireNumber)}; on course for ${formatCurrency(body.projectedAtRetirement)}
 - SIPP accessible from age ${body.sippAccessAge}; State Pension from age ${body.statePensionAge}
 - Tax-free lump sum available at SIPP access: ${formatCurrency(body.taxFreeLumpSum)}
 - Plan sustainable to age 95: ${body.sustainableToLifeExpectancy ? "yes" : "no"}
@@ -82,7 +92,7 @@ UK FIRE simulation summary:
       messages: [
         {
           role: "user",
-          content: `Based on this simulation, give exactly 3 tailored UK strategy tips for optimizing SIPP tax relief vs ISA bridge funding, given current UK income tax bands:\n\n${summary}`,
+          content: `Based on this simulation, give exactly 3 tailored UK strategy tips — covering the SIPP tax-relief vs ISA-bridge balance, using the GIA and its CGT allowance efficiently, and closing (or banking) the gap to the FIRE number — given current UK income tax bands:\n\n${summary}`,
         },
       ],
     });
