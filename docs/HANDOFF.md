@@ -93,7 +93,21 @@ Then saving plans works end-to-end.
 - **Privacy note** lives at `/privacy` (linked in the footer). Keep it accurate if data flows change.
 - **Supabase graceful-off:** auth UI, saved plans and the Account tab all degrade to friendly states when `NEXT_PUBLIC_SUPABASE_*` is unset, so a public launch without Supabase is safe.
 - **Analytics/monitoring (recommended, not bundled):** if you want usage/error data, prefer a cookieless, privacy-friendly option enabled at deploy time (e.g. Vercel Analytics) rather than a third-party script — keeps the CSP clean and the `/privacy` promise true. The app already has a branded `error.tsx` boundary.
-- **Full account deletion** (auth record, not just data) needs a service-role server route + `SUPABASE_SERVICE_ROLE_KEY` — not built yet; `/account` currently deletes the user's data and signs out.
+- **Full account deletion** is built: `app/api/account/delete/route.ts` verifies the caller's session, then uses `SUPABASE_SERVICE_ROLE_KEY` (server-only env) to `auth.admin.deleteUser` (portfolios cascade). `/account` calls it and falls back to a data-only delete when the key is unset.
+
+## Going live (Vercel + Supabase) — env vars & steps
+
+App builds and deploys with or without these; they switch features on.
+
+1. **Supabase migration** (dashboard SQL editor): run `supabase/migrations/20260101000000_portfolios.sql` so saved plans work. DDL can't be run with the API keys — it's a dashboard action.
+2. **Vercel → Settings → Environment Variables:**
+   - `NEXT_PUBLIC_SUPABASE_URL` = `https://cnbeqbxgnvruyrtsxwxt.supabase.co`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = anon key (public, browser-safe under RLS)
+   - `SUPABASE_SERVICE_ROLE_KEY` = service-role key (secret; for account deletion) — **rotate first, it was shared in chat**
+   - `ANTHROPIC_API_KEY` = secret (AI tips stay disabled until set)
+   - `NEXT_PUBLIC_SITE_URL` = the Vercel prod URL (OG cards / sitemap / share links)
+3. **Deploy:** merge PR #1 → `main` (Vercel↔GitHub connected) for production, or push the branch for a preview URL.
+4. Locally, the same vars live in `.env.local` (gitignored, never committed).
 
 ## Stage 6 — DONE
 

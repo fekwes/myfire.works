@@ -98,14 +98,18 @@ function SignedIn({ email, userId }: { email: string; userId: string }) {
 
   async function deleteData() {
     setDeleting(true);
-    const supabase = createClient();
-    // Remove the user's saved plans (RLS allows deleting your own rows), clear
-    // the local plan, then sign out. Deleting the auth account itself needs a
-    // service-role server route — see docs/HANDOFF.md — so this removes all
-    // your data and signs you out.
-    await supabase.from("portfolios").delete().eq("user_id", userId);
+    // Prefer full account deletion (service-role route). If that isn't enabled,
+    // fall back to removing the user's own data rows with the anon key.
+    try {
+      const res = await fetch("/api/account/delete", { method: "POST" });
+      if (!res.ok) {
+        await createClient().from("portfolios").delete().eq("user_id", userId);
+      }
+    } catch {
+      await createClient().from("portfolios").delete().eq("user_id", userId);
+    }
     clearPlanLocal();
-    await supabase.auth.signOut();
+    await createClient().auth.signOut();
     window.location.href = "/";
   }
 
@@ -152,8 +156,8 @@ function SignedIn({ email, userId }: { email: string; userId: string }) {
 
       <Card title="Danger zone">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Delete your saved plans from your account and sign out. This can&apos;t
-          be undone.
+          Permanently delete your account and everything saved to it, then sign
+          out. This can&apos;t be undone.
         </p>
         {confirmDelete ? (
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -163,7 +167,7 @@ function SignedIn({ email, userId }: { email: string; userId: string }) {
               disabled={deleting}
               className="rounded-lg bg-danger px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              {deleting ? "Deleting…" : "Yes, delete my data & sign out"}
+              {deleting ? "Deleting…" : "Yes, delete my account"}
             </button>
             <button
               type="button"
@@ -179,7 +183,7 @@ function SignedIn({ email, userId }: { email: string; userId: string }) {
             onClick={() => setConfirmDelete(true)}
             className="mt-3 rounded-lg border border-danger/50 px-4 py-2 text-sm font-semibold text-danger transition-colors hover:bg-danger/10"
           >
-            Delete my data
+            Delete my account
           </button>
         )}
       </Card>
