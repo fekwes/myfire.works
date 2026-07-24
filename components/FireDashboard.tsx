@@ -10,6 +10,7 @@ import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
 import { SavedPlans } from "@/components/SavedPlans";
 import { computeCoastFire } from "@/lib/coast-fire";
 import { simulateFire, type FireInputs } from "@/lib/fire-engine";
+import { computeFireNumber } from "@/lib/fire-number";
 import { formatCurrency } from "@/lib/format";
 import { loadPlanLocal } from "@/lib/plan-storage";
 
@@ -96,6 +97,15 @@ export function FireDashboard() {
 
   const plan = useMemo(() => simulateFire(inputs), [inputs]);
   const coast = useMemo(() => computeCoastFire(inputs), [inputs]);
+  const fire = useMemo(() => computeFireNumber(inputs), [inputs]);
+
+  const netWorth =
+    inputs.isaBalance +
+    (inputs.giaBalance ?? 0) +
+    inputs.sippBalance +
+    (inputs.rentalValue ?? 0) +
+    (inputs.homeValue ?? 0);
+  const propertyValue = (inputs.rentalValue ?? 0) + (inputs.homeValue ?? 0);
 
   const horizon = plan.inputs.lifeExpectancyAge;
   const firstShortfall = plan.timeline.find(
@@ -145,9 +155,44 @@ export function FireDashboard() {
           </span>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {/* FIRE number — the pot needed at retirement vs. what you're on course
+            to have. The headline figure a FIRE audience wants. */}
+        <div className="mt-5 flex flex-wrap items-end justify-between gap-4 rounded-xl border border-border bg-surface-muted p-4">
+          <div>
+            <MonoLabel>Your FIRE number</MonoLabel>
+            <p className="mt-1.5 font-display text-2xl font-bold tabular sm:text-3xl">
+              {formatCurrency(fire.fireNumber)}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              the pot you need at age {plan.inputs.retirementAge}, then draw down
+              tax-efficiently.
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="font-mono text-[0.65rem] uppercase tracking-wide text-muted-foreground">
+              On course for
+            </p>
+            <p
+              className={`mt-1 font-display text-xl font-bold tabular ${
+                fire.onTrack ? "text-success" : "text-danger"
+              }`}
+            >
+              {formatCurrency(fire.projectedAtRetirement)}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {fire.onTrack
+                ? `${formatCurrency(fire.surplus)} to spare`
+                : `${formatCurrency(-fire.surplus)} short`}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatTile label="Retire at" value={`Age ${plan.inputs.retirementAge}`} />
-          <StatTile label="SIPP unlocks" value={`Age ${plan.inputs.sippAccessAge}`} />
+          <StatTile
+            label={propertyValue > 0 ? "Net worth (incl. property)" : "Net worth today"}
+            value={formatCurrency(netWorth)}
+          />
           <StatTile
             label="Tax-free pension"
             value={formatCurrency(plan.totalTaxFreePension)}
