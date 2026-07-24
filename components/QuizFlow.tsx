@@ -380,32 +380,22 @@ function StepReveal({
       </div>
 
       <div className="mt-8 flex flex-col gap-3">
-        {configured ? (
-          <>
-            <button
-              type="button"
-              onClick={onSave}
-              className="flex items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-90"
-            >
-              Save my plan
-              <ArrowRight className="size-4" />
-            </button>
-            <button
-              type="button"
-              onClick={onOpenPlanner}
-              className="rounded-full border border-border bg-surface px-5 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Open the full planner
-            </button>
-          </>
-        ) : (
+        {/* Value first: get them into the tool. Saving is optional and secondary. */}
+        <button
+          type="button"
+          onClick={onOpenPlanner}
+          className="flex items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-90"
+        >
+          Open my planner
+          <ArrowRight className="size-4" />
+        </button>
+        {configured && (
           <button
             type="button"
-            onClick={onOpenPlanner}
-            className="flex items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-90"
+            onClick={onSave}
+            className="rounded-full border border-border bg-surface px-5 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
           >
-            Open the full planner
-            <ArrowRight className="size-4" />
+            Save it to an account first
           </button>
         )}
         <button

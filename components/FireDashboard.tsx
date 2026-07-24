@@ -8,6 +8,7 @@ import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { ConfidencePanel } from "@/components/ConfidencePanel";
 import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
 import { PlanActions } from "@/components/PlanActions";
+import { PlannerIntro } from "@/components/PlannerIntro";
 import { usePlan } from "@/components/PlanProvider";
 import { QuickLevers } from "@/components/QuickLevers";
 import { Card } from "@/components/ui";
@@ -170,6 +171,8 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
           <PlanActions />
         </div>
       )}
+
+      {!readOnly && <PlannerIntro />}
 
       {/* North-star summary — the heaviest card in the hierarchy. */}
       <Card padding="lg">
