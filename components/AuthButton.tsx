@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, LogOut, Settings, User as UserIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { Menu } from "@/components/ui";
@@ -8,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 
 export function AuthButton() {
   const { user, loading, configured } = useAuth();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -30,6 +32,8 @@ export function AuthButton() {
         });
         if (error) throw error;
         setOpen(false);
+        // Land them in the app (their saved plan loads via PlanProvider).
+        router.push("/planner");
       } else {
         const { data, error } = await supabase.auth.signUp({
           email,
