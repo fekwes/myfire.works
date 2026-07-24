@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import {
   DEFAULT_ASSUMPTIONS,
+  DEFAULT_INFLATION_RATE,
   type FireInputs,
   type PensionStrategy,
 } from "@/lib/fire-engine";
@@ -13,6 +14,7 @@ export const DEFAULT_FIRE_FORM_VALUES: FireInputs = {
   currentAge: 35,
   retirementAge: 50,
   targetAnnualIncome: 40000,
+  inflationRate: DEFAULT_INFLATION_RATE,
   isaBalance: 50000,
   isaMonthlyContribution: 1000,
   isaGrowth: 0.05,
@@ -64,7 +66,7 @@ function Tooltip({ text }: { text: string }) {
   );
 }
 
-function Field({
+export function Field({
   label,
   tooltip,
   children,
@@ -86,7 +88,7 @@ function Field({
   );
 }
 
-function NumberInput({
+export function NumberInput({
   value,
   onChange,
   prefix,
@@ -292,7 +294,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
           <Block
             title="Other investments — GIA"
             dotClass="bg-data-3"
-            tooltip="A General Investment Account: drawn after the ISA, with Capital Gains Tax on gains above the £3,000 exemption. (Property support is coming.)"
+            tooltip="A General Investment Account: drawn after the ISA, with Capital Gains Tax on gains above the £3,000 exemption."
           >
             <Field label="Current balance">
               <NumberInput
@@ -470,6 +472,16 @@ export function FireForm({ value, onChange }: FireFormProps) {
                   />
                 </Field>
               </div>
+
+              <Field
+                label="Inflation"
+                tooltip="Your target income is in today's money and grows by this each year, so later withdrawals rise. Tax bands and the State Pension are held at 2026/27 levels (modelling fiscal drag). Set to 0% for a purely nominal projection."
+              >
+                <PercentInput
+                  value={num(value.inflationRate, DEFAULT_INFLATION_RATE)}
+                  onChange={(v) => set("inflationRate", v)}
+                />
+              </Field>
             </div>
           </div>
         </div>

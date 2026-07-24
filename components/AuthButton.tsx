@@ -1,8 +1,9 @@
 "use client";
 
-import { LogOut, User as UserIcon } from "lucide-react";
+import { ChevronDown, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { Menu } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 
 export function AuthButton() {
@@ -47,17 +48,7 @@ export function AuthButton() {
   }
 
   if (user) {
-    return (
-      <button
-        type="button"
-        onClick={() => createClient().auth.signOut()}
-        className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-        title={user.email ?? "Signed in"}
-      >
-        <LogOut className="size-3.5" />
-        <span className="hidden sm:inline">Sign out</span>
-      </button>
-    );
+    return <AccountMenu email={user.email ?? "Signed in"} />;
   }
 
   return (
@@ -132,5 +123,35 @@ export function AuthButton() {
         </div>
       )}
     </div>
+  );
+}
+
+function AccountMenu({ email }: { email: string }) {
+  return (
+    <Menu
+      menuLabel="Account menu"
+      triggerClassName="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      trigger={
+        <>
+          <UserIcon className="size-3.5" />
+          <span className="hidden max-w-[10rem] truncate sm:inline">
+            {email}
+          </span>
+          <ChevronDown className="size-3.5" />
+        </>
+      }
+      items={[
+        {
+          label: "Account",
+          href: "/account",
+          icon: <Settings className="size-3.5" />,
+        },
+        {
+          label: "Sign out",
+          icon: <LogOut className="size-3.5" />,
+          onSelect: () => createClient().auth.signOut(),
+        },
+      ]}
+    />
   );
 }

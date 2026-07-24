@@ -44,8 +44,20 @@ summary + progressive disclosure), verified in-browser in both themes.
 - **Maths correctness pass** — fixed 4 real bugs (SIPP drawn before access age; lump-sum→ISA; State-Pension-as-surplus; per-wrapper growth) and moved to **2026/27** UK figures. Hand-verified.
 - **Property** — rental (taxable income offsets target + optional sale w/ residential CGT → GIA) and home (net worth, optional downsize → tax-free cash to GIA). No mortgages.
 - **Login (Supabase)** — code complete and wired; gated on env config. Publishable key is set in `.env.local` (gitignored); the Sign-in UI is live.
+- **Stage 6** — onboarding quiz + landing page. `/` is now a landing page (hero + "Build my plan" CTA), the planner moved to `/planner`, and `/start` is a 7-step quiz that collects the ~6 key inputs, reveals the live `simulateFire` result, and ends with an optional Supabase sign-up ("maybe later" skips). Quiz→planner state is handed over via `localStorage["onfire:plan"]`. Silent defaults (statutory ages, growth, pension strategy, life expectancy) live in `lib/quiz.ts`.
+- **v1 finishing pass** (post-Stage-6):
+  - **FIRE number** — `lib/fire-number.ts` bisects the pot needed at retirement vs. what you're on course for; surfaced prominently in the planner + reused in the AI prompt.
+  - **Net worth incl. property** — a net-worth stat + a dashed net-worth line on the asset chart, so a home/rental is finally visible.
+  - **Inflation / real terms** — the engine grows the spending target by `inflationRate` (form/quiz default 2.5%, engine default 0); the planner has a **Today's £ / Future £** toggle that deflates the projection. Sub-simulations (`fire-number`, `coast-fire`) pre-inflate the target via `inflatedTargetAt` so verdicts stay consistent. Tax bands + State Pension held at 2026/27 nominal (fiscal drag).
+  - **Polish** — full SEO/OpenGraph metadata + dynamic `opengraph-image` + sitemap/robots, branded 404 + error pages, removed dead starter SVGs, `NEXT_PUBLIC_SITE_URL` env var.
+- **Tabbed restructure** (the app is now onboarding + a tabbed core app):
+  - **Onboarding:** `/` (landing) and `/start` (quiz). The landing shows a "Continue to your planner" CTA (and the logo routes to `/planner`) once a plan exists.
+  - **Core tabs:** **Planner** (`/planner` — analysis + a compact `QuickLevers` row, Share/Export actions), **Your Finances** (`/finances` — the full `FireForm` + saved plans), **Methodology**, and an **Account** page (`/account` — password change + delete-my-data, reached from the auth dropdown).
+  - **Shared state:** `components/PlanProvider.tsx` holds the one active plan (localStorage-backed) so Planner and Your Finances edit the same data. `usePlan()` is the hook.
+  - **Share/Export:** `lib/share.ts` (URL-encoded read-only links → `/planner?p=`, with a "Make it mine" adopt flow) and `lib/export.ts` (CSV timeline + JSON + print, via `components/PlanActions.tsx`). No backend.
+  - **Account deletion** currently removes the user's saved-plan rows + local plan and signs out; full auth-record deletion needs a service-role server route (`SUPABASE_SERVICE_ROLE_KEY`) — not yet built.
 
-**48 Vitest tests pass. `tsc`/`eslint` clean.**
+**74 Vitest tests pass. `tsc`/`eslint` clean. Production build green.**
 
 ## Key files
 
@@ -56,7 +68,10 @@ summary + progressive disclosure), verified in-browser in both themes.
 - `components/{AssetTimelineChart,IncomeSafetyChart,ConfidencePanel}.tsx` — charts.
 - `components/{AuthProvider,AuthButton,SavedPlans}.tsx` + `lib/supabase/*` + `middleware.ts` — auth.
 - `app/methodology/page.tsx` — the docs page (keep it in sync with the engine).
-- `docs/ARCHITECTURE.md` (engine deep-dive), `docs/ONBOARDING.md` (Stage 6 spec).
+- `app/page.tsx` (landing), `app/planner/page.tsx` (dashboard), `app/start/page.tsx` (quiz).
+- `components/QuizFlow.tsx` + `components/quiz/QuizPrimitives.tsx` — the onboarding quiz.
+- `lib/quiz.ts` (`assembleQuizInputs` + silent defaults), `lib/plan-storage.ts` (localStorage handoff).
+- `docs/ARCHITECTURE.md` (engine deep-dive), `docs/ONBOARDING.md` (Stage 6 spec, now built).
 
 ## Conventions (please keep)
 
@@ -72,15 +87,39 @@ summary + progressive disclosure), verified in-browser in both themes.
 2. Create an account via the Sign-in popover (I don't create accounts or enter passwords).
 Then saving plans works end-to-end.
 
-## NEXT TASK — Stage 6: onboarding quiz + landing page
+## Going public — checklist
 
-Full spec in **`docs/ONBOARDING.md`**. Summary: move `/` to a landing page,
-current planner to `/planner`, add a `/start` multi-step quiz that collects the
-~6 key inputs (age, retirement age, target income, ISA/SIPP/GIA balances,
-monthly contributions, optional property), reveals the live result, then offers
-sign-up to save (reusing Supabase). Hand off quiz→planner via
-`localStorage["onfire:plan"]`. Silent defaults for statutory ages / growth /
-pension strategy / life expectancy.
+- **AI endpoint is rate-limited** (`lib/rate-limit.ts` + `app/api/analyze/route.ts`): per-IP 5/min + 40/day, global 500/day, `429` + `Retry-After`. In-memory per instance — for multi-instance/serverless production, swap the store for Upstash/Vercel KV behind the `RateLimiter` interface (the limiter is the only thing to change).
+- **Privacy note** lives at `/privacy` (linked in the footer). Keep it accurate if data flows change.
+- **Supabase graceful-off:** auth UI, saved plans and the Account tab all degrade to friendly states when `NEXT_PUBLIC_SUPABASE_*` is unset, so a public launch without Supabase is safe.
+- **Analytics/monitoring (recommended, not bundled):** if you want usage/error data, prefer a cookieless, privacy-friendly option enabled at deploy time (e.g. Vercel Analytics) rather than a third-party script — keeps the CSP clean and the `/privacy` promise true. The app already has a branded `error.tsx` boundary.
+- **Full account deletion** is built: `app/api/account/delete/route.ts` verifies the caller's session, then uses `SUPABASE_SERVICE_ROLE_KEY` (server-only env) to `auth.admin.deleteUser` (portfolios cascade). `/account` calls it and falls back to a data-only delete when the key is unset.
+
+## Going live (Vercel + Supabase) — env vars & steps
+
+App builds and deploys with or without these; they switch features on.
+
+1. **Supabase migration** (dashboard SQL editor): run `supabase/migrations/20260101000000_portfolios.sql` so saved plans work. DDL can't be run with the API keys — it's a dashboard action.
+2. **Vercel → Settings → Environment Variables:**
+   - `NEXT_PUBLIC_SUPABASE_URL` = `https://cnbeqbxgnvruyrtsxwxt.supabase.co`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = anon key (public, browser-safe under RLS)
+   - `SUPABASE_SERVICE_ROLE_KEY` = service-role key (secret; for account deletion) — **rotate first, it was shared in chat**
+   - `ANTHROPIC_API_KEY` = secret (AI tips stay disabled until set)
+   - `NEXT_PUBLIC_SITE_URL` = the Vercel prod URL (OG cards / sitemap / share links)
+3. **Deploy:** merge PR #1 → `main` (Vercel↔GitHub connected) for production, or push the branch for a preview URL.
+4. Locally, the same vars live in `.env.local` (gitignored, never committed).
+
+## Stage 6 — DONE
+
+Onboarding quiz + landing page shipped per **`docs/ONBOARDING.md`**: landing at
+`/`, planner at `/planner`, quiz at `/start`, quiz→planner handoff via
+`localStorage["onfire:plan"]`, optional Supabase sign-up at the end. Silent
+defaults centralised in `lib/quiz.ts`. Browser-verified in both themes.
+
+## NEXT TASK — pick from the backlog below
+
+No specific next stage is queued. The polish backlog (below) is the natural
+next thing; a deploy to Vercel would make the portfolio piece shareable.
 
 ## Also nice-to-have polish (backlog)
 

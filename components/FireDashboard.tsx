@@ -1,16 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AiInsights } from "@/components/AiInsights";
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { ConfidencePanel } from "@/components/ConfidencePanel";
-import { DEFAULT_FIRE_FORM_VALUES, FireForm } from "@/components/FireForm";
 import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
-import { SavedPlans } from "@/components/SavedPlans";
+import { PlanActions } from "@/components/PlanActions";
+import { usePlan } from "@/components/PlanProvider";
+import { QuickLevers } from "@/components/QuickLevers";
+import { Card } from "@/components/ui";
 import { computeCoastFire } from "@/lib/coast-fire";
-import { simulateFire, type FireInputs } from "@/lib/fire-engine";
+import { simulateFire } from "@/lib/fire-engine";
+import { computeFireNumber } from "@/lib/fire-number";
 import { formatCurrency } from "@/lib/format";
+import { decodePlan } from "@/lib/share";
 
 type ChartTab = "assets" | "income" | "confidence";
 
@@ -79,12 +84,55 @@ function Segmented({
   );
 }
 
-export function FireDashboard() {
-  const [inputs, setInputs] = useState<FireInputs>(DEFAULT_FIRE_FORM_VALUES);
+export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
+  const { inputs: ownInputs, setInputs } = usePlan();
+  const router = useRouter();
+  // A `?p=` param renders someone else's plan read-only, without touching the
+  // viewer's own saved plan.
+  const shared = useMemo(() => decodePlan(sharedParam), [sharedParam]);
+  const readOnly = shared !== null;
+  const inputs = shared ?? ownInputs;
+
   const [chartTab, setChartTab] = useState<ChartTab>("assets");
+  // Default to today's money — the frame most people reason in.
+  const [realTerms, setRealTerms] = useState(true);
+
+  const makeItMine = () => {
+    if (shared) setInputs(shared);
+    router.push("/planner");
+  };
 
   const plan = useMemo(() => simulateFire(inputs), [inputs]);
   const coast = useMemo(() => computeCoastFire(inputs), [inputs]);
+  const fire = useMemo(() => computeFireNumber(inputs), [inputs]);
+
+  const netWorth =
+    inputs.isaBalance +
+    (inputs.giaBalance ?? 0) +
+    inputs.sippBalance +
+    (inputs.rentalValue ?? 0) +
+    (inputs.homeValue ?? 0);
+  const propertyValue = (inputs.rentalValue ?? 0) + (inputs.homeValue ?? 0);
+
+  // Real-terms display. When on, deflate future-money figures back to today's
+  // money by the plan's inflation rate. Only meaningful when inflation > 0.
+  const infl = inputs.inflationRate ?? 0;
+  const showRealToggle = infl > 0;
+  const real = showRealToggle && realTerms;
+  const deflateAt = (age: number) =>
+    real ? 1 / (1 + infl) ** (age - inputs.currentAge) : 1;
+
+  const retireDefl = deflateAt(plan.inputs.retirementAge);
+  const fireNumberDisplay = fire.fireNumber * retireDefl;
+  const projectedDisplay = fire.projectedAtRetirement * retireDefl;
+  const surplusDisplay = projectedDisplay - fireNumberDisplay;
+  const taxFreePensionDisplay = real
+    ? plan.timeline.reduce(
+        (sum, y) => sum + y.pensionTaxFreeTaken * deflateAt(y.age),
+        0,
+      )
+    : plan.totalTaxFreePension;
+  const moneyFrame = real ? "today's money" : "future money";
 
   const horizon = plan.inputs.lifeExpectancyAge;
   const firstShortfall = plan.timeline.find(
@@ -101,8 +149,30 @@ export function FireDashboard() {
 
   return (
     <div className="space-y-5">
-      {/* North-star summary */}
-      <div className="rounded-2xl border border-border bg-surface p-5 sm:p-7">
+      {readOnly ? (
+        <div className="no-print flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-brand/10 px-4 py-3">
+          <p className="text-sm font-medium text-foreground">
+            You&apos;re viewing a shared plan.
+          </p>
+          <button
+            type="button"
+            onClick={makeItMine}
+            className="rounded-full bg-foreground px-4 py-1.5 text-xs font-semibold text-background transition-opacity hover:opacity-90"
+          >
+            Make it mine
+          </button>
+        </div>
+      ) : (
+        <div className="no-print flex items-center justify-between gap-3">
+          <h1 className="font-display text-lg font-bold tracking-tight">
+            Your planner
+          </h1>
+          <PlanActions />
+        </div>
+      )}
+
+      {/* North-star summary — the heaviest card in the hierarchy. */}
+      <Card padding="lg">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <MonoLabel>Your plan</MonoLabel>
@@ -120,26 +190,93 @@ export function FireDashboard() {
               </p>
             )}
           </div>
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-              sustainable ? "bg-brand/15 text-success" : "bg-danger/15 text-danger"
-            }`}
-          >
+          <div className="flex flex-col items-end gap-2">
             <span
-              className={`size-1.5 rounded-full ${
-                sustainable ? "bg-success" : "bg-danger"
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                sustainable ? "bg-brand/15 text-success" : "bg-danger/15 text-danger"
               }`}
-            />
-            {sustainable ? "On track" : "Shortfall"}
-          </span>
+            >
+              <span
+                className={`size-1.5 rounded-full ${
+                  sustainable ? "bg-success" : "bg-danger"
+                }`}
+              />
+              {sustainable ? "On track" : "Shortfall"}
+            </span>
+            {showRealToggle && (
+              <div className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-muted p-1">
+                {(
+                  [
+                    { v: true, label: "Today's £" },
+                    { v: false, label: "Future £" },
+                  ] as const
+                ).map((o) => (
+                  <button
+                    key={o.label}
+                    type="button"
+                    onClick={() => setRealTerms(o.v)}
+                    aria-pressed={realTerms === o.v}
+                    title={
+                      o.v
+                        ? "Show figures in today's money (deflated by inflation)"
+                        : "Show the actual future pounds withdrawn"
+                    }
+                    className={`rounded-full px-2.5 py-0.5 text-[0.7rem] font-semibold transition-colors ${
+                      realTerms === o.v
+                        ? "bg-foreground text-background"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {/* FIRE number — the pot needed at retirement vs. what you're on course
+            to have. The headline figure a FIRE audience wants. */}
+        <div className="mt-5 flex flex-wrap items-end justify-between gap-4 rounded-xl border border-border bg-surface-muted p-4">
+          <div>
+            <MonoLabel>Your FIRE number</MonoLabel>
+            <p className="mt-1.5 font-display text-2xl font-bold tabular sm:text-3xl">
+              {formatCurrency(fireNumberDisplay)}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              the pot you need at age {plan.inputs.retirementAge}
+              {showRealToggle ? ` (in ${moneyFrame})` : ""}, then draw down
+              tax-efficiently.
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="font-mono text-[0.65rem] uppercase tracking-wide text-muted-foreground">
+              On course for
+            </p>
+            <p
+              className={`mt-1 font-display text-xl font-bold tabular ${
+                fire.onTrack ? "text-success" : "text-danger"
+              }`}
+            >
+              {formatCurrency(projectedDisplay)}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {fire.onTrack
+                ? `${formatCurrency(surplusDisplay)} to spare`
+                : `${formatCurrency(-surplusDisplay)} short`}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatTile label="Retire at" value={`Age ${plan.inputs.retirementAge}`} />
-          <StatTile label="SIPP unlocks" value={`Age ${plan.inputs.sippAccessAge}`} />
+          <StatTile
+            label={propertyValue > 0 ? "Net worth (incl. property)" : "Net worth today"}
+            value={formatCurrency(netWorth)}
+          />
           <StatTile
             label="Tax-free pension"
-            value={formatCurrency(plan.totalTaxFreePension)}
+            value={formatCurrency(taxFreePensionDisplay)}
           />
           <StatTile
             label="Plan lasts to"
@@ -147,45 +284,35 @@ export function FireDashboard() {
             tone={sustainable ? "success" : "danger"}
           />
         </div>
-      </div>
+      </Card>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
-        <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 lg:col-span-2">
-          <MonoLabel>Your details</MonoLabel>
-          <div className="mt-4">
-            <SavedPlans inputs={inputs} onLoad={setInputs} />
-          </div>
-          <div className="mt-5">
-            <FireForm value={inputs} onChange={setInputs} />
-          </div>
-        </section>
+      {!readOnly && <QuickLevers />}
 
-        <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 lg:col-span-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <MonoLabel>Projection</MonoLabel>
-            <Segmented
-              value={chartTab}
-              onChange={setChartTab}
-              options={[
-                { value: "assets", label: "Assets" },
-                { value: "income", label: "Income" },
-                { value: "confidence", label: "Confidence" },
-              ]}
-            />
-          </div>
-          <div className="mt-4">
-            {chartTab === "assets" ? (
-              <AssetTimelineChart result={plan} />
-            ) : chartTab === "income" ? (
-              <IncomeSafetyChart result={plan} />
-            ) : (
-              <ConfidencePanel inputs={inputs} />
-            )}
-          </div>
+      <Card padding="md">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <MonoLabel>Projection</MonoLabel>
+          <Segmented
+            value={chartTab}
+            onChange={setChartTab}
+            options={[
+              { value: "assets", label: "Assets" },
+              { value: "income", label: "Income" },
+              { value: "confidence", label: "Confidence" },
+            ]}
+          />
+        </div>
+        <div className="mt-4">
+          {chartTab === "assets" ? (
+            <AssetTimelineChart result={plan} realTerms={real} />
+          ) : chartTab === "income" ? (
+            <IncomeSafetyChart result={plan} />
+          ) : (
+            <ConfidencePanel inputs={inputs} />
+          )}
+        </div>
 
-          <AiInsights result={plan} />
-        </section>
-      </div>
+        <AiInsights result={plan} />
+      </Card>
 
       <p className="px-1 text-xs text-muted-foreground">
         Estimates based on simplified assumptions — not financial advice.{" "}

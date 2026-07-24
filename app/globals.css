@@ -40,6 +40,18 @@
   /* Backdrop texture */
   --grid-line: rgba(20, 22, 26, 0.05);
   --glow: rgba(132, 204, 22, 0.12);
+
+  /* Motion — shared easing + durations so transitions feel intentional,
+     not the generic "everything fades" default. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+
+  /* Elevation — a small, deliberate scale (used by intent, not everywhere). */
+  --shadow-sm: 0 1px 2px rgba(20, 22, 26, 0.06);
+  --shadow-md: 0 6px 20px -6px rgba(20, 22, 26, 0.12);
+  --shadow-lg: 0 16px 40px -12px rgba(20, 22, 26, 0.18);
 }
 
 .dark {
@@ -70,6 +82,11 @@
   /* Backdrop texture */
   --grid-line: rgba(255, 255, 255, 0.04);
   --glow: rgba(190, 242, 100, 0.1);
+
+  /* Elevation reads as deeper, softer shadows on ink. */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px -8px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 20px 48px -12px rgba(0, 0, 0, 0.6);
 }
 
 @theme inline {
@@ -116,10 +133,104 @@ body {
   color: #0c1a05;
 }
 
+/* Baseline keyboard-focus ring for anything interactive. `:where()` keeps the
+ * specificity at 0, so a component's own focus styles (Button, inputs) always
+ * win; elements without any get this safety net. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Honour reduced-motion globally — neutralise animations/transitions for users
+ * who ask for it, on top of the per-component guards. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Utility: tabular figures for money/stat readouts */
 .tabular {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+}
+
+/* ------------------------------------------------------------------ *
+ * Print / "Save as PDF" — force a light palette regardless of theme and
+ * drop the app chrome so the plan itself prints cleanly.
+ * ------------------------------------------------------------------ */
+@media print {
+  :root,
+  .dark {
+    --background: #ffffff;
+    --foreground: #14161a;
+    --surface: #ffffff;
+    --surface-muted: #f5f5f0;
+    --border: #d8d8d0;
+    --muted-foreground: #444444;
+    --data-1: #4d7c0f;
+    --data-2: #2563eb;
+    --data-3: #d97706;
+    --success: #4d7c0f;
+    --danger: #b91c1c;
+  }
+  header,
+  footer,
+  .app-backdrop,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Onboarding quiz — step transitions. A gentle fade + rise as each
+ * question mounts. Disabled entirely under prefers-reduced-motion.
+ * ------------------------------------------------------------------ */
+@keyframes quiz-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Landing reveal — a single, considered rise-in (staggered by inline delay),
+ * not a generic fade on every element. Disabled under reduced-motion below. */
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-rise {
+  animation: landing-rise 0.6s var(--ease-out) both;
+}
+
+.quiz-step {
+  animation: quiz-step-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quiz-step {
+    animation: none;
+  }
 }
 
 /* ------------------------------------------------------------------ *

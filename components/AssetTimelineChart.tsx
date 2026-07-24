@@ -5,6 +5,7 @@ import {
   CartesianGrid,
   ComposedChart,
   Legend,
+  Line,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -60,18 +61,41 @@ function ChartTooltip({
 
 export function AssetTimelineChart({
   result,
+  realTerms = false,
 }: {
   result: FireSimulationResult;
+  /** Show values in today's money (deflated by the plan's inflation rate). */
+  realTerms?: boolean;
 }) {
+  const { currentAge, inflationRate } = result.inputs;
+  const deflate = (value: number, age: number) =>
+    realTerms && inflationRate > 0
+      ? value / (1 + inflationRate) ** (age - currentAge)
+      : value;
+
   const data = result.timeline.map((year) => ({
     age: year.age,
-    ISA: Math.round(year.isaBalanceEnd),
-    GIA: Math.round(year.giaBalanceEnd),
-    SIPP: Math.round(year.sippBalanceEnd),
+    ISA: Math.round(deflate(year.isaBalanceEnd, year.age)),
+    GIA: Math.round(deflate(year.giaBalanceEnd, year.age)),
+    SIPP: Math.round(deflate(year.sippBalanceEnd, year.age)),
+    "Net worth": Math.round(
+      deflate(
+        year.isaBalanceEnd +
+          year.giaBalanceEnd +
+          year.sippBalanceEnd +
+          year.rentalValueEnd +
+          year.homeValueEnd,
+        year.age,
+      ),
+    ),
   }));
 
   const { sippAccessAge, statePensionAge } = result.inputs;
   const hasGia = data.some((d) => d.GIA > 0.5);
+  // Only worth a separate net-worth line when property lifts it above the pots.
+  const hasProperty = result.timeline.some(
+    (y) => y.rentalValueEnd > 0.5 || y.homeValueEnd > 0.5,
+  );
 
   return (
     <div className="h-72 w-full">
@@ -173,6 +197,18 @@ export function AssetTimelineChart({
             dot={false}
             activeDot={{ r: 4, strokeWidth: 0 }}
           />
+          {hasProperty && (
+            <Line
+              type="monotone"
+              dataKey="Net worth"
+              name="Net worth (incl. property)"
+              stroke="var(--color-muted-foreground)"
+              strokeWidth={1.5}
+              strokeDasharray="5 4"
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 0 }}
+            />
+          )}
         </ComposedChart>
       </ResponsiveContainer>
     </div>

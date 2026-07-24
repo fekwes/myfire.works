@@ -1,15 +1,55 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI, Type } from "@google/genai";
 import { NextResponse } from "next/server";
 import { formatCurrency } from "@/lib/format";
+import { createRateLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
+
+// The AI tips call is the one paid, abusable endpoint. Limit it per client IP
+// (a short burst window + a daily cap) plus a global daily backstop so a single
+// instance can't run away with the AI provider's quota. In-memory per instance —
+// swap for a shared store (Upstash/KV) behind the same interface in production.
+const perMinute = createRateLimiter({ windowMs: 60_000, max: 5 });
+const perDay = createRateLimiter({ windowMs: 86_400_000, max: 40 });
+const globalPerDay = createRateLimiter({ windowMs: 86_400_000, max: 500 });
+
+/** Best-effort client IP from proxy headers (Vercel/most hosts set these). */
+function clientIp(request: Request): string {
+  const fwd = request.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]!.trim();
+  return request.headers.get("x-real-ip") ?? "unknown";
+}
+
+function limited(request: Request): number | null {
+  const ip = clientIp(request);
+  const checks = [perMinute.check(ip), perDay.check(ip), globalPerDay.check("global")];
+  const blocked = checks.find((c) => !c.allowed);
+  return blocked ? Math.ceil(blocked.retryAfterMs / 1000) : null;
+}
+
+/** Reject obviously malformed/oversized bodies before doing any paid work. */
+function isValidBody(body: unknown): body is AnalyzeRequest {
+  if (typeof body !== "object" || body === null) return false;
+  const b = body as Record<string, unknown>;
+  return (
+    typeof b.currentAge === "number" &&
+    typeof b.retirementAge === "number" &&
+    typeof b.targetAnnualIncome === "number"
+  );
+}
 
 interface AnalyzeRequest {
   currentAge: number;
   retirementAge: number;
   targetAnnualIncome: number;
   isaBalance: number;
+  isaMonthlyContribution: number;
+  giaBalance: number;
   sippBalance: number;
+  sippMonthlyContribution: number;
+  propertyValue: number;
+  fireNumber: number;
+  projectedAtRetirement: number;
   sippAccessAge: number;
   statePensionAge: number;
   taxFreeLumpSum: number;
@@ -22,44 +62,72 @@ interface AnalyzeResponse {
   tips: { title: string; detail: string }[];
 }
 
+// Gemini structured-output schema (uses the SDK's Type enum).
 const TIPS_SCHEMA = {
-  type: "object",
+  type: Type.OBJECT,
   properties: {
     tips: {
-      type: "array",
+      type: Type.ARRAY,
+      minItems: "3",
+      maxItems: "3",
       items: {
-        type: "object",
+        type: Type.OBJECT,
         properties: {
-          title: { type: "string" },
-          detail: { type: "string" },
+          title: { type: Type.STRING },
+          detail: { type: Type.STRING },
         },
         required: ["title", "detail"],
-        additionalProperties: false,
+        propertyOrdering: ["title", "detail"],
       },
-      minItems: 3,
-      maxItems: 3,
     },
   },
   required: ["tips"],
-  additionalProperties: false,
 };
 
 export async function POST(request: Request) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  // Rate-limit first — protect the endpoint from volume regardless of config.
+  const retryAfter = limited(request);
+  if (retryAfter !== null) {
+    return NextResponse.json(
+      { error: "You've hit the AI tips limit — please try again shortly." },
+      { status: 429, headers: { "Retry-After": String(retryAfter) } },
+    );
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY is not configured on the server." },
+      { error: "GEMINI_API_KEY is not configured on the server." },
       { status: 500 },
     );
   }
 
-  const body = (await request.json()) as AnalyzeRequest;
+  // Cap the request size before parsing, then validate the shape.
+  const raw = await request.text();
+  if (raw.length > 4000) {
+    return NextResponse.json({ error: "Request too large." }, { status: 413 });
+  }
+  let body: AnalyzeRequest;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!isValidBody(parsed)) throw new Error("invalid");
+    body = parsed;
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid request body." },
+      { status: 400 },
+    );
+  }
 
   const summary = `
 UK FIRE simulation summary:
 - Current age: ${body.currentAge}, target retirement age: ${body.retirementAge}
 - Target net annual income: ${formatCurrency(body.targetAnnualIncome)}
-- ISA/GIA balance: ${formatCurrency(body.isaBalance)}, SIPP balance: ${formatCurrency(body.sippBalance)}
+- ISA balance: ${formatCurrency(body.isaBalance)} (adding ${formatCurrency(body.isaMonthlyContribution)}/mo)
+- GIA (taxable) balance: ${formatCurrency(body.giaBalance)}
+- SIPP balance: ${formatCurrency(body.sippBalance)} (adding ${formatCurrency(body.sippMonthlyContribution)}/mo)
+- Property value: ${formatCurrency(body.propertyValue)}
+- FIRE number (pot needed at retirement): ${formatCurrency(body.fireNumber)}; on course for ${formatCurrency(body.projectedAtRetirement)}
 - SIPP accessible from age ${body.sippAccessAge}; State Pension from age ${body.statePensionAge}
 - Tax-free lump sum available at SIPP access: ${formatCurrency(body.taxFreeLumpSum)}
 - Plan sustainable to age 95: ${body.sustainableToLifeExpectancy ? "yes" : "no"}
@@ -67,43 +135,36 @@ UK FIRE simulation summary:
 - SIPP depleted at age: ${body.sippDepletedAge ?? "never"}
 `.trim();
 
-  const client = new Anthropic({ apiKey });
+  const ai = new GoogleGenAI({ apiKey });
 
   try {
-    const response = await client.messages.create({
-      model: "claude-opus-4-8",
-      max_tokens: 1024,
-      output_config: {
-        effort: "medium",
-        format: { type: "json_schema", schema: TIPS_SCHEMA },
+    const response = await ai.models.generateContent({
+      // "latest" tracks the current Flash model so it won't retire underneath us.
+      model: "gemini-flash-latest",
+      contents: `Based on this simulation, give exactly 3 tailored UK strategy tips — covering the SIPP tax-relief vs ISA-bridge balance, using the GIA and its CGT allowance efficiently, and closing (or banking) the gap to the FIRE number — given current UK income tax bands:\n\n${summary}`,
+      config: {
+        systemInstruction:
+          "You are a UK financial planning assistant specializing in FIRE (Financial Independence, Retire Early) strategy. Give tailored, concrete tips referencing current UK tax rules (ISA/GIA, SIPP 25% tax-free lump sum, income tax bands, State Pension). Keep tips educational, not regulated financial advice.",
+        responseMimeType: "application/json",
+        responseSchema: TIPS_SCHEMA,
+        temperature: 0.7,
       },
-      system:
-        "You are a UK financial planning assistant specializing in FIRE (Financial Independence, Retire Early) strategy. Give tailored, concrete tips referencing current UK tax rules (ISA/GIA, SIPP 25% tax-free lump sum, income tax bands, State Pension). Keep tips educational, not regulated financial advice.",
-      messages: [
-        {
-          role: "user",
-          content: `Based on this simulation, give exactly 3 tailored UK strategy tips for optimizing SIPP tax relief vs ISA bridge funding, given current UK income tax bands:\n\n${summary}`,
-        },
-      ],
     });
 
-    const textBlock = response.content.find((block) => block.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
+    const text = response.text;
+    if (!text) {
       return NextResponse.json(
         { error: "No response generated." },
         { status: 502 },
       );
     }
 
-    const parsed = JSON.parse(textBlock.text) as AnalyzeResponse;
+    const parsed = JSON.parse(text) as AnalyzeResponse;
     return NextResponse.json(parsed);
   } catch (error) {
-    if (error instanceof Anthropic.APIError) {
-      return NextResponse.json(
-        { error: `Anthropic API error: ${error.message}` },
-        { status: error.status ?? 502 },
-      );
-    }
-    throw error;
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "AI request failed." },
+      { status: 502 },
+    );
   }
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { FireSimulationResult } from "@/lib/fire-engine";
+import { computeFireNumber } from "@/lib/fire-number";
 
 interface Tip {
   title: string;
@@ -13,6 +14,7 @@ export function AiInsights({ result }: { result: FireSimulationResult }) {
   const [tips, setTips] = useState<Tip[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fire = useMemo(() => computeFireNumber(result.inputs), [result.inputs]);
 
   async function handleAnalyze() {
     setLoading(true);
@@ -26,7 +28,13 @@ export function AiInsights({ result }: { result: FireSimulationResult }) {
           retirementAge: result.inputs.retirementAge,
           targetAnnualIncome: result.inputs.targetAnnualIncome,
           isaBalance: result.inputs.isaBalance,
+          isaMonthlyContribution: result.inputs.isaMonthlyContribution,
+          giaBalance: result.inputs.giaBalance,
           sippBalance: result.inputs.sippBalance,
+          sippMonthlyContribution: result.inputs.sippMonthlyContribution,
+          propertyValue: result.inputs.rentalValue + result.inputs.homeValue,
+          fireNumber: Math.round(fire.fireNumber),
+          projectedAtRetirement: Math.round(fire.projectedAtRetirement),
           sippAccessAge: result.inputs.sippAccessAge,
           statePensionAge: result.inputs.statePensionAge,
           taxFreeLumpSum: result.taxFreeLumpSum,
