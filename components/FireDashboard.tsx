@@ -10,6 +10,7 @@ import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
 import { PlanActions } from "@/components/PlanActions";
 import { usePlan } from "@/components/PlanProvider";
 import { QuickLevers } from "@/components/QuickLevers";
+import { Card } from "@/components/ui";
 import { computeCoastFire } from "@/lib/coast-fire";
 import { simulateFire } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
@@ -170,8 +171,8 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
         </div>
       )}
 
-      {/* North-star summary */}
-      <div className="rounded-2xl border border-border bg-surface p-5 sm:p-7">
+      {/* North-star summary — the heaviest card in the hierarchy. */}
+      <Card padding="lg">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <MonoLabel>Your plan</MonoLabel>
@@ -283,11 +284,11 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
             tone={sustainable ? "success" : "danger"}
           />
         </div>
-      </div>
+      </Card>
 
       {!readOnly && <QuickLevers />}
 
-      <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
+      <Card padding="md">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <MonoLabel>Projection</MonoLabel>
           <Segmented
@@ -311,7 +312,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
         </div>
 
         <AiInsights result={plan} />
-      </section>
+      </Card>
 
       <p className="px-1 text-xs text-muted-foreground">
         Estimates based on simplified assumptions — not financial advice.{" "}

@@ -206,6 +206,23 @@ body {
   }
 }
 
+/* Landing reveal — a single, considered rise-in (staggered by inline delay),
+ * not a generic fade on every element. Disabled under reduced-motion below. */
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-rise {
+  animation: landing-rise 0.6s var(--ease-out) both;
+}
+
 .quiz-step {
   animation: quiz-step-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
