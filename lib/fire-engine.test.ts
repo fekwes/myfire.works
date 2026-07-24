@@ -441,4 +441,91 @@ describe("simulateFire — inflation (real-terms target)", () => {
         .sustainableToLifeExpectancy,
     ).toBe(false);
   });
+
+  it("grows the State Pension with inflation (triple lock), not flat nominal", () => {
+    const r = simulateFire({
+      currentAge: 60,
+      retirementAge: 60,
+      targetAnnualIncome: 20000,
+      isaBalance: 2_000_000,
+      isaMonthlyContribution: 0,
+      sippBalance: 0,
+      sippMonthlyContribution: 0,
+      statePensionAnnual: 12547.6,
+      statePensionAge: 67,
+      inflationRate: 0.03,
+    });
+    // From currentAge 60: at 67 it's inflated 7 years, at 70 ten years.
+    expect(r.timeline.find((y) => y.age === 67)?.statePensionIncome).toBeCloseTo(
+      12547.6 * 1.03 ** 7,
+      0,
+    );
+    expect(r.timeline.find((y) => y.age === 70)?.statePensionIncome).toBeCloseTo(
+      12547.6 * 1.03 ** 10,
+      0,
+    );
+  });
+});
+
+describe("simulateFire — part-time (Barista) income", () => {
+  const base = {
+    currentAge: 45,
+    retirementAge: 50,
+    targetAnnualIncome: 30000,
+    isaBalance: 300000,
+    isaMonthlyContribution: 0,
+    sippBalance: 200000,
+    sippMonthlyContribution: 0,
+  };
+
+  it("offsets the target so the pots draw down less while it lasts", () => {
+    const without = simulateFire(base);
+    const withBarista = simulateFire({
+      ...base,
+      partTimeAnnualIncome: 15000,
+      partTimeUntilAge: 55,
+    });
+    const isaAt50 = (r: ReturnType<typeof simulateFire>) =>
+      r.timeline.find((y) => y.age === 50)!.isaWithdrawal;
+    // A working retirement year pulls less from the ISA than a non-working one.
+    expect(isaAt50(withBarista)).toBeLessThan(isaAt50(without));
+    expect(withBarista.timeline.find((y) => y.age === 50)!.partTimeIncome).toBe(
+      15000,
+    );
+  });
+
+  it("stops at partTimeUntilAge", () => {
+    const r = simulateFire({
+      ...base,
+      partTimeAnnualIncome: 15000,
+      partTimeUntilAge: 55,
+    });
+    expect(r.timeline.find((y) => y.age === 54)!.partTimeIncome).toBe(15000);
+    expect(r.timeline.find((y) => y.age === 55)!.partTimeIncome).toBe(0);
+  });
+
+  it("is taxed as income (an otherwise tax-free ISA bridge year now pays tax)", () => {
+    const r = simulateFire({
+      ...base,
+      partTimeAnnualIncome: 20000, // above the £12,570 personal allowance
+      partTimeUntilAge: 55,
+    });
+    // Bridge years are ISA-funded and normally tax-free; part-time earnings
+    // push taxable income above the allowance.
+    expect(r.timeline.find((y) => y.age === 50)!.incomeTaxPaid).toBeGreaterThan(0);
+  });
+
+  it("grows the part-time income with inflation", () => {
+    const r = simulateFire({
+      ...base,
+      partTimeAnnualIncome: 15000,
+      partTimeUntilAge: 55,
+      inflationRate: 0.03,
+    });
+    // At age 52 it's inflated 7 years from currentAge 45.
+    expect(r.timeline.find((y) => y.age === 52)!.partTimeIncome).toBeCloseTo(
+      15000 * 1.03 ** 7,
+      0,
+    );
+  });
 });

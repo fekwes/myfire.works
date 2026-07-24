@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
+import { FeeDragCard } from "@/components/FeeDragCard";
 import { FireForm } from "@/components/FireForm";
 import { usePlan } from "@/components/PlanProvider";
 import { SavedPlans } from "@/components/SavedPlans";
@@ -50,14 +51,11 @@ export function FinancesPanel() {
         </Card>
       )}
 
-      <Card>
-        <h2 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Your details
-        </h2>
-        <div className="mt-5">
-          <FireForm value={inputs} onChange={setInputs} />
-        </div>
+      <Card padding="lg">
+        <FireForm value={inputs} onChange={setInputs} />
       </Card>
+
+      <FeeDragCard />
     </div>
   );
 }

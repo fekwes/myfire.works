@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AiInsights } from "@/components/AiInsights";
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { ConfidencePanel } from "@/components/ConfidencePanel";
 import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
 import { PlanActions } from "@/components/PlanActions";
+import { PlanChecklist } from "@/components/PlanChecklist";
 import { usePlan } from "@/components/PlanProvider";
 import { QuickLevers } from "@/components/QuickLevers";
 import { Card } from "@/components/ui";
+import { WhatIfCard } from "@/components/WhatIfCard";
 import { computeCoastFire } from "@/lib/coast-fire";
 import { simulateFire } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
@@ -97,6 +99,14 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
   // Default to today's money — the frame most people reason in.
   const [realTerms, setRealTerms] = useState(true);
 
+  // Deep link from the checklist: /planner#confidence opens the Confidence tab.
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#confidence") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setChartTab("confidence");
+    }
+  }, []);
+
   const makeItMine = () => {
     if (shared) setInputs(shared);
     router.push("/planner");
@@ -171,6 +181,8 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
         </div>
       )}
 
+      {!readOnly && <PlanChecklist />}
+
       {/* North-star summary — the heaviest card in the hierarchy. */}
       <Card padding="lg">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -182,7 +194,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
             <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
               {sustainable
                 ? `Your pots fund ${formatCurrency(plan.inputs.targetAnnualIncome)}/yr, after tax, all the way to age ${horizon}.`
-                : `Your target income runs short from age ${firstShortfall} — raise contributions, trim the target, or retire later.`}
+                : `Your savings fully cover your target income until age ${lastsTo}, but fall short from age ${firstShortfall}. Raise contributions, trim the target, or retire a little later to close it.`}
             </p>
             {coastNote && (
               <p className="mt-2 text-xs font-medium text-muted-foreground">
@@ -287,8 +299,9 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
       </Card>
 
       {!readOnly && <QuickLevers />}
+      {!readOnly && <WhatIfCard />}
 
-      <Card padding="md">
+      <Card padding="md" id="confidence" className="scroll-mt-24">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <MonoLabel>Projection</MonoLabel>
           <Segmented

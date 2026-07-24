@@ -1,9 +1,11 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import { DEFAULT_FIRE_FORM_VALUES } from "@/components/FireForm";
 import type { FireInputs } from "@/lib/fire-engine";
 import { loadPlanLocal, savePlanLocal } from "@/lib/plan-storage";
+import { createClient } from "@/lib/supabase/client";
 
 interface PlanState {
   /** The single active plan, shared across the Planner and Your Finances tabs. */
@@ -36,6 +38,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   );
   const [hydrated, setHydrated] = useState(false);
   const [hasStoredPlan, setHasStoredPlan] = useState(false);
+  const { user, configured } = useAuth();
 
   // Read persisted state after mount to avoid an SSR/client hydration mismatch.
   // The one-time setState here is the intentional SSR-safe handoff path.
@@ -46,6 +49,35 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     setHasStoredPlan(stored !== null);
     setHydrated(true);
   }, []);
+
+  // When a signed-in user has no local plan yet (e.g. a fresh browser), pull
+  // their most recently saved plan from Supabase so logging in restores their
+  // data. We never overwrite an existing local plan (that could be newer,
+  // unsaved work — they can still load others from Your Finances).
+  useEffect(() => {
+    if (!hydrated || !configured || !user || hasStoredPlan) return;
+    let active = true;
+    (async () => {
+      try {
+        const { data } = await createClient()
+          .from("portfolios")
+          .select("inputs")
+          .order("updated_at", { ascending: false })
+          .limit(1);
+        const saved = data?.[0]?.inputs as FireInputs | undefined;
+        if (active && saved) {
+          setInputsState(saved);
+          setHasStoredPlan(true);
+          savePlanLocal(saved);
+        }
+      } catch {
+        // Table missing / offline — degrade silently.
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [hydrated, configured, user, hasStoredPlan]);
 
   const setInputs = (next: FireInputs) => {
     setInputsState(next);

@@ -2,15 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
 import { usePlan } from "@/components/PlanProvider";
 
 export function Nav() {
   const pathname = usePathname();
   const { hasStoredPlan, hydrated } = usePlan();
+  const { user } = useAuth();
 
   // Onboarding-first: a brand-new visitor sees a clean header and is driven to
-  // the quiz. The core app tabs appear once they have a plan (or land directly).
-  const onboarded = hydrated && hasStoredPlan;
+  // the quiz. The core app tabs appear once they have a plan OR are signed in
+  // (a returning user on a fresh browser must still reach their planner).
+  const onboarded = hydrated && (hasStoredPlan || !!user);
   const links = [
     ...(onboarded
       ? [

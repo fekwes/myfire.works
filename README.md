@@ -1,5 +1,7 @@
 # OnFIRE — UK Financial Independence, Retire Early Planner
 
+[![CI](https://github.com/fekwes/onfire/actions/workflows/ci.yml/badge.svg)](https://github.com/fekwes/onfire/actions/workflows/ci.yml)
+
 A dashboard that models a UK FIRE plan across the three phases that actually determine whether early retirement works in the UK: drawing down an **ISA/GIA bridge** before your pension is accessible, taking the **25% tax-free SIPP lump sum** and paying UK income tax on the rest, and letting the **State Pension** offset your drawdown from age 67.
 
 Built with [Next.js](https://nextjs.org), TypeScript, Tailwind CSS, and [Claude Code](https://claude.com/product/claude-code) as an AI pair-programmer — see [How this was built](#how-this-was-built) below for exactly what that means and what I did versus what the AI did.
@@ -22,7 +24,7 @@ You enter your ages, target income, and current ISA/GIA/SIPP balances and contri
 | Styling | Tailwind CSS v4, `next-themes` for dark/light mode |
 | Charts | Recharts |
 | Testing | Vitest |
-| AI insights | Anthropic Claude API (Opus 4.8), structured JSON outputs |
+| AI insights | Google Gemini API (`gemini-flash-latest`), structured JSON outputs |
 
 ## The interesting part: the tax engine
 
@@ -49,7 +51,7 @@ To use the AI insights feature, copy the env template and add a key:
 
 ```bash
 cp .env.local.example .env.local
-# then set ANTHROPIC_API_KEY in .env.local
+# then set GEMINI_API_KEY in .env.local (free key from https://aistudio.google.com)
 ```
 
 ## Running tests

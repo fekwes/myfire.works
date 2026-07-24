@@ -49,7 +49,10 @@ export function QuickLevers() {
             min={inputs.currentAge}
           />
         </Field>
-        <Field label="Target income">
+        <Field
+          label="Target income"
+          tooltip="Take-home income per year, after tax. Your State Pension is already counted towards it, so your pots only fund the rest."
+        >
           <NumberInput
             value={inputs.targetAnnualIncome}
             onChange={(v) => set("targetAnnualIncome", v)}

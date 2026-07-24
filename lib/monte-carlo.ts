@@ -117,13 +117,17 @@ export function runMonteCarlo(
   let grossIncome = 0;
   let totalTax = 0;
   for (const y of retired) {
-    guaranteedByAge.set(y.age, y.statePensionIncome + y.rentalIncome);
+    guaranteedByAge.set(
+      y.age,
+      y.statePensionIncome + y.rentalIncome + y.partTimeIncome,
+    );
     grossIncome +=
       y.isaWithdrawal +
       y.giaWithdrawal +
       y.sippGrossWithdrawal +
       y.statePensionIncome +
-      y.rentalIncome;
+      y.rentalIncome +
+      y.partTimeIncome;
     totalTax += y.incomeTaxPaid + y.capitalGainsTaxPaid;
   }
   const effTax = grossIncome > 0 ? clamp(totalTax / grossIncome, 0, 0.45) : 0;

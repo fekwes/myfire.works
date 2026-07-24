@@ -339,15 +339,29 @@ export default function MethodologyPage() {
               by an <Term>inflation rate</Term> (default 2.5%), so later
               withdrawals rise; the planner&apos;s{" "}
               <Term>Today&apos;s £ / Future £</Term> toggle switches the
-              projection between the two. Tax bands and the State Pension are
-              held at 2026/27 levels, so <Term>fiscal drag</Term> is captured.
-              The <Term>Confidence</Term> tab adds randomness (see below).
+              projection between the two. The State Pension rises with the same
+              inflation rate (its triple-lock behaviour), while income-tax bands
+              are held at 2026/27 levels, so <Term>fiscal drag</Term> is
+              captured. The <Term>Confidence</Term> tab adds randomness (see
+              below).
             </li>
             <li>Rest-of-UK tax bands only — Scottish rates aren&apos;t modelled.</li>
             <li>
               GIA CGT is simplified (no embedded starting gain; no dividend tax).
             </li>
-            <li>Contributions stop at your retirement age.</li>
+            <li>
+              Contributions stop at your retirement age. Optional{" "}
+              <Term>part-time (Barista FIRE) income</Term> can be added — taxable
+              earnings from retirement until an age you choose, offsetting your
+              target so the pots draw down less early on.
+            </li>
+            <li>
+              Onboarding is <Term>persona-first</Term>: the quiz asks a FIRE
+              goal, a lifestyle, and your ages. Lifestyle targets use the{" "}
+              <Term>UK PLSA Retirement Living Standards 2025</Term> (single,
+              excluding housing): Minimum £13,400, Moderate £31,700, Comfortable
+              £43,900 — all editable afterwards.
+            </li>
             <li>
               2026/27 tax figures throughout (income tax and CGT thresholds are
               frozen; State Pension uses the confirmed +4.8% triple-lock rise).

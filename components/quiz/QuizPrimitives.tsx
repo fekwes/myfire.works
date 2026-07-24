@@ -90,6 +90,7 @@ export function QuizNumberInput({
         value={Number.isNaN(value) ? "" : value}
         min={Number.isFinite(min) ? min : undefined}
         step={step}
+        onFocus={(e) => e.target.select()}
         onChange={(e) => onChange(e.target.valueAsNumber)}
         className="tabular w-full min-w-0 bg-transparent px-4 py-3 text-lg outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
@@ -139,6 +140,7 @@ export function StepShell({
   onBack,
   onContinue,
   continueLabel = "Continue",
+  continueIcon,
   canContinue = true,
 }: {
   heading: string;
@@ -147,6 +149,7 @@ export function StepShell({
   onBack?: () => void;
   onContinue: () => void;
   continueLabel?: string;
+  continueIcon?: ReactNode;
   canContinue?: boolean;
 }) {
   return (
@@ -174,9 +177,10 @@ export function StepShell({
           type="button"
           onClick={onContinue}
           disabled={!canContinue}
-          className="flex-1 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           {continueLabel}
+          {continueIcon}
         </button>
       </div>
     </div>
