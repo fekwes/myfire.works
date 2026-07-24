@@ -9,7 +9,11 @@ import {
   fundForGrowth,
   netGrowth,
   platformFeeForBalance,
+  portfolioAllocation,
+  portfolioEquityFraction,
 } from "./vanguard-funds";
+
+const fund = (id: string) => VANGUARD_FUNDS.find((f) => f.id === id)!;
 
 describe("platformFeeForBalance", () => {
   it("charges the £48 floor for small balances", () => {
@@ -53,6 +57,63 @@ describe("fundForGrowth", () => {
   it("returns null for a manually-set growth", () => {
     expect(fundForGrowth(0.0512345)).toBeNull();
     expect(fundForGrowth(undefined)).toBeNull();
+  });
+});
+
+describe("portfolioAllocation", () => {
+  const base: FireInputs = {
+    currentAge: 40,
+    retirementAge: 55,
+    targetAnnualIncome: 30000,
+    isaBalance: 0,
+    isaMonthlyContribution: 0,
+    sippBalance: 0,
+    sippMonthlyContribution: 0,
+  };
+
+  it("reads a single all-equity fund as 100% equity", () => {
+    const a = portfolioAllocation({
+      ...base,
+      isaBalance: 50_000,
+      isaGrowth: netGrowth(fund("vwrp")),
+    });
+    expect(a.equity).toBeCloseTo(1, 6);
+    expect(a.bonds).toBeCloseTo(0, 6);
+  });
+
+  it("weights a 60/40 fund correctly", () => {
+    const a = portfolioAllocation({
+      ...base,
+      sippBalance: 50_000,
+      sippGrowth: netGrowth(fund("lifestrategy-60")),
+    });
+    expect(a.equity).toBeCloseTo(0.6, 6);
+    expect(a.bonds).toBeCloseTo(0.4, 6);
+  });
+
+  it("balance-weights across wrappers", () => {
+    // £75k all-equity ISA + £25k 60/40 SIPP → 0.75*1 + 0.25*0.6 = 0.9 equity.
+    const eq = portfolioEquityFraction({
+      ...base,
+      isaBalance: 75_000,
+      isaGrowth: netGrowth(fund("vwrp")),
+      sippBalance: 25_000,
+      sippGrowth: netGrowth(fund("lifestrategy-60")),
+    });
+    expect(eq).toBeCloseTo(0.9, 6);
+  });
+
+  it("falls back to the neutral 80/20 default with nothing invested", () => {
+    expect(portfolioEquityFraction(base)).toBeCloseTo(0.8, 6);
+  });
+
+  it("treats a custom-growth wrapper as the neutral default", () => {
+    const eq = portfolioEquityFraction({
+      ...base,
+      isaBalance: 50_000,
+      isaGrowth: 0.0512345, // no preset matches
+    });
+    expect(eq).toBeCloseTo(0.8, 6);
   });
 });
 

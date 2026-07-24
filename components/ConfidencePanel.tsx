@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Area,
   CartesianGrid,
@@ -18,6 +18,7 @@ import {
   type StrategyResult,
 } from "@/lib/monte-carlo";
 import { formatCurrency, formatCurrencyCompact } from "@/lib/format";
+import { portfolioAllocation } from "@/lib/vanguard-funds";
 
 function tone(rate: number) {
   if (rate >= 0.85) return "text-success";
@@ -64,7 +65,18 @@ function FanTooltip({
 }
 
 export function ConfidencePanel({ inputs }: { inputs: FireInputs }) {
-  const [equityPct, setEquityPct] = useState(80);
+  // The allocation the user's chosen funds imply — the default the simulation
+  // runs at, so the risk analysis matches the portfolio they actually built.
+  const alloc = useMemo(() => portfolioAllocation(inputs), [inputs]);
+  const derivedPct = Math.round(alloc.equity * 100);
+
+  // The slider defaults to the funds' implied allocation; a manual drag sets
+  // an override, so changing funds keeps flowing through until the user takes
+  // control. "Use my portfolio" clears the override.
+  const [manualPct, setManualPct] = useState<number | null>(null);
+  const equityPct = manualPct ?? derivedPct;
+  const overridden = manualPct !== null && manualPct !== derivedPct;
+
   const [result, setResult] = useState<MonteCarloResult | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -97,7 +109,7 @@ export function ConfidencePanel({ inputs }: { inputs: FireInputs }) {
           <span className="mb-1.5 flex items-center justify-between text-sm font-medium text-foreground">
             <span>Equity allocation</span>
             <span className="tabular text-muted-foreground">
-              {equityPct}% equity / {100 - equityPct}% bonds
+              {equityPct}% equity / {100 - equityPct}% bonds &amp; cash
             </span>
           </span>
           <input
@@ -106,9 +118,25 @@ export function ConfidencePanel({ inputs }: { inputs: FireInputs }) {
             max={100}
             step={5}
             value={equityPct}
-            onChange={(e) => setEquityPct(Number(e.target.value))}
+            onChange={(e) => setManualPct(Number(e.target.value))}
             className="w-full accent-[var(--color-brand)]"
           />
+          <span className="mt-1 block text-xs text-muted-foreground">
+            {overridden ? (
+              <>
+                Your funds imply {derivedPct}% equity.{" "}
+                <button
+                  type="button"
+                  onClick={() => setManualPct(null)}
+                  className="font-medium text-foreground underline-offset-2 hover:underline"
+                >
+                  Use my portfolio
+                </button>
+              </>
+            ) : (
+              "Set from the funds you picked in Your Finances — drag to explore."
+            )}
+          </span>
         </label>
         <button
           type="button"

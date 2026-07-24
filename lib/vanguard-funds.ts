@@ -41,6 +41,23 @@ export const ASSET_CLASS_RETURN: Record<AssetClass, number> = {
   cash: 0.035,
 };
 
+/** How each asset class splits across equity / bonds / cash (sums to 1). */
+export const ASSET_CLASS_MIX: Record<
+  AssetClass,
+  { equity: number; bonds: number; cash: number }
+> = {
+  "global-equity": { equity: 1, bonds: 0, cash: 0 },
+  "us-equity": { equity: 1, bonds: 0, cash: 0 },
+  "multi-asset-100": { equity: 1, bonds: 0, cash: 0 },
+  "multi-asset-80": { equity: 0.8, bonds: 0.2, cash: 0 },
+  "multi-asset-60": { equity: 0.6, bonds: 0.4, cash: 0 },
+  "global-bonds": { equity: 0, bonds: 1, cash: 0 },
+  cash: { equity: 0, bonds: 0, cash: 1 },
+};
+
+/** Neutral fallback for a wrapper on a custom (unmatched) growth rate. */
+const DEFAULT_MIX = { equity: 0.8, bonds: 0.2, cash: 0 };
+
 export const ASSET_CLASS_LABEL: Record<AssetClass, string> = {
   "global-equity": "Global equity",
   "us-equity": "US equity",
@@ -175,6 +192,44 @@ export function fundForGrowth(growth: number | undefined): VanguardFund | null {
   return (
     VANGUARD_FUNDS.find((f) => Math.abs(netGrowth(f) - growth) < 1e-6) ?? null
   );
+}
+
+/**
+ * Balance-weighted equity / bonds / cash split of the invested pots (ISA +
+ * GIA + SIPP), inferred from each wrapper's chosen fund. Wrappers on a custom
+ * growth rate use a neutral 80/20 default. Falls back to that default when
+ * nothing is invested yet. This is what lets the risk analysis reflect the
+ * portfolio you actually built rather than a fixed guess.
+ */
+export function portfolioAllocation(inputs: FireInputs): {
+  equity: number;
+  bonds: number;
+  cash: number;
+} {
+  const wrappers: { balance: number; growth: number | undefined }[] = [
+    { balance: inputs.isaBalance, growth: inputs.isaGrowth },
+    { balance: inputs.giaBalance ?? 0, growth: inputs.giaGrowth },
+    { balance: inputs.sippBalance, growth: inputs.sippGrowth },
+  ];
+  const total = wrappers.reduce((sum, w) => sum + Math.max(0, w.balance), 0);
+  if (total <= 0) return { ...DEFAULT_MIX };
+
+  const acc = { equity: 0, bonds: 0, cash: 0 };
+  for (const w of wrappers) {
+    const weight = Math.max(0, w.balance) / total;
+    if (weight === 0) continue;
+    const fund = fundForGrowth(w.growth);
+    const mix = fund ? ASSET_CLASS_MIX[fund.assetClass] : DEFAULT_MIX;
+    acc.equity += mix.equity * weight;
+    acc.bonds += mix.bonds * weight;
+    acc.cash += mix.cash * weight;
+  }
+  return acc;
+}
+
+/** Portfolio-weighted equity fraction (0–1) — the Monte Carlo's key input. */
+export function portfolioEquityFraction(inputs: FireInputs): number {
+  return portfolioAllocation(inputs).equity;
 }
 
 /**
