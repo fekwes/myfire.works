@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AiInsights } from "@/components/AiInsights";
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
@@ -13,6 +14,7 @@ import { computeCoastFire } from "@/lib/coast-fire";
 import { simulateFire } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
 import { formatCurrency } from "@/lib/format";
+import { decodePlan } from "@/lib/share";
 
 type ChartTab = "assets" | "income" | "confidence";
 
@@ -81,11 +83,23 @@ function Segmented({
   );
 }
 
-export function FireDashboard() {
-  const { inputs } = usePlan();
+export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
+  const { inputs: ownInputs, setInputs } = usePlan();
+  const router = useRouter();
+  // A `?p=` param renders someone else's plan read-only, without touching the
+  // viewer's own saved plan.
+  const shared = useMemo(() => decodePlan(sharedParam), [sharedParam]);
+  const readOnly = shared !== null;
+  const inputs = shared ?? ownInputs;
+
   const [chartTab, setChartTab] = useState<ChartTab>("assets");
   // Default to today's money — the frame most people reason in.
   const [realTerms, setRealTerms] = useState(true);
+
+  const makeItMine = () => {
+    if (shared) setInputs(shared);
+    router.push("/planner");
+  };
 
   const plan = useMemo(() => simulateFire(inputs), [inputs]);
   const coast = useMemo(() => computeCoastFire(inputs), [inputs]);
@@ -134,12 +148,27 @@ export function FireDashboard() {
 
   return (
     <div className="space-y-5">
-      <div className="no-print flex items-center justify-between gap-3">
-        <h1 className="font-display text-lg font-bold tracking-tight">
-          Your planner
-        </h1>
-        <PlanActions />
-      </div>
+      {readOnly ? (
+        <div className="no-print flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-brand/10 px-4 py-3">
+          <p className="text-sm font-medium text-foreground">
+            You&apos;re viewing a shared plan.
+          </p>
+          <button
+            type="button"
+            onClick={makeItMine}
+            className="rounded-full bg-foreground px-4 py-1.5 text-xs font-semibold text-background transition-opacity hover:opacity-90"
+          >
+            Make it mine
+          </button>
+        </div>
+      ) : (
+        <div className="no-print flex items-center justify-between gap-3">
+          <h1 className="font-display text-lg font-bold tracking-tight">
+            Your planner
+          </h1>
+          <PlanActions />
+        </div>
+      )}
 
       {/* North-star summary */}
       <div className="rounded-2xl border border-border bg-surface p-5 sm:p-7">
@@ -256,7 +285,7 @@ export function FireDashboard() {
         </div>
       </div>
 
-      <QuickLevers />
+      {!readOnly && <QuickLevers />}
 
       <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">

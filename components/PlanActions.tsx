@@ -1,10 +1,11 @@
 "use client";
 
-import { Download, Printer } from "lucide-react";
+import { Check, Download, Printer, Share2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { usePlan } from "@/components/PlanProvider";
 import { simulateFire } from "@/lib/fire-engine";
 import { planInputsJson, planTimelineCsv } from "@/lib/export";
+import { encodePlan } from "@/lib/share";
 
 function download(filename: string, text: string, mime: string) {
   const blob = new Blob([text], { type: mime });
@@ -20,7 +21,20 @@ function download(filename: string, text: string, mime: string) {
 export function PlanActions() {
   const { inputs } = usePlan();
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  const share = async () => {
+    const url = `${window.location.origin}/planner?p=${encodePlan(inputs)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard blocked — fall back to a prompt so the link is still reachable.
+      window.prompt("Copy your shareable plan link:", url);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -45,28 +59,43 @@ export function PlanActions() {
   };
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="flex items-center gap-2">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={share}
         className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
       >
-        <Download className="size-3.5" />
-        Export
+        {copied ? (
+          <Check className="size-3.5 text-success" />
+        ) : (
+          <Share2 className="size-3.5" />
+        )}
+        {copied ? "Link copied" : "Share"}
       </button>
-      {open && (
-        <div className="absolute right-0 top-full z-30 mt-2 w-48 overflow-hidden rounded-xl border border-border bg-surface p-1 shadow-xl">
-          <MenuItem onClick={exportCsv}>
-            <Download className="size-3.5" /> Timeline (CSV)
-          </MenuItem>
-          <MenuItem onClick={exportJson}>
-            <Download className="size-3.5" /> Plan inputs (JSON)
-          </MenuItem>
-          <MenuItem onClick={print}>
-            <Printer className="size-3.5" /> Print / Save as PDF
-          </MenuItem>
-        </div>
-      )}
+
+      <div className="relative" ref={ref}>
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <Download className="size-3.5" />
+          Export
+        </button>
+        {open && (
+          <div className="absolute right-0 top-full z-30 mt-2 w-48 overflow-hidden rounded-xl border border-border bg-surface p-1 shadow-xl">
+            <MenuItem onClick={exportCsv}>
+              <Download className="size-3.5" /> Timeline (CSV)
+            </MenuItem>
+            <MenuItem onClick={exportJson}>
+              <Download className="size-3.5" /> Plan inputs (JSON)
+            </MenuItem>
+            <MenuItem onClick={print}>
+              <Printer className="size-3.5" /> Print / Save as PDF
+            </MenuItem>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
