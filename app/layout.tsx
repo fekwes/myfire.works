@@ -84,7 +84,12 @@ export default function RootLayout({
             <div aria-hidden className="app-backdrop" />
             <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
               <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-                <HeaderLogo />
+                <div className="flex items-center gap-2">
+                  <HeaderLogo />
+                  <span className="rounded-full border border-primary/40 bg-brand/10 px-1.5 py-0.5 font-mono text-[0.58rem] font-medium uppercase tracking-wider text-primary">
+                    beta
+                  </span>
+                </div>
                 <div className="flex items-center gap-2 sm:gap-3">
                   <Nav />
                   <AuthButton />

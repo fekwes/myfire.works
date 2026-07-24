@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { Field, NumberInput } from "@/components/FireForm";
 import { usePlan } from "@/components/PlanProvider";
-import { Card } from "@/components/ui";
+import { ButtonLink, Card } from "@/components/ui";
 import type { FireInputs } from "@/lib/fire-engine";
 
 /**
@@ -19,15 +18,18 @@ export function QuickLevers() {
   return (
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Quick levers
-        </h3>
-        <Link
-          href="/finances"
-          className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-        >
+        <div>
+          <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            Quick levers
+          </h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Tweak the essentials here — balances, property, growth and more live
+            in Your Finances.
+          </p>
+        </div>
+        <ButtonLink href="/finances" variant="secondary" size="sm">
           Edit all your finances →
-        </Link>
+        </ButtonLink>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
