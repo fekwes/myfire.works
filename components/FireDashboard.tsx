@@ -185,7 +185,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
             <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
               {sustainable
                 ? `Your pots fund ${formatCurrency(plan.inputs.targetAnnualIncome)}/yr, after tax, all the way to age ${horizon}.`
-                : `Your target income runs short from age ${firstShortfall} — raise contributions, trim the target, or retire later.`}
+                : `Your savings fully cover your target income until age ${lastsTo}, but fall short from age ${firstShortfall}. Raise contributions, trim the target, or retire a little later to close it.`}
             </p>
             {coastNote && (
               <p className="mt-2 text-xs font-medium text-muted-foreground">

@@ -114,6 +114,7 @@ export function NumberInput({
         value={Number.isNaN(value) ? "" : value}
         min={Number.isFinite(min) ? min : undefined}
         step={step}
+        onFocus={(e) => e.target.select()}
         onChange={(e) => onChange(e.target.valueAsNumber)}
         className="tabular w-full min-w-0 bg-transparent px-3 py-2 text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
@@ -204,8 +205,8 @@ export function FireForm({ value, onChange }: FireFormProps) {
       </div>
 
       <Field
-        label="Target net annual income"
-        tooltip="The take-home income you want in retirement, after tax."
+        label="Target retirement income"
+        tooltip="The take-home income you want to spend each year in retirement — after tax, in today's money."
       >
         <NumberInput
           value={value.targetAnnualIncome}
@@ -219,7 +220,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
       <Block
         title="ISA — tax-free bridge"
         dotClass="bg-data-2"
-        tooltip="Accessible any time, completely tax-free. Drawn first."
+        tooltip="Individual Savings Account — 100% tax-free to withdraw at any age, so it's drawn first (and bridges you until your pension unlocks)."
       >
         <Field label="Current balance">
           <NumberInput
@@ -246,7 +247,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
       <Block
         title="SIPP — the pension"
         dotClass="bg-data-1"
-        tooltip="Locked until your access age. Drawn as taxable income (25% is tax-free), topped up by your State Pension."
+        tooltip="Self-Invested Personal Pension (plus any workplace pensions). Locked until your access age — 57 from 2028 — then 25% is tax-free and the rest is taxable income, topped up by your State Pension."
       >
         <Field label="Current balance">
           <NumberInput

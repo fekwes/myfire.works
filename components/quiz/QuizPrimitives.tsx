@@ -90,6 +90,7 @@ export function QuizNumberInput({
         value={Number.isNaN(value) ? "" : value}
         min={Number.isFinite(min) ? min : undefined}
         step={step}
+        onFocus={(e) => e.target.select()}
         onChange={(e) => onChange(e.target.valueAsNumber)}
         className="tabular w-full min-w-0 bg-transparent px-4 py-3 text-lg outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
