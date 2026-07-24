@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Field, NumberInput } from "@/components/FireForm";
 import { usePlan } from "@/components/PlanProvider";
+import { Card } from "@/components/ui";
 import type { FireInputs } from "@/lib/fire-engine";
 
 /**
@@ -16,7 +17,7 @@ export function QuickLevers() {
     setInputs({ ...inputs, [key]: value });
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
+    <Card>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Quick levers
@@ -69,6 +70,6 @@ export function QuickLevers() {
           />
         </Field>
       </div>
-    </div>
+    </Card>
   );
 }

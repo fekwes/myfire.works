@@ -5,6 +5,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { FireForm } from "@/components/FireForm";
 import { usePlan } from "@/components/PlanProvider";
 import { SavedPlans } from "@/components/SavedPlans";
+import { ButtonLink, Card } from "@/components/ui";
 
 /**
  * Your Finances — the full detail behind the plan: balances, contributions,
@@ -17,7 +18,7 @@ export function FinancesPanel() {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-border bg-surface p-5 sm:p-7">
+      <Card padding="lg">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
@@ -34,34 +35,29 @@ export function FinancesPanel() {
               updates instantly.
             </p>
           </div>
-          <Link
-            href="/planner"
-            className="rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background transition-opacity hover:opacity-90"
-          >
-            View your plan →
-          </Link>
+          <ButtonLink href="/planner">View your plan →</ButtonLink>
         </div>
-      </div>
+      </Card>
 
       {configured && (
-        <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
+        <Card>
           <h2 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             Saved plans
           </h2>
           <div className="mt-4">
             <SavedPlans inputs={inputs} onLoad={setInputs} />
           </div>
-        </section>
+        </Card>
       )}
 
-      <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
+      <Card>
         <h2 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
           Your details
         </h2>
         <div className="mt-5">
           <FireForm value={inputs} onChange={setInputs} />
         </div>
-      </section>
+      </Card>
     </div>
   );
 }

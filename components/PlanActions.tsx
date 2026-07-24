@@ -1,8 +1,9 @@
 "use client";
 
 import { Check, Download, Printer, Share2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { usePlan } from "@/components/PlanProvider";
+import { Button, Menu } from "@/components/ui";
 import { simulateFire } from "@/lib/fire-engine";
 import { planInputsJson, planTimelineCsv } from "@/lib/export";
 import { encodePlan } from "@/lib/share";
@@ -17,12 +18,10 @@ function download(filename: string, text: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
-/** Plan-level actions surfaced on the Planner: export (and, later, share). */
+/** Plan-level actions surfaced on the Planner: share and export. */
 export function PlanActions() {
   const { inputs } = usePlan();
-  const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
 
   const share = async () => {
     const url = `${window.location.origin}/planner?p=${encodePlan(inputs)}`;
@@ -36,84 +35,54 @@ export function PlanActions() {
     }
   };
 
-  useEffect(() => {
-    if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [open]);
-
-  const exportCsv = () => {
-    download("onfire-plan.csv", planTimelineCsv(simulateFire(inputs)), "text/csv");
-    setOpen(false);
-  };
-  const exportJson = () => {
-    download("onfire-plan.json", planInputsJson(inputs), "application/json");
-    setOpen(false);
-  };
-  const print = () => {
-    setOpen(false);
-    window.print();
-  };
-
   return (
     <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={share}
-        className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
-      >
+      <Button variant="secondary" size="sm" onClick={share}>
         {copied ? (
           <Check className="size-3.5 text-success" />
         ) : (
           <Share2 className="size-3.5" />
         )}
         {copied ? "Link copied" : "Share"}
-      </button>
+      </Button>
 
-      <div className="relative" ref={ref}>
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <Download className="size-3.5" />
-          Export
-        </button>
-        {open && (
-          <div className="absolute right-0 top-full z-30 mt-2 w-48 overflow-hidden rounded-xl border border-border bg-surface p-1 shadow-xl">
-            <MenuItem onClick={exportCsv}>
-              <Download className="size-3.5" /> Timeline (CSV)
-            </MenuItem>
-            <MenuItem onClick={exportJson}>
-              <Download className="size-3.5" /> Plan inputs (JSON)
-            </MenuItem>
-            <MenuItem onClick={print}>
-              <Printer className="size-3.5" /> Print / Save as PDF
-            </MenuItem>
-          </div>
-        )}
-      </div>
+      <Menu
+        menuLabel="Export plan"
+        triggerClassName="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        trigger={
+          <>
+            <Download className="size-3.5" />
+            Export
+          </>
+        }
+        items={[
+          {
+            label: "Timeline (CSV)",
+            icon: <Download className="size-3.5" />,
+            onSelect: () =>
+              download(
+                "onfire-plan.csv",
+                planTimelineCsv(simulateFire(inputs)),
+                "text/csv",
+              ),
+          },
+          {
+            label: "Plan inputs (JSON)",
+            icon: <Download className="size-3.5" />,
+            onSelect: () =>
+              download(
+                "onfire-plan.json",
+                planInputsJson(inputs),
+                "application/json",
+              ),
+          },
+          {
+            label: "Print / Save as PDF",
+            icon: <Printer className="size-3.5" />,
+            onSelect: () => window.print(),
+          },
+        ]}
+      />
     </div>
-  );
-}
-
-function MenuItem({
-  onClick,
-  children,
-}: {
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground"
-    >
-      {children}
-    </button>
   );
 }

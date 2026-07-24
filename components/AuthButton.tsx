@@ -1,9 +1,9 @@
 "use client";
 
 import { ChevronDown, LogOut, Settings, User as UserIcon } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { Menu } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 
 export function AuthButton() {
@@ -127,52 +127,31 @@ export function AuthButton() {
 }
 
 function AccountMenu({ email }: { email: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [open]);
-
   return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-        title={email}
-      >
-        <UserIcon className="size-3.5" />
-        <span className="hidden max-w-[10rem] truncate sm:inline">{email}</span>
-        <ChevronDown className="size-3.5" />
-      </button>
-
-      {open && (
-        <div className="absolute right-0 top-full z-40 mt-2 w-44 overflow-hidden rounded-xl border border-border bg-surface p-1 shadow-xl">
-          <Link
-            href="/account"
-            onClick={() => setOpen(false)}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground"
-          >
-            <Settings className="size-3.5" /> Account
-          </Link>
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              createClient().auth.signOut();
-            }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground"
-          >
-            <LogOut className="size-3.5" /> Sign out
-          </button>
-        </div>
-      )}
-    </div>
+    <Menu
+      menuLabel="Account menu"
+      triggerClassName="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      trigger={
+        <>
+          <UserIcon className="size-3.5" />
+          <span className="hidden max-w-[10rem] truncate sm:inline">
+            {email}
+          </span>
+          <ChevronDown className="size-3.5" />
+        </>
+      }
+      items={[
+        {
+          label: "Account",
+          href: "/account",
+          icon: <Settings className="size-3.5" />,
+        },
+        {
+          label: "Sign out",
+          icon: <LogOut className="size-3.5" />,
+          onSelect: () => createClient().auth.signOut(),
+        },
+      ]}
+    />
   );
 }
