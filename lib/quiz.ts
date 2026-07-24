@@ -3,6 +3,7 @@ import {
   DEFAULT_INFLATION_RATE,
   type FireInputs,
 } from "./fire-engine";
+import { FUND_BY_ID, netGrowth } from "./vanguard-funds";
 
 /**
  * The onboarding quiz collects only the handful of inputs that materially move
@@ -26,6 +27,48 @@ export const TARGET_PRESETS = [
   { label: "Comfortable", amount: 40000, hint: "~£40k" },
   { label: "Luxury", amount: 60000, hint: "~£60k" },
 ] as const;
+
+/**
+ * Investing-style presets for the onboarding step. Each maps to a real
+ * Vanguard UK fund so the quiz can seed a fee-aware growth rate; "Not sure"
+ * keeps the neutral {@link QUIZ_POT_GROWTH} default. Refinable per-wrapper
+ * later in Your Finances.
+ */
+export const QUIZ_INVESTING_STYLES = [
+  {
+    id: "adventurous",
+    label: "All-in on shares",
+    hint: "100% global equity",
+    fundId: "vwrp",
+  },
+  {
+    id: "mostly-shares",
+    label: "Mostly shares",
+    hint: "80% shares / 20% bonds",
+    fundId: "lifestrategy-80",
+  },
+  {
+    id: "balanced",
+    label: "Balanced",
+    hint: "60% shares / 40% bonds",
+    fundId: "lifestrategy-60",
+  },
+  {
+    id: "unsure",
+    label: "Not sure yet",
+    hint: "use a sensible default",
+    fundId: null,
+  },
+] as const;
+
+export type InvestingStyleId = (typeof QUIZ_INVESTING_STYLES)[number]["id"];
+
+/** The net-of-fees pot growth for an investing-style choice. */
+export function growthForInvestingStyle(styleId: InvestingStyleId): number {
+  const style = QUIZ_INVESTING_STYLES.find((s) => s.id === styleId);
+  if (!style?.fundId) return QUIZ_POT_GROWTH;
+  return netGrowth(FUND_BY_ID[style.fundId]);
+}
 
 /** Neutral starting answers so each step renders a valid control from step 1. */
 export const QUIZ_INITIAL_STATE: QuizState = {
@@ -53,7 +96,10 @@ function num(value: number | undefined, fallback: number): number {
  * documented silent defaults (statutory ages, growth, pension strategy, life
  * expectancy) — all of which stay editable in the full planner.
  */
-export function assembleQuizInputs(state: QuizState): FireInputs {
+export function assembleQuizInputs(
+  state: QuizState,
+  potGrowth: number = QUIZ_POT_GROWTH,
+): FireInputs {
   return {
     // Collected in the quiz.
     currentAge: num(state.currentAge, QUIZ_INITIAL_STATE.currentAge!),
@@ -71,10 +117,10 @@ export function assembleQuizInputs(state: QuizState): FireInputs {
     // Not asked — sensible silent defaults.
     giaMonthlyContribution: 0,
     inflationRate: DEFAULT_INFLATION_RATE,
-    growthRate: QUIZ_POT_GROWTH,
-    isaGrowth: QUIZ_POT_GROWTH,
-    giaGrowth: QUIZ_POT_GROWTH,
-    sippGrowth: QUIZ_POT_GROWTH,
+    growthRate: potGrowth,
+    isaGrowth: potGrowth,
+    giaGrowth: potGrowth,
+    sippGrowth: potGrowth,
 
     // Property — optional, grows slower, never auto-sold/downsized.
     homeValue: num(state.homeValue, 0),

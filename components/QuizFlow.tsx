@@ -18,19 +18,23 @@ import { formatCurrency } from "@/lib/format";
 import { savePlanLocal } from "@/lib/plan-storage";
 import {
   assembleQuizInputs,
+  growthForInvestingStyle,
+  type InvestingStyleId,
   QUIZ_INITIAL_STATE,
+  QUIZ_INVESTING_STYLES,
   type QuizState,
   TARGET_PRESETS,
 } from "@/lib/quiz";
 import { createClient } from "@/lib/supabase/client";
 
-/** Input steps 1–5 (0-indexed 0–4) show the progress bar; reveal/sign-up don't. */
-const INPUT_STEPS = 5;
+/** Input steps 1–6 (0-indexed 0–5) show the progress bar; reveal/sign-up don't. */
+const INPUT_STEPS = 6;
 
 export function QuizFlow() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [state, setState] = useState<QuizState>(QUIZ_INITIAL_STATE);
+  const [styleId, setStyleId] = useState<InvestingStyleId>("unsure");
 
   const set = <K extends keyof FireInputs>(key: K, value: FireInputs[K]) =>
     setState((s) => ({ ...s, [key]: value }));
@@ -40,8 +44,11 @@ export function QuizFlow() {
 
   // Assemble the plan, and persist it once the reveal is reached so opening
   // the planner from either CTA finds it in localStorage.
-  const inputs = useMemo(() => assembleQuizInputs(state), [state]);
-  const reachedReveal = step >= 5;
+  const inputs = useMemo(
+    () => assembleQuizInputs(state, growthForInvestingStyle(styleId)),
+    [state, styleId],
+  );
+  const reachedReveal = step >= 6;
   useEffect(() => {
     if (reachedReveal) savePlanLocal(inputs);
   }, [reachedReveal, inputs]);
@@ -68,18 +75,26 @@ export function QuizFlow() {
         <StepProperty state={state} set={set} onNext={next} onBack={back} />
       )}
       {step === 5 && (
-        <StepReveal
-          inputs={inputs}
-          onSave={() => setStep(6)}
-          onOpenPlanner={() => router.push("/planner")}
+        <StepInvestingStyle
+          styleId={styleId}
+          onPick={setStyleId}
+          onNext={next}
           onBack={back}
         />
       )}
       {step === 6 && (
+        <StepReveal
+          inputs={inputs}
+          onSave={() => setStep(7)}
+          onOpenPlanner={() => router.push("/planner")}
+          onBack={back}
+        />
+      )}
+      {step === 7 && (
         <StepSignUp
           inputs={inputs}
           onDone={() => router.push("/planner")}
-          onBack={() => setStep(5)}
+          onBack={() => setStep(6)}
         />
       )}
     </div>
@@ -284,6 +299,51 @@ function StepProperty({ state, set, onNext, onBack }: StepProps) {
           </QuizField>
         </div>
       )}
+    </StepShell>
+  );
+}
+
+function StepInvestingStyle({
+  styleId,
+  onPick,
+  onNext,
+  onBack,
+}: {
+  styleId: InvestingStyleId;
+  onPick: (id: InvestingStyleId) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <StepShell
+      heading="How would you invest it?"
+      helper="This sets a fee-aware growth rate from a real Vanguard fund. You can fine-tune each pot later."
+      onContinue={onNext}
+      onBack={onBack}
+    >
+      <div className="grid gap-2.5">
+        {QUIZ_INVESTING_STYLES.map((s) => {
+          const selected = styleId === s.id;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onPick(s.id)}
+              aria-pressed={selected}
+              className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
+                selected
+                  ? "border-primary bg-brand/10"
+                  : "border-border bg-surface-muted hover:border-muted-foreground/40"
+              }`}
+            >
+              <span className="text-sm font-semibold text-foreground">
+                {s.label}
+              </span>
+              <span className="text-xs text-muted-foreground">{s.hint}</span>
+            </button>
+          );
+        })}
+      </div>
     </StepShell>
   );
 }

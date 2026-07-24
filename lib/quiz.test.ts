@@ -3,10 +3,33 @@ import { DEFAULT_ASSUMPTIONS, simulateFire } from "./fire-engine";
 import { DEFAULT_INFLATION_RATE } from "./fire-engine";
 import {
   assembleQuizInputs,
+  growthForInvestingStyle,
   QUIZ_POT_GROWTH,
   QUIZ_PROPERTY_GROWTH,
   type QuizState,
 } from "./quiz";
+import { FUND_BY_ID, netGrowth } from "./vanguard-funds";
+
+describe("growthForInvestingStyle", () => {
+  it("maps a style to its fund's net-of-fees growth", () => {
+    expect(growthForInvestingStyle("adventurous")).toBeCloseTo(
+      netGrowth(FUND_BY_ID.vwrp),
+      10,
+    );
+  });
+
+  it("falls back to the neutral default when unsure", () => {
+    expect(growthForInvestingStyle("unsure")).toBe(QUIZ_POT_GROWTH);
+  });
+
+  it("feeds the chosen growth through assembleQuizInputs", () => {
+    const g = growthForInvestingStyle("mostly-shares");
+    const inputs = assembleQuizInputs({ isaBalance: 1000 }, g);
+    expect(inputs.isaGrowth).toBe(g);
+    expect(inputs.sippGrowth).toBe(g);
+    expect(inputs.giaGrowth).toBe(g);
+  });
+});
 
 describe("assembleQuizInputs", () => {
   const answers: QuizState = {
