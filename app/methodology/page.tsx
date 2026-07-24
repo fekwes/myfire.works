@@ -339,9 +339,11 @@ export default function MethodologyPage() {
               by an <Term>inflation rate</Term> (default 2.5%), so later
               withdrawals rise; the planner&apos;s{" "}
               <Term>Today&apos;s £ / Future £</Term> toggle switches the
-              projection between the two. Tax bands and the State Pension are
-              held at 2026/27 levels, so <Term>fiscal drag</Term> is captured.
-              The <Term>Confidence</Term> tab adds randomness (see below).
+              projection between the two. The State Pension rises with the same
+              inflation rate (its triple-lock behaviour), while income-tax bands
+              are held at 2026/27 levels, so <Term>fiscal drag</Term> is
+              captured. The <Term>Confidence</Term> tab adds randomness (see
+              below).
             </li>
             <li>Rest-of-UK tax bands only — Scottish rates aren&apos;t modelled.</li>
             <li>

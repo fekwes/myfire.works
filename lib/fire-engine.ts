@@ -430,16 +430,19 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     rentalValue *= 1 + rentalGrowth;
     homeValue *= 1 + homeGrowth;
 
-    // The target is quoted in today's money; its nominal value rises with
-    // inflation, so later retirement years must withdraw more to fund it.
-    const yearTarget =
-      targetAnnualIncome * (1 + inflationRate) ** (age - currentAge);
+    // Everything quoted in today's money rises to its nominal value with
+    // inflation: the spending target, and the State Pension (which the triple
+    // lock keeps rising at least with prices). Same factor for both keeps the
+    // real-terms picture consistent.
+    const inflationFactor = (1 + inflationRate) ** (age - currentAge);
+    const yearTarget = targetAnnualIncome * inflationFactor;
 
     const sippAccessible = age >= sippAccessAge;
     if (age < sippAccessAge && bridgeToSippTransitionAge === null) {
       bridgeToSippTransitionAge = sippAccessAge;
     }
-    const statePensionIncome = age >= statePensionAge ? statePensionAnnual : 0;
+    const statePensionIncome =
+      age >= statePensionAge ? statePensionAnnual * inflationFactor : 0;
 
     // Property events — proceeds/released cash flow into the GIA.
     let propertyCashReleased = 0;

@@ -441,4 +441,28 @@ describe("simulateFire — inflation (real-terms target)", () => {
         .sustainableToLifeExpectancy,
     ).toBe(false);
   });
+
+  it("grows the State Pension with inflation (triple lock), not flat nominal", () => {
+    const r = simulateFire({
+      currentAge: 60,
+      retirementAge: 60,
+      targetAnnualIncome: 20000,
+      isaBalance: 2_000_000,
+      isaMonthlyContribution: 0,
+      sippBalance: 0,
+      sippMonthlyContribution: 0,
+      statePensionAnnual: 12547.6,
+      statePensionAge: 67,
+      inflationRate: 0.03,
+    });
+    // From currentAge 60: at 67 it's inflated 7 years, at 70 ten years.
+    expect(r.timeline.find((y) => y.age === 67)?.statePensionIncome).toBeCloseTo(
+      12547.6 * 1.03 ** 7,
+      0,
+    );
+    expect(r.timeline.find((y) => y.age === 70)?.statePensionIncome).toBeCloseTo(
+      12547.6 * 1.03 ** 10,
+      0,
+    );
+  });
 });
