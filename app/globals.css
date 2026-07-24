@@ -133,6 +133,28 @@ body {
   color: #0c1a05;
 }
 
+/* Baseline keyboard-focus ring for anything interactive. `:where()` keeps the
+ * specificity at 0, so a component's own focus styles (Button, inputs) always
+ * win; elements without any get this safety net. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Honour reduced-motion globally — neutralise animations/transitions for users
+ * who ask for it, on top of the per-component guards. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Utility: tabular figures for money/stat readouts */
 .tabular {
   font-variant-numeric: tabular-nums;
