@@ -12,6 +12,7 @@ import { PlannerIntro } from "@/components/PlannerIntro";
 import { usePlan } from "@/components/PlanProvider";
 import { QuickLevers } from "@/components/QuickLevers";
 import { Card } from "@/components/ui";
+import { WhatIfCard } from "@/components/WhatIfCard";
 import { computeCoastFire } from "@/lib/coast-fire";
 import { simulateFire } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
@@ -290,6 +291,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
       </Card>
 
       {!readOnly && <QuickLevers />}
+      {!readOnly && <WhatIfCard />}
 
       <Card padding="md">
         <div className="flex flex-wrap items-center justify-between gap-3">
