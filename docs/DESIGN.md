@@ -80,6 +80,12 @@ is what keeps "celebratory" from tipping into "gimmicky".
   close, click-outside dismissal. Item-based API (`{ label, icon, onSelect,
   href, tone }[]`). Replaces the hand-rolled dropdowns in `AuthButton` and
   `PlanActions`.
+- **`Collapsible`** — WAI-ARIA disclosure with an optional `summary` shown
+  while collapsed, so a closed section still says what's inside ("not
+  included", "using defaults"). It reads the URL hash through
+  `useSyncExternalStore` and opens when it is the link target — the planner's
+  checklist deep-links into `/finances#…`, and progressive disclosure must
+  never swallow a deep link.
 
 **Also part of the system** (defined near their first use, reused widely):
 `Field` + `NumberInput` (`components/FireForm.tsx`), `StatTile` + `Segmented`
@@ -127,10 +133,33 @@ specific; empty/disabled states explain _why_. Spend warmth in exactly one
 place — the moment a plan succeeds ("You're financially independent"). Never
 salesy.
 
+## Layout & responsiveness
+
+- The page body never scrolls horizontally. Check the narrow end (320/375px)
+  with a plan in `localStorage` — the header's nav only appears once a plan
+  exists, so an empty first visit hides whole classes of overflow.
+- Header nav is inline from `sm` up and becomes a scrollable tab row beneath
+  the bar below that (`Nav` / `MobileNav`).
+- Long forms get a section rail (`FinancesNav`): sticky beside the content on
+  `lg`, scrollable chips above it below.
+
+## Print
+
+The plan is a document people save as PDF. `@media print` forces the light
+palette and drops the header/footer; anything that can't be operated on paper
+carries `.no-print` — the setup checklist, chart tab switcher, money-frame
+toggle, edit links and the empty AI-tips prompt. Generated content (tips,
+charts, figures) prints.
+
 ## Accessibility checklist (per screen)
 
 - Interactive elements are real buttons/links with visible `:focus-visible` rings.
 - Menus use the `Menu` primitive (keyboard + ARIA come for free).
+- **Icon-only buttons carry an `aria-label`** naming what they act on, and the
+  icon itself is `aria-hidden` — a page full of unlabelled info buttons all
+  announce as "button".
+- A control that changes its own label (Share → "Link copied") also announces
+  through a live region; the swap alone isn't reliably read out.
 - Toggles use `aria-pressed`; progress uses `aria-valuenow`.
 - Motion respects `prefers-reduced-motion`.
 - Check ember-on-night and `--danger` text contrast in both themes.

@@ -24,6 +24,13 @@
 >    used to fail silently and look successful).
 > 5. Charts — one validated data-viz system (see `docs/DESIGN.md`), plus fixes
 >    for status colour used by position rather than meaning.
+> 6. Finances restructured — `Collapsible` progressive disclosure (Property,
+>    Statutory assumptions) + a `FinancesNav` section rail. Account rebuilt on
+>    the design system with real error/success states. Methodology got a
+>    contents list.
+> 7. Fixes from a full verification sweep — **mobile header overflow** (every
+>    page scrolled sideways for returning users), unlabelled icon buttons,
+>    Share not announced, and print showing dead interactive chrome.
 
 ## Original OnFIRE handoff (pre-rebrand)
 
