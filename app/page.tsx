@@ -1,8 +1,49 @@
+import type { Metadata } from "next";
 import { Receipt, Route, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Term } from "@/components/Glossary";
 import { LandingCta } from "@/components/LandingCta";
 import { LandingHeroPreview } from "@/components/LandingHeroPreview";
+import { siteUrl } from "@/lib/site-url";
+
+// Self-referencing canonical. Vercel serves identical content on the production
+// alias, the git-branch alias and every per-deploy URL; without this, search
+// engines treat them as duplicates and split ranking signals. Resolves against
+// `metadataBase`, so it follows NEXT_PUBLIC_SITE_URL automatically.
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
+
+// Structured data — a free UK finance web app. Makes the result eligible for
+// richer search presentation. Kept in sync with the layout's description.
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${siteUrl}/#website`,
+      url: `${siteUrl}/`,
+      name: "Fireworks",
+      description:
+        "UK FIRE planner: model drawdown across ISA, GIA, SIPP, State Pension and property with correct 2026/27 tax.",
+      inLanguage: "en-GB",
+    },
+    {
+      "@type": "WebApplication",
+      "@id": `${siteUrl}/#app`,
+      name: "Fireworks — UK FIRE Planner",
+      url: `${siteUrl}/`,
+      applicationCategory: "FinanceApplication",
+      operatingSystem: "Any (web browser)",
+      browserRequirements: "Requires JavaScript",
+      isAccessibleForFree: true,
+      offers: { "@type": "Offer", price: "0", priceCurrency: "GBP" },
+      description:
+        "Model your UK Financial Independence, Retire Early plan across ISA, GIA, SIPP, State Pension and property — with correct 2026/27 tax, Coast FIRE and Monte Carlo confidence.",
+      inLanguage: "en-GB",
+    },
+  ],
+};
 
 const FEATURES = [
   {
@@ -22,39 +63,100 @@ const FEATURES = [
   },
 ];
 
+// The signature firework. A launch trail arcs up from lower-left and bursts in
+// open sky above the hero — the burst centre sits high enough (y≈92 of 560) to
+// clear the top of the preview card, so it reads instead of hiding behind it.
+const BURST = { x: 838, y: 66 };
+const SPARK_RAYS = Array.from({ length: 12 }, (_, i) => {
+  const angle = (i / 12) * Math.PI * 2;
+  const inner = 15;
+  const outer = 30 + (i % 3) * 11;
+  return {
+    x1: +(BURST.x + Math.cos(angle) * inner).toFixed(1),
+    y1: +(BURST.y + Math.sin(angle) * inner).toFixed(1),
+    x2: +(BURST.x + Math.cos(angle) * outer).toFixed(1),
+    y2: +(BURST.y + Math.sin(angle) * outer).toFixed(1),
+    tip: i % 2 === 0,
+    violet: i % 3 === 0,
+  };
+});
+
 export default function Landing() {
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-6 sm:py-16">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-6 sm:py-16">
       {/* Hero — asymmetric: copy left, a real computed plan preview right.
           A single ember "launch trail" draws in behind it on load. */}
       <section className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
         <svg
           aria-hidden
-          className="pointer-events-none absolute inset-0 -z-0 hidden h-full w-full lg:block"
+          className="pointer-events-none absolute inset-0 z-0 hidden h-full w-full lg:block"
           viewBox="0 0 1200 560"
           preserveAspectRatio="xMidYMid slice"
         >
           <defs>
             <linearGradient id="hero-trail-stroke" x1="0" y1="1" x2="1" y2="0">
               <stop offset="0%" stopColor="var(--accent)" stopOpacity={0} />
-              <stop offset="45%" stopColor="var(--accent)" stopOpacity={0.35} />
-              <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.55} />
+              <stop offset="45%" stopColor="var(--accent)" stopOpacity={0.4} />
+              <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.7} />
             </linearGradient>
+            <radialGradient id="hero-burst-glow">
+              <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.5} />
+              <stop offset="45%" stopColor="var(--primary)" stopOpacity={0.16} />
+              <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
+            </radialGradient>
           </defs>
+
+          {/* Soft bloom behind the burst so it reads even over the preview. */}
+          <circle
+            className="spark-pop"
+            cx={BURST.x}
+            cy={BURST.y}
+            r={96}
+            fill="url(#hero-burst-glow)"
+          />
+
+          {/* Launch trail — the growth curve rising to the burst. */}
           <path
             className="hero-trail"
-            d="M-40 540 C 260 520, 520 470, 720 360 C 900 262, 1010 190, 1120 96"
+            d={`M-40 540 C 220 512, 470 452, 632 336 C 730 266, 792 178, ${BURST.x} ${BURST.y}`}
             fill="none"
             stroke="url(#hero-trail-stroke)"
             strokeWidth={2.5}
             strokeLinecap="round"
             pathLength={1}
           />
+
+          {/* The burst — radiating spark rays, glinting tips, a bright core. */}
           <g className="spark-pop">
-            <path
-              d="M1120 74C1124 92 1124 92 1142 96C1124 100 1124 100 1120 118C1116 100 1116 100 1098 96C1116 92 1116 92 1120 74Z"
-              fill="var(--brand)"
-              opacity={0.85}
+            {SPARK_RAYS.map((r, i) => (
+              <g key={i}>
+                <line
+                  x1={r.x1}
+                  y1={r.y1}
+                  x2={r.x2}
+                  y2={r.y2}
+                  stroke={r.violet ? "var(--accent)" : "var(--brand)"}
+                  strokeWidth={1.6}
+                  strokeLinecap="round"
+                  opacity={0.85}
+                />
+                {r.tip && <circle cx={r.x2} cy={r.y2} r={1.7} fill="var(--brand)" />}
+              </g>
+            ))}
+            <circle cx={BURST.x} cy={BURST.y} r={4.5} fill="var(--brand)" />
+            <circle
+              cx={BURST.x}
+              cy={BURST.y}
+              r={8.5}
+              fill="none"
+              stroke="var(--primary)"
+              strokeWidth={1}
+              opacity={0.5}
             />
           </g>
         </svg>
@@ -143,6 +245,7 @@ export default function Landing() {
           .
         </span>
       </p>
-    </div>
+      </div>
+    </>
   );
 }
