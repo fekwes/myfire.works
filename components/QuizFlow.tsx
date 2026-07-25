@@ -2,15 +2,21 @@
 
 import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Spark } from "@/components/Logo";
+import { usePlan } from "@/components/PlanProvider";
 import {
+  MiniAssetChart,
   ProgressBar,
   QuizField,
   QuizNumberInput,
   StepShell,
+  useCountUp,
 } from "@/components/quiz/QuizPrimitives";
+import { Button } from "@/components/ui";
+import { simulateFire } from "@/lib/fire-engine";
+import { computeFireNumber } from "@/lib/fire-number";
 import { formatCurrency } from "@/lib/format";
-import { savePlanLocal } from "@/lib/plan-storage";
 import {
   assembleQuizInputs,
   FIRE_STRATEGIES,
@@ -21,31 +27,42 @@ import {
   type StrategyId,
 } from "@/lib/quiz";
 
-const TOTAL_STEPS = 3;
+/** The four questions. The reveal that follows is a payoff, not a question. */
+const TOTAL_QUESTIONS = 4;
+const REVEAL_STEP = TOTAL_QUESTIONS; // index 4, shown after the last question
 
 /**
- * Three questions, in the order they build on each other: what you'll spend,
- * when you want to stop, and how you plan to get there. Nothing a later step
- * asks is silently overwritten by an earlier one.
+ * Four questions, in the order they build on each other: what you'll spend,
+ * when you want to stop, how you plan to get there, and what you've saved so
+ * far. Nothing a later step asks is silently overwritten by an earlier one.
+ * Then a reveal screen — the one earned, celebratory beat — before the planner.
  */
 export function QuizFlow() {
   const router = useRouter();
+  const { setInputs } = usePlan();
   const [step, setStep] = useState(0);
   const [state, setState] = useState<QuizState>(initialQuizState);
 
-  const next = () => setStep((s) => Math.min(TOTAL_STEPS - 1, s + 1));
+  const next = () => setStep((s) => Math.min(REVEAL_STEP, s + 1));
   const back = () => setStep((s) => Math.max(0, s - 1));
 
   const finish = () => {
-    savePlanLocal(assembleQuizInputs(state));
+    // Go through the provider, not straight to localStorage. PlanProvider
+    // lives in the root layout and reads storage once on mount, so a
+    // client-side push to /planner never re-read it — the planner rendered
+    // its defaults and every quiz answer was silently discarded until a hard
+    // reload. setInputs updates the live state *and* persists.
+    setInputs(assembleQuizInputs(state));
     router.push("/planner");
   };
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-10 sm:py-16">
-      <div className="mb-8">
-        <ProgressBar step={step + 1} total={TOTAL_STEPS} />
-      </div>
+      {step < REVEAL_STEP && (
+        <div className="mb-8">
+          <ProgressBar step={step + 1} total={TOTAL_QUESTIONS} />
+        </div>
+      )}
 
       {step === 0 && (
         <StepLifestyle
@@ -75,9 +92,27 @@ export function QuizFlow() {
           strategy={state.strategy}
           retirementAge={state.retirementAge}
           onPick={(strategy) => setState((s) => ({ ...s, strategy }))}
-          onFinish={finish}
+          onNext={next}
           onBack={back}
         />
+      )}
+      {step === 3 && (
+        <StepSavings
+          key="savings"
+          savings={state.savings}
+          onChange={(savings) =>
+            setState((s) => ({ ...s, savings, savingsProvided: true }))
+          }
+          onSkip={() => {
+            setState((s) => ({ ...s, savings: 0, savingsProvided: false }));
+            next();
+          }}
+          onNext={next}
+          onBack={back}
+        />
+      )}
+      {step === REVEAL_STEP && (
+        <StepReveal key="reveal" state={state} onFinish={finish} onBack={back} />
       )}
     </div>
   );
@@ -212,23 +247,21 @@ function StepStrategy({
   strategy,
   retirementAge,
   onPick,
-  onFinish,
+  onNext,
   onBack,
 }: {
   strategy: StrategyId;
   retirementAge: number;
   onPick: (id: StrategyId) => void;
-  onFinish: () => void;
+  onNext: () => void;
   onBack: () => void;
 }) {
   return (
     <StepShell
       heading="How do you want to get there?"
       helper={`Three routes to age ${retirementAge}. You can change this — and everything else — in the planner.`}
-      onContinue={onFinish}
+      onContinue={onNext}
       onBack={onBack}
-      continueLabel="Open my planner"
-      continueIcon={<ArrowRight className="size-4" />}
     >
       <div className="grid gap-2.5">
         {FIRE_STRATEGIES.map((s) => {
@@ -256,5 +289,148 @@ function StepStrategy({
         })}
       </div>
     </StepShell>
+  );
+}
+
+// ------------------------------------------------------------------ //
+// Step 4 — savings so far (optional)                                 //
+// ------------------------------------------------------------------ //
+
+function StepSavings({
+  savings,
+  onChange,
+  onSkip,
+  onNext,
+  onBack,
+}: {
+  savings: number;
+  onChange: (amount: number) => void;
+  onSkip: () => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <StepShell
+      heading="Roughly what have you saved so far?"
+      helper="A ballpark total across your ISAs, pensions and other savings is fine. This is the one number that turns your result from a guess into a real verdict — but you can skip it."
+      onContinue={onNext}
+      onBack={onBack}
+      continueLabel="See my number"
+      continueIcon={<ArrowRight className="size-4" />}
+    >
+      <QuizField
+        label="Total saved so far"
+        hint="We'll add this to your ISA to start — you can split it across your pension in the planner."
+      >
+        <QuizNumberInput
+          value={savings}
+          onChange={onChange}
+          prefix="£"
+          step={1000}
+          autoFocus
+        />
+      </QuizField>
+
+      <button
+        type="button"
+        onClick={onSkip}
+        className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+      >
+        I&apos;m not sure — skip for now
+      </button>
+    </StepShell>
+  );
+}
+
+// ------------------------------------------------------------------ //
+// The reveal — the one earned, celebratory beat                      //
+// ------------------------------------------------------------------ //
+
+function StepReveal({
+  state,
+  onFinish,
+  onBack,
+}: {
+  state: QuizState;
+  onFinish: () => void;
+  onBack: () => void;
+}) {
+  const inputs = useMemo(() => assembleQuizInputs(state), [state]);
+  const fire = useMemo(() => computeFireNumber(inputs), [inputs]);
+  const plan = useMemo(() => simulateFire(inputs), [inputs]);
+
+  // The FIRE number is nominal — the pot at retirement in that year's pounds.
+  // The planner leads in *today's money* (deflated by inflation), so match it
+  // here, or the reveal and the very next screen would show different figures.
+  const infl = inputs.inflationRate ?? 0;
+  const retireDefl =
+    infl > 0 ? 1 / (1 + infl) ** (inputs.retirementAge - inputs.currentAge) : 1;
+  const fireToday = fire.fireNumber * retireDefl;
+
+  // The launch-trail-to-burst gesture is the *accumulation*, ending on the FI
+  // moment — so the sparkline stops at retirement rather than running on into
+  // the drawdown, where the "burst" would land on a depleted pot.
+  const points = useMemo(
+    () =>
+      plan.timeline
+        .filter((y) => y.age <= inputs.retirementAge)
+        .map(
+          (y) =>
+            (y.isaBalanceStart ?? 0) +
+            (y.giaBalanceStart ?? 0) +
+            (y.sippBalanceStart ?? 0),
+        ),
+    [plan, inputs.retirementAge],
+  );
+
+  const shown = useCountUp(Math.round(fireToday));
+
+  // One honest line. The FIRE number itself is always earned — it depends only
+  // on the target and age — but whether you're *on track* to reach it depends
+  // on real balances, so we only claim a verdict when the user gave savings.
+  const verdict = !state.savingsProvided
+    ? "This assumes you're starting from zero. Add what you've saved in the planner to see whether you're on track."
+    : fire.onTrack
+      ? "On your current contributions, you're on track to reach it."
+      : "You're not there yet on your current contributions — the planner shows exactly what closes the gap.";
+
+  return (
+    <div className="quiz-step text-center">
+      <p className="flex items-center justify-center gap-1.5 font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <Spark size={14} className="text-brand" />
+        Here&apos;s your number
+      </p>
+
+      <p className="mt-4 font-display text-4xl font-bold tabular tracking-tight sm:text-5xl">
+        {formatCurrency(shown)}
+      </p>
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+        the pot you&apos;d need by age {inputs.retirementAge} to draw{" "}
+        {formatCurrency(inputs.targetAnnualIncome)}/yr, in today&apos;s money.
+      </p>
+
+      <div className="mt-6">
+        <MiniAssetChart points={points} />
+      </div>
+
+      <p className="mx-auto mt-6 max-w-sm text-sm leading-relaxed text-foreground">
+        {verdict}
+      </p>
+
+      <div className="mt-8 flex items-center gap-3">
+        <Button type="button" variant="secondary" onClick={onBack}>
+          Back
+        </Button>
+        <Button
+          type="button"
+          variant="brand"
+          onClick={onFinish}
+          className="flex-1"
+        >
+          Open my planner
+          <ArrowRight className="size-4" />
+        </Button>
+      </div>
+    </div>
   );
 }

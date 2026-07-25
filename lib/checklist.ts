@@ -55,21 +55,26 @@ export function buildChecklist(
       cta: "",
       done: true,
     },
+    // Order matters: the highest-value moves come first. Real balances make
+    // the plan yours; saving keeps it; stress-testing proves it. "Choose your
+    // funds" and the withdrawal style are refinements, so they follow — they
+    // used to sit ahead of saving and stress-testing, which buried the steps
+    // that actually matter.
     {
       id: "balances",
       label: "Add your real balances",
-      hint: "Swap the placeholders for your actual ISA, pension and savings.",
+      hint: "From your ISA provider, pension portal or last statement — a rough figure is fine, you can refine it later.",
       cta: "Add your balances",
       href: "/finances#balances",
       done: hasBalances,
     },
     {
-      id: "funds",
-      label: "Choose your funds",
-      hint: "Pick your Vanguard funds for a fee-aware growth rate.",
-      cta: "Pick your funds",
-      href: "/finances#funds",
-      done: hasFund,
+      id: "save",
+      label: "Save your plan",
+      hint: "Create a free account so your plan is waiting next time.",
+      cta: "Save & sign up",
+      href: "/account",
+      done: signedIn,
     },
     {
       id: "confidence",
@@ -83,20 +88,20 @@ export function buildChecklist(
       done: flags.ranConfidence,
     },
     {
+      id: "funds",
+      label: "Choose your funds",
+      hint: "Pick your Vanguard funds for a fee-aware growth rate.",
+      cta: "Pick your funds",
+      href: "/finances#funds",
+      done: hasFund,
+    },
+    {
       id: "withdrawals",
       label: "Set your withdrawal style",
       hint: "Choose how you take your pension and handle bad markets.",
       cta: "Review your withdrawals",
       href: "/finances#scenario",
       done: flags.viewedWithdrawals,
-    },
-    {
-      id: "save",
-      label: "Save your plan",
-      hint: "Create a free account so your plan is waiting next time.",
-      cta: "Save & sign up",
-      href: "/account",
-      done: signedIn,
     },
   ];
 }

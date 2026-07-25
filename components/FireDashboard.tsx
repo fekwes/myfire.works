@@ -216,6 +216,16 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
     (inputs.homeValue ?? 0);
   const propertyValue = (inputs.rentalValue ?? 0) + (inputs.homeValue ?? 0);
 
+  // Until at least one starting balance is entered, every verdict is computed
+  // from a zero starting point — arithmetically true, but a judgement we
+  // haven't earned. The quiz seeds contributions but no balances, so a brand-
+  // new plan lands here and would otherwise open on a confident red
+  // "shortfall". Show the plan as visibly *incomplete* rather than *failing*:
+  // keep the FIRE number (it depends only on target and age), but hold back the
+  // on-track/shortfall call, the surplus/shortfall figure, how long the plan
+  // lasts and the Coast note until there's real data behind them.
+  const provisional = netWorth === 0;
+
   // Real-terms display. When on, deflate future-money figures back to today's
   // money by the plan's inflation rate. Only meaningful when inflation > 0.
   const infl = inputs.inflationRate ?? 0;
@@ -269,7 +279,11 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
         </div>
       )}
 
-      {!readOnly && <PlanChecklist />}
+      {/* The setup guide is for turning a real plan into a complete one, so it
+          waits until there's a plan to complete. While provisional, the north-
+          star card already carries the single "add your balances" ask — showing
+          the checklist here too would ask for the same thing twice. */}
+      {!readOnly && !provisional && <PlanChecklist />}
 
       {/* North-star summary — the heaviest card in the hierarchy. */}
       <Card padding="lg">
@@ -277,15 +291,32 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
           <div className="min-w-0">
             <MonoLabel>Your plan</MonoLabel>
             <h2 className="mt-2 flex items-center gap-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">
-              {sustainable ? "You're on track" : "There's a shortfall"}
-              {sustainable && <Spark size={22} className="text-brand" />}
+              {provisional
+                ? "Add your balances first"
+                : sustainable
+                  ? "You're on track"
+                  : "There's a shortfall"}
+              {!provisional && sustainable && (
+                <Spark size={22} className="text-brand" />
+              )}
             </h2>
             <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
-              {sustainable
-                ? `Your pots fund ${formatCurrency(plan.inputs.targetAnnualIncome)}/yr, after tax, all the way to age ${horizon}.`
-                : `Your savings fully cover your target income until age ${lastsTo}, but fall short from age ${firstShortfall}. Raise contributions, trim the target, or retire a little later to close it.`}
+              {provisional
+                ? "Right now this is just your monthly contributions growing from a zero starting balance — nothing to judge yet. Add what you've saved so far and we'll tell you whether you're on track."
+                : sustainable
+                  ? `Your pots fund ${formatCurrency(plan.inputs.targetAnnualIncome)}/yr, after tax, all the way to age ${horizon}.`
+                  : `Your savings fully cover your target income until age ${lastsTo}, but fall short from age ${firstShortfall}. Raise contributions, trim the target, or retire a little later to close it.`}
             </p>
-            {coastNote && (
+            {provisional && !readOnly && (
+              <Link
+                href="/finances#balances"
+                className="mt-2.5 inline-flex items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+              >
+                Add them in Your Finances
+                <span aria-hidden>&rarr;</span>
+              </Link>
+            )}
+            {!provisional && coastNote && (
               <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <Spark size={13} className="shrink-0 text-primary" />
                 {coastNote}
@@ -297,15 +328,23 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
           <div className="flex flex-col items-start gap-2 sm:items-end">
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                sustainable ? "bg-brand/15 text-success" : "bg-danger/15 text-danger"
+                provisional
+                  ? "bg-surface-muted text-muted-foreground"
+                  : sustainable
+                    ? "bg-brand/15 text-success"
+                    : "bg-danger/15 text-danger"
               }`}
             >
               <span
                 className={`size-1.5 rounded-full ${
-                  sustainable ? "bg-success" : "bg-danger"
+                  provisional
+                    ? "bg-muted-foreground"
+                    : sustainable
+                      ? "bg-success"
+                      : "bg-danger"
                 }`}
               />
-              {sustainable ? "On track" : "Shortfall"}
+              {provisional ? "Provisional" : sustainable ? "On track" : "Shortfall"}
             </span>
             {showRealToggle && (
               // The money frame is already stated in the FIRE-number caption,
@@ -367,19 +406,23 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
                 Otherwise it's information, not a warning. */}
             <p
               className={`mt-1 font-display text-xl font-bold tabular ${
-                fire.onTrack
-                  ? "text-success"
-                  : sustainable
-                    ? "text-foreground"
-                    : "text-danger"
+                provisional
+                  ? "text-muted-foreground"
+                  : fire.onTrack
+                    ? "text-success"
+                    : sustainable
+                      ? "text-foreground"
+                      : "text-danger"
               }`}
             >
               {formatCurrency(projectedDisplay)}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {fire.onTrack
-                ? `${formatCurrency(surplusDisplay)} to spare`
-                : `${formatCurrency(-surplusDisplay)} short of it`}
+              {provisional
+                ? "from contributions alone — add balances to compare"
+                : fire.onTrack
+                  ? `${formatCurrency(surplusDisplay)} to spare`
+                  : `${formatCurrency(-surplusDisplay)} short of it`}
             </p>
           </div>
         </div>
@@ -396,8 +439,10 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
           />
           <StatTile
             label="Plan lasts to"
-            value={sustainable ? `Age ${horizon}+` : `Age ${lastsTo}`}
-            tone={sustainable ? "success" : "danger"}
+            value={
+              provisional ? "—" : sustainable ? `Age ${horizon}+` : `Age ${lastsTo}`
+            }
+            tone={provisional ? "default" : sustainable ? "success" : "danger"}
           />
         </div>
       </Card>

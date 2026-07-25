@@ -101,7 +101,7 @@ export const BARISTA_ANNUAL_INCOME = 15000;
 /** Retirement age the quiz starts from when the user hasn't set one yet. */
 export const DEFAULT_RETIREMENT_AGE = 55;
 
-/** The answers the quiz collects — spending target, ages, and strategy. */
+/** The answers the quiz collects — spending target, ages, strategy, savings. */
 export interface QuizState {
   lifestyle: LifestyleId;
   /** Only meaningful when lifestyle === "custom". */
@@ -109,6 +109,15 @@ export interface QuizState {
   currentAge: number;
   retirementAge: number;
   strategy: StrategyId;
+  /** Rough total already saved. Only seeded when `savingsProvided` is true. */
+  savings: number;
+  /**
+   * Whether the user actually gave a savings figure. The savings step is
+   * optional — skipping it must be distinguishable from entering £0, because
+   * "I haven't told you yet" and "I genuinely have nothing" lead to different
+   * honesty states in the planner (provisional vs. a real zero-balance plan).
+   */
+  savingsProvided: boolean;
 }
 
 /** Initial answers — sensible middle-of-the-road defaults, all steps valid. */
@@ -119,6 +128,8 @@ export function initialQuizState(): QuizState {
     currentAge: 35,
     retirementAge: DEFAULT_RETIREMENT_AGE,
     strategy: "standard",
+    savings: 0,
+    savingsProvided: false,
   };
 }
 
@@ -126,22 +137,26 @@ export function initialQuizState(): QuizState {
  * Turn the quiz answers into a complete `FireInputs`. Target income comes from
  * the chosen lifestyle (PLSA) or a custom figure; the strategy shapes the plan
  * ("go part-time first" adds part-time income to State Pension age; "coast to
- * it" is a normal plan whose Coast FIRE card lights up). Balances start at 0
- * and contributions at modest placeholders — the user fills real numbers in
- * later, in the planner.
+ * it" is a normal plan whose Coast FIRE card lights up). Contributions start at
+ * modest placeholders. Any savings the user gave seed the ISA balance — a
+ * single combined figure can't say how it's split across ISA/SIPP/GIA, and ISA
+ * is the accessible FIRE staple, so parking it there keeps the *net worth*
+ * exactly right without fabricating pension money locked until 57. The user
+ * splits it properly later, in the planner.
  */
 export function assembleQuizInputs(state: QuizState): FireInputs {
   const targetAnnualIncome = lifestyleIncome(state.lifestyle, state.customIncome);
   const statePensionAge = DEFAULT_ASSUMPTIONS.statePensionAge;
 
   const barista = state.strategy === "barista";
+  const isaBalance = state.savingsProvided ? Math.max(0, state.savings) : 0;
 
   return {
     currentAge: state.currentAge,
     retirementAge: state.retirementAge,
     targetAnnualIncome,
 
-    isaBalance: 0,
+    isaBalance,
     isaMonthlyContribution: QUIZ_DEFAULT_ISA_MONTHLY,
     sippBalance: 0,
     sippMonthlyContribution: QUIZ_DEFAULT_SIPP_MONTHLY,

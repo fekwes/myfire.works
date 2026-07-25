@@ -1,5 +1,6 @@
 import { Receipt, Route, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { Term } from "@/components/Glossary";
 import { LandingCta } from "@/components/LandingCta";
 import { LandingHeroPreview } from "@/components/LandingHeroPreview";
 
@@ -74,9 +75,11 @@ export default function Landing() {
             .
           </h1>
           <p className="landing-rise mt-5 max-w-xl text-base leading-relaxed text-muted-foreground [animation-delay:120ms] sm:text-lg">
-            Fireworks models the whole drawdown — ISA, GIA, SIPP, State Pension
-            and property — with the UK tax you&apos;ll actually pay. No
-            spreadsheet, no hand-waving.
+            <Term term="FIRE">FIRE</Term> — financial independence, retire early
+            — is having enough invested that work becomes optional. Fireworks
+            models the whole drawdown (<Term>ISA</Term>, <Term>GIA</Term>,{" "}
+            <Term>SIPP</Term>, State Pension and property) with the UK tax
+            you&apos;ll actually pay. No spreadsheet, no hand-waving.
           </p>
           <div className="landing-rise [animation-delay:180ms]">
             <LandingCta />
