@@ -1,4 +1,10 @@
-# Fireworks — project handoff / context
+# OnFIRE — handoff archive (pre-rebrand)
+
+> ## 👉 Read [`HANDOFF-FIREWORKS.md`](./HANDOFF-FIREWORKS.md) instead.
+>
+> That file is the current source of truth: repo map, deploy/env, the
+> identifiers that must never be renamed, known gaps and the backlog. This
+> file is kept for history — where the two disagree, the other one wins.
 
 > **Rebranded.** The product is now **Fireworks** (domain **myfire.works**),
 > wordmark `Fire·works`, design system **"Night & Ember"**. See
