@@ -12,7 +12,7 @@ import { PlanActions } from "@/components/PlanActions";
 import { PlanChecklist } from "@/components/PlanChecklist";
 import { usePlan } from "@/components/PlanProvider";
 import { QuickLevers } from "@/components/QuickLevers";
-import { Card } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import { WhatIfCard } from "@/components/WhatIfCard";
 import { computeCoastFire } from "@/lib/coast-fire";
 import { simulateFire } from "@/lib/fire-engine";
@@ -167,13 +167,9 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
           <p className="text-sm font-medium text-foreground">
             You&apos;re viewing a shared plan.
           </p>
-          <button
-            type="button"
-            onClick={makeItMine}
-            className="rounded-full bg-foreground px-4 py-1.5 text-xs font-semibold text-background transition-opacity hover:opacity-90"
-          >
+          <Button type="button" size="sm" onClick={makeItMine}>
             Make it mine
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="no-print flex items-center justify-between gap-3">

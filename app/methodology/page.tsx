@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { ButtonLink } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Methodology",
@@ -434,12 +434,7 @@ export default function MethodologyPage() {
       </div>
 
       <div className="mt-8 flex flex-wrap items-center gap-4 text-sm">
-        <Link
-          href="/planner"
-          className="rounded-full bg-foreground px-4 py-2 font-semibold text-background transition-opacity hover:opacity-90"
-        >
-          ← Back to the planner
-        </Link>
+        <ButtonLink href="/planner">← Back to the planner</ButtonLink>
         <a
           href="https://github.com/fekwes/onfire"
           target="_blank"

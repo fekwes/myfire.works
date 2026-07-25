@@ -2,6 +2,7 @@
 
 import { Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Button } from "@/components/ui";
 import type { FireSimulationResult } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
 
@@ -75,14 +76,15 @@ export function AiInsights({ result }: { result: FireSimulationResult }) {
             AI strategy tips
           </h3>
         </div>
-        <button
+        <Button
           type="button"
+          size="sm"
           onClick={handleAnalyze}
           disabled={loading}
-          className="no-print rounded-full bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="no-print"
         >
-          {loading ? "Analyzing…" : tips ? "Regenerate" : "Get tips"}
-        </button>
+          {loading ? "Analysing…" : tips ? "Regenerate" : "Get tips"}
+        </Button>
       </div>
 
       {error && <p className="mt-3 text-xs text-danger">{error}</p>}

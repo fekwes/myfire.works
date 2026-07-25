@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Button } from "@/components/ui";
 import type { FireInputs } from "@/lib/fire-engine";
 import {
   runMonteCarlo,
@@ -140,14 +141,9 @@ export function ConfidencePanel({ inputs }: { inputs: FireInputs }) {
             )}
           </span>
         </label>
-        <button
-          type="button"
-          onClick={run}
-          disabled={loading}
-          className="rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50"
-        >
+        <Button type="button" onClick={run} disabled={loading}>
           {loading ? "Running…" : result ? "Re-run" : "Run simulation"}
-        </button>
+        </Button>
       </div>
 
       {result && (
