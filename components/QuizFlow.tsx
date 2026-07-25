@@ -3,6 +3,7 @@
 import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { usePlan } from "@/components/PlanProvider";
 import {
   ProgressBar,
   QuizField,
@@ -10,7 +11,6 @@ import {
   StepShell,
 } from "@/components/quiz/QuizPrimitives";
 import { formatCurrency } from "@/lib/format";
-import { savePlanLocal } from "@/lib/plan-storage";
 import {
   assembleQuizInputs,
   FIRE_STRATEGIES,
@@ -30,6 +30,7 @@ const TOTAL_STEPS = 3;
  */
 export function QuizFlow() {
   const router = useRouter();
+  const { setInputs } = usePlan();
   const [step, setStep] = useState(0);
   const [state, setState] = useState<QuizState>(initialQuizState);
 
@@ -37,7 +38,12 @@ export function QuizFlow() {
   const back = () => setStep((s) => Math.max(0, s - 1));
 
   const finish = () => {
-    savePlanLocal(assembleQuizInputs(state));
+    // Go through the provider, not straight to localStorage. PlanProvider
+    // lives in the root layout and reads storage once on mount, so a
+    // client-side push to /planner never re-read it — the planner rendered
+    // its defaults and every quiz answer was silently discarded until a hard
+    // reload. setInputs updates the live state *and* persists.
+    setInputs(assembleQuizInputs(state));
     router.push("/planner");
   };
 
