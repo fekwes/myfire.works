@@ -1,15 +1,17 @@
 interface LogoProps {
   /** Pixel size of the square mark. */
   size?: number;
-  /** Show the "OnFIRE" wordmark next to the mark. */
+  /** Show the "Fireworks" wordmark next to the mark. */
   withWordmark?: boolean;
   className?: string;
 }
 
 /**
- * OnFIRE brand mark: a banknote (lime) with a flame (amber) rising off it —
- * "money burning", a wink at the FIRE movement. Two-tone, legible down to
- * favicon size on the ink tile.
+ * Fireworks brand mark — the "Trajectory Burst": a rising launch trail (a real
+ * compound-growth curve, in ember) ending in a gold burst (the moment you reach
+ * financial independence). The same arc heads the app's growth charts, so the
+ * logo and the data-viz speak one language. Two-tone on a night-indigo tile, so
+ * it stays legible in both themes and down to favicon size.
  */
 export function LogoMark({ size = 32 }: { size?: number }) {
   return (
@@ -20,18 +22,22 @@ export function LogoMark({ size = 32 }: { size?: number }) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label="OnFIRE"
+      aria-label="Fireworks"
     >
-      <rect width="32" height="32" rx="8" fill="#0B0C10" />
-      {/* Banknote */}
-      <rect x="5" y="17.5" width="22" height="9.5" rx="2.2" fill="#BEF264" />
-      <rect x="7" y="19.5" width="18" height="5.5" rx="1.2" fill="#0B0C10" />
-      <circle cx="16" cy="22.25" r="1.9" fill="#BEF264" />
-      {/* Flame */}
+      <rect width="32" height="32" rx="8" fill="#141026" />
+      {/* Launch trail — the growth curve */}
       <path
-        d="M16 4.5C14 8 14.8 10 13.4 11.4C12.6 10.8 12.2 9.9 12.3 8.8C10.5 10.5 9.6 12.9 9.6 15.2C9.6 16.1 9.8 16.9 10.1 17.6H21.9C22.2 16.7 22.4 15.7 22.4 14.6C22.4 12.1 20.9 9.8 19.8 8C19.6 10 18.6 11 17.4 10.4C18.4 7.4 17.6 6 16 4.5Z"
-        fill="#FBBF24"
+        d="M6 25C11 25 15 21 19 13"
+        stroke="#FFAD4E"
+        strokeWidth="2.6"
+        strokeLinecap="round"
       />
+      {/* Burst — the FI moment */}
+      <path
+        d="M20 6.5C21 11.5 21 11.5 26 13C21 14.5 21 14.5 20 19.5C19 14.5 19 14.5 14 13C19 11.5 19 11.5 20 6.5Z"
+        fill="#FFC24B"
+      />
+      <circle cx="20" cy="13" r="1.25" fill="#FFF6E6" />
     </svg>
   );
 }
@@ -42,7 +48,7 @@ export function Logo({ size = 32, withWordmark = true, className }: LogoProps) {
       <LogoMark size={size} />
       {withWordmark && (
         <span className="font-display text-[1.1rem] font-bold tracking-tight">
-          On<span className="text-primary">FIRE</span>
+          Fire<span className="text-primary">·</span>works
         </span>
       )}
     </span>

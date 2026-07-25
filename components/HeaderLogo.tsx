@@ -14,7 +14,7 @@ export function HeaderLogo() {
   const { user } = useAuth();
   const href = hydrated && (hasStoredPlan || user) ? "/planner" : "/";
   return (
-    <Link href={href} aria-label="OnFIRE home">
+    <Link href={href} aria-label="Fireworks home">
       <Logo size={30} />
     </Link>
   );

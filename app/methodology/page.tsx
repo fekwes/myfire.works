@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Methodology — OnFIRE",
+  title: "Methodology",
   description:
-    "Exactly what OnFIRE models: the UK tax rules, statutory ages, GIA/CGT approach, Coast FIRE definition, and every simplifying assumption.",
+    "Exactly what Fireworks models: the UK tax rules, statutory ages, GIA/CGT approach, Coast FIRE definition, and every simplifying assumption.",
 };
 
 function MonoLabel({ children }: { children: React.ReactNode }) {
@@ -58,14 +58,14 @@ export default function MethodologyPage() {
           Methodology
         </h1>
         <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-          Everything OnFIRE models, and every corner it cuts. The calculation
+          Everything Fireworks models, and every corner it cuts. The calculation
           engine is a single, unit-tested TypeScript module — this page is the
           plain-English version of what it does.
         </p>
         <p className="mt-5 flex items-start gap-2 rounded-lg border border-border bg-surface-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
           <span aria-hidden>ⓘ</span>
           <span>
-            OnFIRE is an{" "}
+            Fireworks is an{" "}
             <Term>educational tool for learning and exploring</Term> UK FIRE
             scenarios. It is not financial, tax, or investment advice. Tax rules
             change and individual circumstances vary — always consult a
@@ -167,7 +167,7 @@ export default function MethodologyPage() {
         >
           <p>
             A General Investment Account has no tax wrapper, so selling units to
-            fund income can realise a capital gain. OnFIRE models this in a
+            fund income can realise a capital gain. Fireworks models this in a
             simplified form:
           </p>
           <ul className="list-disc space-y-1.5 pl-5">
@@ -224,7 +224,7 @@ export default function MethodologyPage() {
         >
           <p>
             You can take <Term>25% of your pension tax-free</Term>, up to a cap
-            of <Term>£268,275</Term> (the Lump Sum Allowance). OnFIRE lets you
+            of <Term>£268,275</Term> (the Lump Sum Allowance). Fireworks lets you
             choose how, under <Term>Lifestyle scenario → Pension access</Term>:
           </p>
           <ul className="list-disc space-y-1.5 pl-5">
@@ -235,7 +235,7 @@ export default function MethodologyPage() {
             </li>
             <li>
               <Term>Lump sum</Term> — take the whole 25% as cash up front. Since
-              it can&apos;t fit in an ISA (£20k/yr limit), OnFIRE places it in
+              it can&apos;t fit in an ISA (£20k/yr limit), Fireworks places it in
               your GIA; the rest of the pension is then fully taxable on
               drawdown.
             </li>

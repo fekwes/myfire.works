@@ -4,7 +4,7 @@ import { FinancesPanel } from "@/components/FinancesPanel";
 export const metadata: Metadata = {
   title: "Your finances",
   description:
-    "Edit everything behind your OnFIRE plan: ISA, SIPP and GIA balances, contributions, property, growth, inflation and the statutory scenario.",
+    "Edit everything behind your Fireworks plan: ISA, SIPP and GIA balances, contributions, property, growth, inflation and the statutory scenario.",
 };
 
 export default function FinancesPage() {

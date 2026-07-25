@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Privacy",
   description:
-    "What OnFIRE stores, what it doesn't, and where your figures go. Plain English.",
+    "What Fireworks stores, what it doesn't, and where your figures go. Plain English.",
 };
 
 function Section({
@@ -34,7 +34,8 @@ export default function PrivacyPage() {
         Your numbers stay yours.
       </h1>
       <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-        OnFIRE is a planning tool, not a data business. Here&apos;s exactly what
+        Fireworks is a planning tool, not a data business. Here&apos;s exactly
+        what
         happens to what you type — in plain English.
       </p>
 
@@ -91,7 +92,7 @@ export default function PrivacyPage() {
 
       <Section title="Not financial advice">
         <p>
-          OnFIRE is an educational tool with simplified assumptions — see the{" "}
+          Fireworks is an educational tool with simplified assumptions — see the{" "}
           <Link
             href="/methodology"
             className="text-foreground underline-offset-2 hover:underline"

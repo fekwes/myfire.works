@@ -4,7 +4,7 @@ import { FireDashboard } from "@/components/FireDashboard";
 export const metadata: Metadata = {
   title: "Planner",
   description:
-    "The full OnFIRE planner: model your FIRE number, drawdown across ISA, GIA, SIPP and State Pension, Coast FIRE and Monte Carlo confidence.",
+    "The full Fireworks planner: model your FIRE number, drawdown across ISA, GIA, SIPP and State Pension, Coast FIRE and Monte Carlo confidence.",
 };
 
 export default async function PlannerPage({

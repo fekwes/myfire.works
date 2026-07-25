@@ -1,16 +1,18 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "nodejs";
-export const alt = "OnFIRE — UK FIRE Planner";
+export const alt = "Fireworks — UK FIRE Planner";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// Brand colours (Ink & Lime), inlined — the OG renderer has no access to the
+// Brand colours (Night & Ember), inlined — the OG renderer has no access to the
 // app's CSS custom properties.
-const INK = "#0b0c10";
-const LIME = "#bef264";
-const AMBER = "#fbbf24";
-const MUTED = "#99a1ae";
+const NIGHT = "#0f0b1e";
+const TILE = "#141026";
+const EMBER = "#ffad4e";
+const GOLD = "#ffc24b";
+const VIOLET = "#9e8cff";
+const MUTED = "#a69fc6";
 
 export default function OpengraphImage() {
   return new ImageResponse(
@@ -22,33 +24,31 @@ export default function OpengraphImage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background: INK,
-          color: "#f3f5f8",
+          background: NIGHT,
+          color: "#f3f1fb",
           padding: "72px 80px",
           fontFamily: "sans-serif",
         }}
       >
         {/* Wordmark */}
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <div
-            style={{
-              display: "flex",
-              width: 64,
-              height: 64,
-              borderRadius: 16,
-              background: LIME,
-              color: INK,
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 40,
-              fontWeight: 800,
-            }}
-          >
-            £
-          </div>
+          <svg width="64" height="64" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill={TILE} />
+            <path
+              d="M6 25C11 25 15 21 19 13"
+              stroke={EMBER}
+              strokeWidth="2.6"
+              strokeLinecap="round"
+            />
+            <path
+              d="M20 6.5C21 11.5 21 11.5 26 13C21 14.5 21 14.5 20 19.5C19 14.5 19 14.5 14 13C19 11.5 19 11.5 20 6.5Z"
+              fill={GOLD}
+            />
+          </svg>
           <div style={{ display: "flex", fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>
-            <span>On</span>
-            <span style={{ color: LIME }}>FIRE</span>
+            <span>Fire</span>
+            <span style={{ color: EMBER }}>·</span>
+            <span>works</span>
           </div>
         </div>
 
@@ -62,22 +62,21 @@ export default function OpengraphImage() {
               fontWeight: 800,
               lineHeight: 1.05,
               letterSpacing: -2,
-              maxWidth: 900,
+              maxWidth: 960,
             }}
           >
-            <span>Plan your UK&nbsp;</span>
-            <span style={{ color: LIME }}>FIRE</span>
-            <span>&nbsp;journey.</span>
+            <span>Know your number. Know when.&nbsp;</span>
+            <span style={{ color: EMBER }}>Know it&apos;ll hold.</span>
           </div>
           <div style={{ fontSize: 30, color: MUTED, maxWidth: 940, lineHeight: 1.35 }}>
-            Model ISA, GIA, SIPP, State Pension and property with correct
-            2026/27 UK tax — and find your FIRE number.
+            UK FIRE modelling across ISA, GIA, SIPP, State Pension and property —
+            with the 2026/27 tax you&apos;ll actually pay.
           </div>
         </div>
 
         {/* Footer chips */}
         <div style={{ display: "flex", gap: 16, fontSize: 24, color: MUTED }}>
-          <span style={{ color: AMBER }}>●</span>
+          <span style={{ color: VIOLET }}>●</span>
           <span>Coast FIRE</span>
           <span>·</span>
           <span>Monte Carlo confidence</span>

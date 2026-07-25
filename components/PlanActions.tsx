@@ -61,7 +61,7 @@ export function PlanActions() {
             icon: <Download className="size-3.5" />,
             onSelect: () =>
               download(
-                "onfire-plan.csv",
+                "fireworks-plan.csv",
                 planTimelineCsv(simulateFire(inputs)),
                 "text/csv",
               ),
@@ -71,7 +71,7 @@ export function PlanActions() {
             icon: <Download className="size-3.5" />,
             onSelect: () =>
               download(
-                "onfire-plan.json",
+                "fireworks-plan.json",
                 planInputsJson(inputs),
                 "application/json",
               ),

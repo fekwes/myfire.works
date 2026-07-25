@@ -31,19 +31,19 @@ export default function Landing() {
             UK FIRE planner · 2026/27 tax
           </span>
           <h1 className="landing-rise mt-5 font-display text-4xl font-extrabold leading-[1.02] tracking-tight text-balance [animation-delay:60ms] sm:text-[3.5rem]">
-            Know your number.
+            Know your number. Know when.
             <br />
-            Then quit on{" "}
+            Know{" "}
             <span className="relative whitespace-nowrap text-primary">
-              your terms
+              it&apos;ll hold
               <span className="absolute -bottom-1 left-0 h-[3px] w-full rounded-full bg-brand/70" />
             </span>
             .
           </h1>
           <p className="landing-rise mt-5 max-w-xl text-base leading-relaxed text-muted-foreground [animation-delay:120ms] sm:text-lg">
-            OnFIRE models the whole drawdown — ISA, GIA, SIPP, State Pension and
-            property — with the UK tax you&apos;ll actually pay. No spreadsheet,
-            no hand-waving.
+            Fireworks models the whole drawdown — ISA, GIA, SIPP, State Pension
+            and property — with the UK tax you&apos;ll actually pay. No
+            spreadsheet, no hand-waving.
           </p>
           <div className="landing-rise [animation-delay:180ms]">
             <LandingCta />
@@ -65,7 +65,7 @@ export default function Landing() {
           <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
             A single &ldquo;you need £1.2M&rdquo; hides everything that matters —
             when you can actually access the money, and what the taxman takes on
-            the way out. OnFIRE models the mechanics.
+            the way out. Fireworks models the mechanics.
           </p>
         </div>
 
@@ -96,7 +96,7 @@ export default function Landing() {
       <p className="mt-16 flex max-w-2xl items-start gap-2 text-xs leading-relaxed text-muted-foreground">
         <span aria-hidden>ⓘ</span>
         <span>
-          OnFIRE is an educational tool for exploring UK FIRE scenarios — not
+          Fireworks is an educational tool for exploring UK FIRE scenarios — not
           financial advice. Figures are estimates from simplified assumptions.{" "}
           <Link
             href="/methodology"
