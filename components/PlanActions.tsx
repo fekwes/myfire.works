@@ -39,12 +39,17 @@ export function PlanActions() {
     <div className="flex items-center gap-2">
       <Button variant="secondary" size="sm" onClick={share}>
         {copied ? (
-          <Check className="size-3.5 text-success" />
+          <Check aria-hidden className="size-3.5 text-success" />
         ) : (
-          <Share2 className="size-3.5" />
+          <Share2 aria-hidden className="size-3.5" />
         )}
         {copied ? "Link copied" : "Share"}
       </Button>
+      {/* Swapping the label of the button you just pressed isn't reliably
+          announced, so say it out loud in a live region. */}
+      <p role="status" aria-live="polite" className="sr-only">
+        {copied ? "Shareable link copied to clipboard" : ""}
+      </p>
 
       <Menu
         menuLabel="Export plan"

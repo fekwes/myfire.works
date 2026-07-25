@@ -47,16 +47,22 @@ interface FireFormProps {
   onChange: (inputs: FireInputs) => void;
 }
 
-function Tooltip({ text }: { text: string }) {
+/**
+ * An info affordance. `label` names the thing being explained so the button
+ * has an accessible name — an icon-only button with none reads as a bare
+ * "button" to a screen reader, and there are a lot of these on one page.
+ */
+function Tooltip({ text, label }: { text: string; label?: string }) {
   const id = useId();
   return (
     <span className="group/tip relative inline-flex">
       <button
         type="button"
+        aria-label={label ? `About ${label}` : "More information"}
         aria-describedby={id}
         className="text-muted-foreground outline-none hover:text-foreground focus-visible:text-foreground"
       >
-        <Info className="size-3.5" />
+        <Info aria-hidden className="size-3.5" />
       </button>
       <span
         role="tooltip"
@@ -84,7 +90,7 @@ export function Field({
     <label className={`block ${className ?? ""}`}>
       <span className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
         {label}
-        {tooltip && <Tooltip text={tooltip} />}
+        {tooltip && <Tooltip text={tooltip} label={label} />}
       </span>
       {children}
     </label>
@@ -164,9 +170,9 @@ function Block({
   return (
     <div className="rounded-xl border border-border bg-surface-muted p-4">
       <div className="flex items-center gap-1.5">
-        {dotClass && <span className={`size-2 rounded-full ${dotClass}`} />}
+        {dotClass && <span aria-hidden className={`size-2 rounded-full ${dotClass}`} />}
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        {tooltip && <Tooltip text={tooltip} />}
+        {tooltip && <Tooltip text={tooltip} label={title} />}
       </div>
       <div className="mt-3 grid grid-cols-2 items-end gap-4">{children}</div>
     </div>

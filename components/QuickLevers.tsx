@@ -27,7 +27,12 @@ export function QuickLevers() {
             in Your Finances.
           </p>
         </div>
-        <ButtonLink href="/finances" variant="secondary" size="sm">
+        <ButtonLink
+          href="/finances"
+          variant="secondary"
+          size="sm"
+          className="no-print"
+        >
           Edit all your finances →
         </ButtonLink>
       </div>

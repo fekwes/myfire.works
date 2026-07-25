@@ -67,7 +67,9 @@ function Segmented({
   options: { value: ChartTab; label: string }[];
 }) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-muted p-1">
+    // A tab switcher can't be operated on paper; the printed sheet keeps
+    // whichever chart was on screen.
+    <div className="no-print inline-flex items-center gap-1 rounded-full border border-border bg-surface-muted p-1">
       {options.map((o) => (
         <button
           key={o.value}
@@ -221,7 +223,9 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
               {sustainable ? "On track" : "Shortfall"}
             </span>
             {showRealToggle && (
-              <div className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-muted p-1">
+              // The money frame is already stated in the FIRE-number caption,
+              // so the toggle itself is screen-only chrome.
+              <div className="no-print inline-flex items-center gap-1 rounded-full border border-border bg-surface-muted p-1">
                 {(
                   [
                     { v: true, label: "Today's £" },

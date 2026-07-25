@@ -76,7 +76,8 @@ export function PlanChecklist() {
   const pct = Math.round((done / total) * 100);
 
   return (
-    <Card>
+    // Setup prompts are for the screen, not for a printed plan.
+    <Card className="no-print">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
