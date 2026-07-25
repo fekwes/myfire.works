@@ -145,9 +145,12 @@ body {
   border-color: var(--border);
 }
 
+/* A quiet, on-brand text selection. The old gold (`--brand`) is the reserved
+ * celebratory colour and read as a jarring highlight when a field auto-selects
+ * its value on focus — a soft ember tint says "selected" without shouting, and
+ * leaves the text in its own colour so it stays legible. */
 ::selection {
-  background: var(--brand);
-  color: #241005;
+  background: color-mix(in srgb, var(--primary) 26%, transparent);
 }
 
 /* Baseline keyboard-focus ring for anything interactive. `:where()` keeps the
