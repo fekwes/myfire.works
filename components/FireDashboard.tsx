@@ -279,7 +279,11 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
         </div>
       )}
 
-      {!readOnly && <PlanChecklist />}
+      {/* The setup guide is for turning a real plan into a complete one, so it
+          waits until there's a plan to complete. While provisional, the north-
+          star card already carries the single "add your balances" ask — showing
+          the checklist here too would ask for the same thing twice. */}
+      {!readOnly && !provisional && <PlanChecklist />}
 
       {/* North-star summary — the heaviest card in the hierarchy. */}
       <Card padding="lg">

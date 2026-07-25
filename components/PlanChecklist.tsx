@@ -1,12 +1,12 @@
 "use client";
 
-import { ArrowRight, Check, ChevronDown, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, ListChecks, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { Spark } from "@/components/Logo";
 import { usePlan } from "@/components/PlanProvider";
-import { ButtonLink, Card } from "@/components/ui";
+import { ButtonLink } from "@/components/ui";
 import {
   buildChecklist,
   type ChecklistFlags,
@@ -76,12 +76,18 @@ export function PlanChecklist() {
   const pct = Math.round((done / total) * 100);
 
   return (
-    // Setup prompts are for the screen, not for a printed plan.
-    <Card className="no-print">
+    // A guidance callout, not part of the plan itself — an accent-tinted
+    // surface with its own "setup guide" label so it never reads as one of the
+    // plan's data cards. Setup prompts are for the screen, not a printed plan.
+    <aside
+      aria-label="Setup guide"
+      className="no-print rounded-2xl border border-accent/40 bg-accent/[0.06] p-5 sm:p-6"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            {complete ? "Your plan is all set" : "Complete your plan"}
+          <h3 className="flex items-center gap-1.5 font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            <ListChecks aria-hidden className="size-3.5 shrink-0 text-accent" />
+            {complete ? "Setup guide — all done" : "Setup guide"}
           </h3>
           <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
             {complete ? (
@@ -120,9 +126,10 @@ export function PlanChecklist() {
         />
       </div>
 
-      {/* The next step — the one thing to do right now. */}
+      {/* The next step — the one thing to do right now. A solid surface card
+          sitting on the tinted callout, so the single action stands out. */}
       {!complete && next && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-brand/[0.06] p-4">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground">{next.label}</p>
             <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
@@ -183,6 +190,6 @@ export function PlanChecklist() {
           ))}
         </ul>
       )}
-    </Card>
+    </aside>
   );
 }
