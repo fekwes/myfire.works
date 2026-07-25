@@ -53,7 +53,7 @@ export function LandingHeroPreview() {
     <div className="landing-rise rounded-3xl border border-border bg-surface p-6 shadow-[var(--shadow-lg)] [animation-delay:120ms]">
       <div className="flex items-center justify-between">
         <span className="font-mono text-[0.62rem] uppercase tracking-[0.16em] text-muted-foreground">
-          Your plan · preview
+          Example plan
         </span>
         <span
           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-medium ${
@@ -66,13 +66,14 @@ export function LandingHeroPreview() {
       </div>
 
       <p className="mt-5 font-mono text-[0.62rem] uppercase tracking-wide text-muted-foreground">
-        Your FIRE number
+        FIRE number
       </p>
       <p className="mt-1 font-display text-4xl font-bold tabular tracking-tight">
         {formatCurrency(fireNumber)}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
-        the pot you need by {SAMPLE.retirementAge}, in today&apos;s money.
+        the pot this example needs by age {SAMPLE.retirementAge}, in today&apos;s
+        money.
       </p>
 
       <svg

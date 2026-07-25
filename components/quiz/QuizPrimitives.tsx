@@ -1,5 +1,6 @@
 "use client";
 
+import { HelpCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui";
@@ -147,6 +148,7 @@ export function QuizField({
 export function StepShell({
   heading,
   helper,
+  why,
   children,
   onBack,
   onContinue,
@@ -156,6 +158,9 @@ export function StepShell({
 }: {
   heading: string;
   helper?: string;
+  /** One plain line on *why* this question earns its place — a trust cue that
+   *  reveals on demand, so a wary first-timer knows the ask isn't busywork. */
+  why?: string;
   children: ReactNode;
   onBack?: () => void;
   onContinue: () => void;
@@ -172,6 +177,17 @@ export function StepShell({
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           {helper}
         </p>
+      )}
+      {why && (
+        <details className="mt-2.5">
+          <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
+            <HelpCircle aria-hidden className="size-3.5" />
+            Why we ask
+          </summary>
+          <p className="mt-2 max-w-md text-xs leading-relaxed text-muted-foreground">
+            {why}
+          </p>
+        </details>
       )}
       <div className="mt-6 space-y-5">{children}</div>
       <div className="mt-8 flex items-center gap-3">
