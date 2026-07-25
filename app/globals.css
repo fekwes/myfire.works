@@ -147,10 +147,11 @@ body {
 
 /* A quiet, on-brand text selection. The old gold (`--brand`) is the reserved
  * celebratory colour and read as a jarring highlight when a field auto-selects
- * its value on focus — a soft ember tint says "selected" without shouting, and
- * leaves the text in its own colour so it stays legible. */
+ * its value on focus. Ember is warm and fought the cool indigo ground, so the
+ * selection uses the periwinkle `--accent` instead — it harmonises with the
+ * night surface, and its text stays in its own colour so it's still legible. */
 ::selection {
-  background: color-mix(in srgb, var(--primary) 26%, transparent);
+  background: color-mix(in srgb, var(--accent) 38%, transparent);
 }
 
 /* Baseline keyboard-focus ring for anything interactive. `:where()` keeps the
