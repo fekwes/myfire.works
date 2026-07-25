@@ -76,7 +76,10 @@ export function buildChecklist(
       label: "Stress-test your plan",
       hint: "Run 2,000 randomised market paths to see your odds of success.",
       cta: "Open the Confidence tab",
-      href: "/planner#confidence",
+      // `?tab=` drives the tab (a fragment can't: this link is a same-page
+      // navigation, and Next's router changes fragments without an event);
+      // `#confidence` still scrolls the projection card into view.
+      href: "/planner?tab=confidence#confidence",
       done: flags.ranConfidence,
     },
     {

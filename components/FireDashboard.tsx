@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useId, useMemo, useState } from "react";
 import { AiInsights } from "@/components/AiInsights";
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { ConfidencePanel } from "@/components/ConfidencePanel";
@@ -21,6 +21,13 @@ import { formatCurrency } from "@/lib/format";
 import { decodePlan } from "@/lib/share";
 
 type ChartTab = "assets" | "income" | "confidence";
+
+const CHART_TABS: ChartTab[] = ["assets", "income", "confidence"];
+
+/** Narrow an untrusted `?tab=` value to a real tab, or null. */
+function asChartTab(value: string | null): ChartTab | null {
+  return CHART_TABS.includes(value as ChartTab) ? (value as ChartTab) : null;
+}
 
 function MonoLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -57,34 +64,82 @@ function StatTile({
   );
 }
 
+/**
+ * The chart switcher. These are genuine tabs — each one swaps the panel below
+ * — so it follows the WAI-ARIA tabs pattern rather than a row of pressed
+ * buttons: roving tabindex, Arrow/Home/End to move between them, and the panel
+ * wired back to its tab.
+ */
 function Segmented({
   value,
   onChange,
   options,
+  panelId,
+  tabId,
 }: {
   value: ChartTab;
   onChange: (v: ChartTab) => void;
   options: { value: ChartTab; label: string }[];
+  panelId: string;
+  tabId: (tab: ChartTab) => string;
 }) {
+  const move = (delta: number) => {
+    const i = options.findIndex((o) => o.value === value);
+    const next = options[(i + delta + options.length) % options.length];
+    onChange(next.value);
+    document.getElementById(tabId(next.value))?.focus();
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      move(1);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      move(-1);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      onChange(options[0].value);
+      document.getElementById(tabId(options[0].value))?.focus();
+    } else if (e.key === "End") {
+      e.preventDefault();
+      const last = options[options.length - 1];
+      onChange(last.value);
+      document.getElementById(tabId(last.value))?.focus();
+    }
+  };
+
   return (
     // A tab switcher can't be operated on paper; the printed sheet keeps
     // whichever chart was on screen.
-    <div className="no-print inline-flex items-center gap-1 rounded-full border border-border bg-surface-muted p-1">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          onClick={() => onChange(o.value)}
-          aria-pressed={value === o.value}
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-            value === o.value
-              ? "bg-foreground text-background"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {o.label}
-        </button>
-      ))}
+    <div
+      role="tablist"
+      aria-label="Projection view"
+      onKeyDown={onKeyDown}
+      className="no-print inline-flex items-center gap-1 rounded-full border border-border bg-surface-muted p-1"
+    >
+      {options.map((o) => {
+        const selected = value === o.value;
+        return (
+          <button
+            key={o.value}
+            id={tabId(o.value)}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            aria-controls={panelId}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => onChange(o.value)}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              selected
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -98,16 +153,50 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
   const readOnly = shared !== null;
   const inputs = shared ?? ownInputs;
 
-  const [chartTab, setChartTab] = useState<ChartTab>("assets");
+  // Which chart is showing is URL state, so it can be linked to. `?tab=` is a
+  // search param rather than a fragment because Next's client router changes
+  // the fragment through history without emitting hashchange or popstate —
+  // the checklist sits on this very page, so its "Open the Confidence tab"
+  // link is a same-page navigation that a fragment alone can't drive.
+  const paramTab = asChartTab(useSearchParams().get("tab"));
+  // A tab the user picked wins until the URL asks for a different one, at
+  // which point the stale selection stops matching and the URL takes over.
+  const [manual, setManual] = useState<{
+    forParam: ChartTab | null;
+    tab: ChartTab;
+  } | null>(null);
+  // Legacy/bookmarked `#confidence` links still work on a cold load.
+  const [hashTab, setHashTab] = useState<ChartTab | null>(null);
+
+  const chartTab: ChartTab =
+    manual && manual.forParam === paramTab
+      ? manual.tab
+      : (paramTab ?? hashTab ?? "assets");
+  const setChartTab = (tab: ChartTab) => setManual({ forParam: paramTab, tab });
+
   // Default to today's money — the frame most people reason in.
   const [realTerms, setRealTerms] = useState(true);
 
+  const chartPanelId = useId();
+  const chartTabsPrefix = useId();
+  const chartTabId = (tab: ChartTab) => `${chartTabsPrefix}-${tab}`;
+
   // Deep link from the checklist: /planner#confidence opens the Confidence tab.
+  //
+  // This has to handle the warm path, not just a cold load: the checklist sits
+  // *on* the planner, so "Open the Confidence tab" is a same-page navigation.
+  // A mount-only effect left those users staring at the Assets tab.
   useEffect(() => {
-    if (typeof window !== "undefined" && window.location.hash === "#confidence") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setChartTab("confidence");
-    }
+    const openFromHash = () => {
+      if (window.location.hash === "#confidence") setHashTab("confidence");
+    };
+    openFromHash();
+    window.addEventListener("hashchange", openFromHash);
+    window.addEventListener("popstate", openFromHash);
+    return () => {
+      window.removeEventListener("hashchange", openFromHash);
+      window.removeEventListener("popstate", openFromHash);
+    };
   }, []);
 
   const makeItMine = () => {
@@ -322,6 +411,8 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
           <Segmented
             value={chartTab}
             onChange={setChartTab}
+            panelId={chartPanelId}
+            tabId={chartTabId}
             options={[
               { value: "assets", label: "Assets" },
               { value: "income", label: "Income" },
@@ -329,7 +420,13 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
             ]}
           />
         </div>
-        <div className="mt-4">
+        <div
+          id={chartPanelId}
+          role="tabpanel"
+          aria-labelledby={chartTabId(chartTab)}
+          tabIndex={0}
+          className="mt-4 focus-visible:outline-none"
+        >
           {chartTab === "assets" ? (
             <AssetTimelineChart result={plan} realTerms={real} />
           ) : chartTab === "income" ? (
