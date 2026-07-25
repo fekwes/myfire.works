@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { FeeDragCard } from "@/components/FeeDragCard";
+import { FinancesNav } from "@/components/FinancesNav";
 import { FireForm } from "@/components/FireForm";
 import { usePlan } from "@/components/PlanProvider";
 import { SavedPlans } from "@/components/SavedPlans";
@@ -56,11 +57,16 @@ export function FinancesPanel() {
         </Card>
       )}
 
-      <Card padding="lg">
-        <FireForm value={inputs} onChange={setInputs} />
-      </Card>
-
-      <FeeDragCard />
+      {/* Rail alongside the form on large screens; a chip row above it below. */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[11rem_minmax(0,1fr)]">
+        <FinancesNav />
+        <div className="min-w-0 space-y-5">
+          <Card padding="lg">
+            <FireForm value={inputs} onChange={setInputs} />
+          </Card>
+          <FeeDragCard />
+        </div>
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId } from "react";
 import { FundSelect } from "@/components/FundSelect";
+import { Collapsible } from "@/components/ui";
 import { setChecklistFlag } from "@/lib/checklist";
 import {
   DEFAULT_ASSUMPTIONS,
@@ -202,12 +203,46 @@ function Section({
   );
 }
 
+/** True when the plan actually includes a home or a rental. */
+function hasProperty(v: FireInputs): boolean {
+  return (v.homeValue ?? 0) > 0 || (v.rentalValue ?? 0) > 0;
+}
+
+/** Collapsed-state label for Property, so it still says what's in there. */
+function propertySummary(v: FireInputs): string {
+  const parts: string[] = [];
+  if ((v.homeValue ?? 0) > 0) parts.push("home");
+  if ((v.rentalValue ?? 0) > 0) parts.push("rental");
+  return parts.length ? parts.join(" + ") : "not included";
+}
+
+/** True when any statutory figure has been moved off its default. */
+function hasCustomAssumptions(v: FireInputs): boolean {
+  return (
+    num(v.sippAccessAge, DEFAULT_ASSUMPTIONS.sippAccessAge) !==
+      DEFAULT_ASSUMPTIONS.sippAccessAge ||
+    num(v.statePensionAge, DEFAULT_ASSUMPTIONS.statePensionAge) !==
+      DEFAULT_ASSUMPTIONS.statePensionAge ||
+    num(v.statePensionAnnual, DEFAULT_ASSUMPTIONS.statePensionAnnual) !==
+      DEFAULT_ASSUMPTIONS.statePensionAnnual ||
+    num(v.lifeExpectancyAge, DEFAULT_ASSUMPTIONS.lifeExpectancyAge) !==
+      DEFAULT_ASSUMPTIONS.lifeExpectancyAge ||
+    num(v.inflationRate, DEFAULT_INFLATION_RATE) !== DEFAULT_INFLATION_RATE
+  );
+}
+
+function assumptionsSummary(v: FireInputs): string {
+  return hasCustomAssumptions(v) ? "customised" : "using defaults";
+}
+
+/** Module-level so the summary helpers above can share it with the component. */
+function num(v: number | undefined, fallback: number): number {
+  return v === undefined ? fallback : v;
+}
+
 export function FireForm({ value, onChange }: FireFormProps) {
   const set = <K extends keyof FireInputs>(key: K, next: FireInputs[K]) =>
     onChange({ ...value, [key]: next });
-
-  const num = (v: number | undefined, fallback: number) =>
-    v === undefined ? fallback : v;
 
   return (
     <div className="space-y-8">
@@ -344,10 +379,12 @@ export function FireForm({ value, onChange }: FireFormProps) {
         />
       </Section>
 
-      <Section
+      <Collapsible
         id="property"
         title="Property"
         description="Optional — a home you live in and/or a rental."
+        summary={propertySummary(value)}
+        defaultOpen={hasProperty(value)}
       >
         <Block
           title="Rental property"
@@ -421,12 +458,12 @@ export function FireForm({ value, onChange }: FireFormProps) {
             />
           </Field>
         </Block>
-      </Section>
+      </Collapsible>
 
       <Section
         id="scenario"
-        title="Withdrawal & scenario"
-        description="How you draw your pension, part-time work, and the statutory settings."
+        title="Withdrawals"
+        description="How you take your pension, and any part-time work."
       >
         <Field
           label="Pension access"
@@ -467,6 +504,15 @@ export function FireForm({ value, onChange }: FireFormProps) {
           </Field>
         </Block>
 
+      </Section>
+
+      <Collapsible
+        id="assumptions"
+        title="Statutory assumptions"
+        description="Ages and figures set by the government, plus inflation. The defaults are the current 2026/27 rules — change them only if your situation differs."
+        summary={assumptionsSummary(value)}
+        defaultOpen={hasCustomAssumptions(value)}
+      >
         <div className="grid grid-cols-2 items-end gap-4">
           <Field
             label="SIPP access age"
@@ -534,7 +580,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
             onChange={(v) => set("inflationRate", v)}
           />
         </Field>
-      </Section>
+      </Collapsible>
     </div>
   );
 }

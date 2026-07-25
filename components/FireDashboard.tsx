@@ -205,7 +205,9 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
               </p>
             )}
           </div>
-          <div className="flex flex-col items-end gap-2">
+          {/* Wraps under the heading on narrow screens — align it with the
+              copy there, and back to the right once it sits alongside. */}
+          <div className="flex flex-col items-start gap-2 sm:items-end">
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
                 sustainable ? "bg-brand/15 text-success" : "bg-danger/15 text-danger"
