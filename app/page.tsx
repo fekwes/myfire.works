@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Receipt, Route, ShieldCheck } from "lucide-react";
-import Link from "next/link";
 import { Term } from "@/components/Glossary";
 import { LandingCta } from "@/components/LandingCta";
 import { LandingHeroPreview } from "@/components/LandingHeroPreview";
@@ -230,21 +229,6 @@ export default function Landing() {
           ))}
         </ul>
       </section>
-
-      <p className="mt-16 flex max-w-2xl items-start gap-2 text-xs leading-relaxed text-muted-foreground">
-        <span aria-hidden>ⓘ</span>
-        <span>
-          Fireworks is an educational tool for exploring UK FIRE scenarios — not
-          financial advice. Figures are estimates from simplified assumptions.{" "}
-          <Link
-            href="/methodology"
-            className="underline-offset-2 hover:text-foreground hover:underline"
-          >
-            See exactly how it&apos;s modelled
-          </Link>
-          .
-        </span>
-      </p>
       </div>
     </>
   );

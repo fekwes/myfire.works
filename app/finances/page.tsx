@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { FinancesPanel } from "@/components/FinancesPanel";
 
 export const metadata: Metadata = {
-  title: "Your finances",
+  title: "Edit plan",
   description:
     "Edit everything behind your Fireworks plan: ISA, SIPP and GIA balances, contributions, property, growth, inflation and the statutory scenario.",
   alternates: { canonical: "/finances" },

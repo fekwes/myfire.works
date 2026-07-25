@@ -20,7 +20,7 @@ export function LandingCta() {
         {returning ? (
           <>
             <ButtonLink href="/planner" variant="brand" className="px-6 py-3">
-              Continue to your planner
+              Continue to your dashboard
               <ArrowRight className="size-4" />
             </ButtonLink>
             <ButtonLink href="/start" variant="secondary" className="px-6 py-3">

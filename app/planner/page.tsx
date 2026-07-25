@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { FireDashboard } from "@/components/FireDashboard";
 
 export const metadata: Metadata = {
-  title: "Planner",
+  title: "Dashboard",
   description:
     "The full Fireworks planner: model your FIRE number, drawdown across ISA, GIA, SIPP and State Pension, Coast FIRE and Monte Carlo confidence.",
   alternates: { canonical: "/planner" },

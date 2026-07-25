@@ -118,6 +118,12 @@ export default function RootLayout({
                   >
                     Privacy
                   </Link>
+                  <a
+                    href="mailto:1mpersecond@gmail.com"
+                    className="underline-offset-2 hover:text-foreground hover:underline"
+                  >
+                    Contact
+                  </a>
                 </div>
               </div>
             </footer>

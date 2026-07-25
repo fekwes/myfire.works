@@ -59,7 +59,7 @@ function WithoutAnAccount() {
       </ul>
       <div className="mt-4">
         <ButtonLink href="/planner" variant="secondary">
-          Go to your planner →
+          Go to your dashboard →
         </ButtonLink>
       </div>
     </SectionCard>

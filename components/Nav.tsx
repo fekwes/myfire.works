@@ -24,15 +24,15 @@ function useNavLinks(): { links: NavLink[]; onboarded: boolean } {
   const onboarded = hydrated && (hasStoredPlan || !!user);
   return {
     onboarded,
-    links: [
-      ...(onboarded
-        ? [
-            { href: "/planner", label: "Planner", short: "Planner" },
-            { href: "/finances", label: "Your Finances", short: "Finances" },
-          ]
-        : []),
-      { href: "/methodology", label: "Methodology", short: "Methodology" },
-    ],
+    // Methodology now lives only in the footer — kept out of the header to cut
+    // noise most users won't read. Routes stay /planner and /finances; only the
+    // labels changed (Dashboard / Edit plan).
+    links: onboarded
+      ? [
+          { href: "/planner", label: "Dashboard", short: "Dashboard" },
+          { href: "/finances", label: "Edit plan", short: "Edit plan" },
+        ]
+      : [],
   };
 }
 

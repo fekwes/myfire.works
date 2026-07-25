@@ -16,7 +16,7 @@ export default function NotFound() {
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <ButtonLink href="/">Back home</ButtonLink>
         <ButtonLink href="/planner" variant="secondary">
-          Open the planner
+          Open the dashboard
         </ButtonLink>
       </div>
     </div>

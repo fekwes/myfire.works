@@ -273,7 +273,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
       ) : (
         <div className="no-print flex items-center justify-between gap-3">
           <h1 className="font-display text-lg font-bold tracking-tight">
-            Your planner
+            Dashboard
           </h1>
           <PlanActions />
         </div>
@@ -312,7 +312,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
                 href="/finances#balances"
                 className="mt-2.5 inline-flex items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline"
               >
-                Add them in Your Finances
+                Add them in Edit plan
                 <span aria-hidden>&rarr;</span>
               </Link>
             )}

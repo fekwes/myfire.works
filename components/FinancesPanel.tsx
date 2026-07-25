@@ -24,7 +24,7 @@ export function FinancesPanel() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
-              Your finances
+              Edit plan
             </h1>
             <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
               Everything behind your plan. Change anything here and your{" "}
@@ -32,12 +32,12 @@ export function FinancesPanel() {
                 href="/planner"
                 className="font-medium text-foreground underline-offset-2 hover:underline"
               >
-                planner
+                dashboard
               </Link>{" "}
               updates instantly.
             </p>
           </div>
-          <ButtonLink href="/planner">View your plan →</ButtonLink>
+          <ButtonLink href="/planner">View dashboard →</ButtonLink>
         </div>
       </Card>
 
