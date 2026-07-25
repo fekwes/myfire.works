@@ -86,6 +86,36 @@ describe("assembleQuizInputs", () => {
     expect(inputs.sippMonthlyContribution).toBeGreaterThan(0);
   });
 
+  it("seeds the ISA balance from savings when the user gave a figure", () => {
+    const inputs = assembleQuizInputs({
+      ...base,
+      savings: 85000,
+      savingsProvided: true,
+    });
+    expect(inputs.isaBalance).toBe(85000);
+    // The combined figure is parked in ISA only — not fabricated into a pension.
+    expect(inputs.sippBalance).toBe(0);
+    expect(inputs.giaBalance).toBe(0);
+  });
+
+  it("ignores a savings figure when the step was skipped", () => {
+    const inputs = assembleQuizInputs({
+      ...base,
+      savings: 85000,
+      savingsProvided: false,
+    });
+    expect(inputs.isaBalance).toBe(0);
+  });
+
+  it("clamps a negative savings figure to zero", () => {
+    const inputs = assembleQuizInputs({
+      ...base,
+      savings: -1000,
+      savingsProvided: true,
+    });
+    expect(inputs.isaBalance).toBe(0);
+  });
+
   it("gives the part-time strategy income to State Pension age", () => {
     const inputs = assembleQuizInputs({ ...base, strategy: "barista" });
     expect(inputs.partTimeAnnualIncome).toBe(BARISTA_ANNUAL_INCOME);
