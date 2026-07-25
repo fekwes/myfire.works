@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { siteUrl } from "@/lib/site-url";
 import { AuthButton } from "@/components/AuthButton";
 import { AuthProvider } from "@/components/AuthProvider";
 import { HeaderLogo } from "@/components/HeaderLogo";
@@ -26,7 +28,6 @@ const bricolage = Bricolage_Grotesque({
   weight: ["500", "600", "700", "800"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const description =
   "Fireworks models your UK Financial Independence, Retire Early plan across ISA, GIA, SIPP, State Pension and property — with correct 2026/27 tax, Coast FIRE and Monte Carlo confidence.";
 
@@ -123,6 +124,7 @@ export default function RootLayout({
             </PlanProvider>
           </AuthProvider>
         </ThemeProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
