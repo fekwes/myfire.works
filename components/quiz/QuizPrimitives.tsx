@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { Button } from "@/components/ui";
 
-/** Lime progress bar for the input steps (1–5). */
+/** Ember progress bar across the quiz steps. */
 export function ProgressBar({ step, total }: { step: number; total: number }) {
   const pct = Math.round((step / total) * 100);
   return (
@@ -165,23 +166,20 @@ export function StepShell({
       <div className="mt-6 space-y-5">{children}</div>
       <div className="mt-8 flex items-center gap-3">
         {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="rounded-full border border-border bg-surface px-5 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
-          >
+          <Button type="button" variant="secondary" onClick={onBack}>
             Back
-          </button>
+          </Button>
         )}
-        <button
+        <Button
           type="button"
+          variant="brand"
           onClick={onContinue}
           disabled={!canContinue}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="flex-1"
         >
           {continueLabel}
           {continueIcon}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -216,8 +214,9 @@ export function useCountUp(target: number, durationMs = 900): number {
 }
 
 /**
- * Compact, dependency-free asset sparkline for the reveal step: total pot
- * value (ISA + GIA + SIPP) across the plan, with a soft lime area fill.
+ * Compact, dependency-free asset sparkline: total pot value (ISA + GIA + SIPP)
+ * across the plan, in the house chart style — a gradient ember area fill under
+ * an ember trail, ending in the "burst" that marks the FI moment.
  */
 export function MiniAssetChart({
   points,
@@ -236,24 +235,34 @@ export function MiniAssetChart({
     .map((v, i) => `${i === 0 ? "M" : "L"}${(i * stepX).toFixed(1)},${y(v).toFixed(1)}`)
     .join(" ");
   const area = `${line} L${width},${height} L0,${height} Z`;
+  const endX = (points.length - 1) * stepX;
+  const endY = y(points[points.length - 1]);
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className={`w-full ${className ?? ""}`}
-      preserveAspectRatio="none"
+      className={`w-full overflow-visible ${className ?? ""}`}
+      preserveAspectRatio="xMidYMid meet"
       role="img"
       aria-label="Projected total assets over time"
     >
-      <path d={area} fill="var(--brand)" opacity={0.14} />
+      <defs>
+        <linearGradient id="mini-asset-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.28} />
+          <stop offset="100%" stopColor="var(--brand)" stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={area} fill="url(#mini-asset-fill)" />
       <path
         d={line}
         fill="none"
         stroke="var(--primary)"
-        strokeWidth={2}
+        strokeWidth={2.25}
         strokeLinecap="round"
         strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"
       />
+      <circle cx={endX} cy={endY} r={5.5} fill="var(--brand)" opacity={0.28} />
+      <circle cx={endX} cy={endY} r={2.75} fill="var(--primary)" />
     </svg>
   );
 }

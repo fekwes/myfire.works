@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_ASSUMPTIONS, DEFAULT_INFLATION_RATE, simulateFire } from "./fire-engine";
 import {
-  applyPersona,
   assembleQuizInputs,
   BARISTA_ANNUAL_INCOME,
+  FIRE_STRATEGIES,
   initialQuizState,
   lifestyleIncome,
-  PERSONA_BY_ID,
   PLSA_LIFESTYLES,
   QUIZ_POT_GROWTH,
   QUIZ_PROPERTY_GROWTH,
@@ -24,18 +23,24 @@ describe("lifestyleIncome", () => {
   });
 });
 
-describe("applyPersona", () => {
-  it("pulls in the persona's lifestyle and retirement age", () => {
-    const s = applyPersona(initialQuizState(), "lean");
-    expect(s.persona).toBe("lean");
-    expect(s.lifestyle).toBe("minimum");
-    expect(s.retirementAge).toBe(PERSONA_BY_ID.lean.retirementAge);
+describe("FIRE_STRATEGIES", () => {
+  it("offers exactly the three strategies that change the plan's shape", () => {
+    expect(FIRE_STRATEGIES.map((s) => s.id)).toEqual([
+      "standard",
+      "coast",
+      "barista",
+    ]);
   });
 
-  it("seeds a custom income for Fat FIRE", () => {
-    const s = applyPersona(initialQuizState(), "fat");
-    expect(s.lifestyle).toBe("custom");
-    expect(s.customIncome).toBe(60000);
+  /**
+   * Regression guard for the redundancy fix: Lean/Fat FIRE differed from
+   * Standard only by the spending target, which the quiz asks directly. They
+   * must not come back as a separate question.
+   */
+  it("does not re-ask spending level as a strategy", () => {
+    const ids = FIRE_STRATEGIES.map((s) => s.id as string);
+    expect(ids).not.toContain("lean");
+    expect(ids).not.toContain("fat");
   });
 });
 
@@ -81,16 +86,33 @@ describe("assembleQuizInputs", () => {
     expect(inputs.sippMonthlyContribution).toBeGreaterThan(0);
   });
 
-  it("gives the Barista persona part-time income to State Pension age", () => {
-    const inputs = assembleQuizInputs(applyPersona(base, "barista"));
+  it("gives the part-time strategy income to State Pension age", () => {
+    const inputs = assembleQuizInputs({ ...base, strategy: "barista" });
     expect(inputs.partTimeAnnualIncome).toBe(BARISTA_ANNUAL_INCOME);
     expect(inputs.partTimeUntilAge).toBe(DEFAULT_ASSUMPTIONS.statePensionAge);
   });
 
-  it("gives non-Barista personas no part-time income", () => {
-    for (const id of ["standard", "lean", "fat", "coast"] as const) {
-      const inputs = assembleQuizInputs(applyPersona(base, id));
+  it("gives the other strategies no part-time income", () => {
+    for (const strategy of ["standard", "coast"] as const) {
+      const inputs = assembleQuizInputs({ ...base, strategy });
       expect(inputs.partTimeAnnualIncome).toBe(0);
+    }
+  });
+
+  /** The strategy choice must never overwrite the target the user just set. */
+  it("keeps the user's spending target and ages across every strategy", () => {
+    for (const strategy of ["standard", "coast", "barista"] as const) {
+      const inputs = assembleQuizInputs({
+        ...base,
+        lifestyle: "custom",
+        customIncome: 51000,
+        currentAge: 41,
+        retirementAge: 57,
+        strategy,
+      });
+      expect(inputs.targetAnnualIncome).toBe(51000);
+      expect(inputs.currentAge).toBe(41);
+      expect(inputs.retirementAge).toBe(57);
     }
   });
 

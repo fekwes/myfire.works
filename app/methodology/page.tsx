@@ -356,11 +356,15 @@ export default function MethodologyPage() {
               target so the pots draw down less early on.
             </li>
             <li>
-              Onboarding is <Term>persona-first</Term>: the quiz asks a FIRE
-              goal, a lifestyle, and your ages. Lifestyle targets use the{" "}
+              Onboarding asks three things: your{" "}
+              <Term>annual spending target</Term>, your ages, and{" "}
+              <Term>how you plan to get there</Term> (retire fully, coast, or go
+              part-time first). Spending targets use the{" "}
               <Term>UK PLSA Retirement Living Standards 2025</Term> (single,
               excluding housing): Minimum £13,400, Moderate £31,700, Comfortable
-              £43,900 — all editable afterwards.
+              £43,900 — or your own figure, and all editable afterwards. There is
+              no separate &ldquo;Lean / Fat FIRE&rdquo; question: those differ
+              only by the spending target you set here.
             </li>
             <li>
               2026/27 tax figures throughout (income tax and CGT thresholds are

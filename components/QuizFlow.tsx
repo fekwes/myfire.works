@@ -12,18 +12,22 @@ import {
 import { formatCurrency } from "@/lib/format";
 import { savePlanLocal } from "@/lib/plan-storage";
 import {
-  applyPersona,
   assembleQuizInputs,
-  FIRE_PERSONAS,
+  FIRE_STRATEGIES,
   initialQuizState,
   type LifestyleId,
   PLSA_LIFESTYLES,
-  type PersonaId,
   type QuizState,
+  type StrategyId,
 } from "@/lib/quiz";
 
 const TOTAL_STEPS = 3;
 
+/**
+ * Three questions, in the order they build on each other: what you'll spend,
+ * when you want to stop, and how you plan to get there. Nothing a later step
+ * asks is silently overwritten by an earlier one.
+ */
 export function QuizFlow() {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -44,14 +48,8 @@ export function QuizFlow() {
       </div>
 
       {step === 0 && (
-        <StepPersona
-          persona={state.persona}
-          onPick={(id) => setState((s) => applyPersona(s, id))}
-          onNext={next}
-        />
-      )}
-      {step === 1 && (
         <StepLifestyle
+          key="lifestyle"
           lifestyle={state.lifestyle}
           customIncome={state.customIncome}
           onPickLifestyle={(lifestyle) => setState((s) => ({ ...s, lifestyle }))}
@@ -59,14 +57,24 @@ export function QuizFlow() {
             setState((s) => ({ ...s, customIncome, lifestyle: "custom" }))
           }
           onNext={next}
+        />
+      )}
+      {step === 1 && (
+        <StepAges
+          key="ages"
+          currentAge={state.currentAge}
+          retirementAge={state.retirementAge}
+          onChange={(patch) => setState((s) => ({ ...s, ...patch }))}
+          onNext={next}
           onBack={back}
         />
       )}
       {step === 2 && (
-        <StepAges
-          currentAge={state.currentAge}
+        <StepStrategy
+          key="strategy"
+          strategy={state.strategy}
           retirementAge={state.retirementAge}
-          onChange={(patch) => setState((s) => ({ ...s, ...patch }))}
+          onPick={(strategy) => setState((s) => ({ ...s, strategy }))}
           onFinish={finish}
           onBack={back}
         />
@@ -76,56 +84,7 @@ export function QuizFlow() {
 }
 
 // ------------------------------------------------------------------ //
-// Step 1 — persona                                                   //
-// ------------------------------------------------------------------ //
-
-function StepPersona({
-  persona,
-  onPick,
-  onNext,
-}: {
-  persona: PersonaId;
-  onPick: (id: PersonaId) => void;
-  onNext: () => void;
-}) {
-  return (
-    <StepShell
-      heading="What's your FIRE goal?"
-      helper="Pick the one that fits best — you can change everything later."
-      onContinue={onNext}
-      continueLabel="Continue"
-    >
-      <div className="grid gap-2.5">
-        {FIRE_PERSONAS.map((p) => {
-          const selected = persona === p.id;
-          return (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => onPick(p.id)}
-              aria-pressed={selected}
-              className={`rounded-xl border px-4 py-3 text-left transition-colors ${
-                selected
-                  ? "border-primary bg-brand/10"
-                  : "border-border bg-surface-muted hover:border-muted-foreground/40"
-              }`}
-            >
-              <span className="block text-sm font-semibold text-foreground">
-                {p.label}
-              </span>
-              <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-                {p.tagline}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </StepShell>
-  );
-}
-
-// ------------------------------------------------------------------ //
-// Step 2 — lifestyle (PLSA)                                          //
+// Step 1 — spending target (PLSA)                                    //
 // ------------------------------------------------------------------ //
 
 function StepLifestyle({
@@ -134,21 +93,18 @@ function StepLifestyle({
   onPickLifestyle,
   onCustomIncome,
   onNext,
-  onBack,
 }: {
   lifestyle: LifestyleId;
   customIncome: number;
   onPickLifestyle: (id: LifestyleId) => void;
   onCustomIncome: (amount: number) => void;
   onNext: () => void;
-  onBack: () => void;
 }) {
   return (
     <StepShell
-      heading="What lifestyle are you aiming for?"
-      helper="Take-home spending per year, in today's money. Benchmarks are the UK PLSA Retirement Living Standards (single, excluding housing)."
+      heading="How much will you spend each year?"
+      helper="Take-home spending per year, in today's money. Benchmarks are the UK PLSA Retirement Living Standards (single, excluding housing) — this one number drives your FIRE target."
       onContinue={onNext}
-      onBack={onBack}
     >
       <div className="grid gap-2.5">
         {PLSA_LIFESTYLES.map((l) => {
@@ -186,7 +142,7 @@ function StepLifestyle({
         hint={
           lifestyle === "custom"
             ? `Using your custom ${formatCurrency(customIncome)}/yr.`
-            : "Overrides the benchmark above."
+            : "Leaner or richer than the bands above — your number wins."
         }
       >
         <QuizNumberInput
@@ -202,30 +158,28 @@ function StepLifestyle({
 }
 
 // ------------------------------------------------------------------ //
-// Step 3 — ages                                                      //
+// Step 2 — ages                                                      //
 // ------------------------------------------------------------------ //
 
 function StepAges({
   currentAge,
   retirementAge,
   onChange,
-  onFinish,
+  onNext,
   onBack,
 }: {
   currentAge: number;
   retirementAge: number;
   onChange: (patch: Partial<QuizState>) => void;
-  onFinish: () => void;
+  onNext: () => void;
   onBack: () => void;
 }) {
   return (
     <StepShell
-      heading="Your age, and when you'd like to retire"
-      helper="This sets the whole timeline. You'll land straight in the planner next."
-      onContinue={onFinish}
+      heading="Your age, and when you'd like to stop"
+      helper="This sets the whole timeline — how long you're building, and how long the money has to last."
+      onContinue={onNext}
       onBack={onBack}
-      continueLabel="Open my planner"
-      continueIcon={<ArrowRight className="size-4" />}
     >
       <div className="grid grid-cols-2 gap-4">
         <QuizField label="Current age">
@@ -245,6 +199,61 @@ function StepAges({
             min={currentAge}
           />
         </QuizField>
+      </div>
+    </StepShell>
+  );
+}
+
+// ------------------------------------------------------------------ //
+// Step 3 — strategy                                                  //
+// ------------------------------------------------------------------ //
+
+function StepStrategy({
+  strategy,
+  retirementAge,
+  onPick,
+  onFinish,
+  onBack,
+}: {
+  strategy: StrategyId;
+  retirementAge: number;
+  onPick: (id: StrategyId) => void;
+  onFinish: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <StepShell
+      heading="How do you want to get there?"
+      helper={`Three routes to age ${retirementAge}. You can change this — and everything else — in the planner.`}
+      onContinue={onFinish}
+      onBack={onBack}
+      continueLabel="Open my planner"
+      continueIcon={<ArrowRight className="size-4" />}
+    >
+      <div className="grid gap-2.5">
+        {FIRE_STRATEGIES.map((s) => {
+          const selected = strategy === s.id;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onPick(s.id)}
+              aria-pressed={selected}
+              className={`rounded-xl border px-4 py-3 text-left transition-colors ${
+                selected
+                  ? "border-primary bg-brand/10"
+                  : "border-border bg-surface-muted hover:border-muted-foreground/40"
+              }`}
+            >
+              <span className="block text-sm font-semibold text-foreground">
+                {s.label}
+              </span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                {s.tagline}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </StepShell>
   );
