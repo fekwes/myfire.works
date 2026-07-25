@@ -4,6 +4,8 @@ import { AccountPanel } from "@/components/AccountPanel";
 export const metadata: Metadata = {
   title: "Account",
   description: "Manage your Fireworks sign-in and saved data.",
+  // Private, per-user settings page — keep it out of search results.
+  robots: { index: false, follow: false },
 };
 
 export default function AccountPage() {
