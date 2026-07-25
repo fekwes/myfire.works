@@ -268,9 +268,19 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
             <p className="font-mono text-[0.65rem] uppercase tracking-wide text-muted-foreground">
               On course for
             </p>
+            {/* Two measures of the same plan: `sustainable` runs the real
+                drawdown (contributions and all), while the FIRE number is the
+                pot you'd need if you stopped contributing at retirement. Near
+                the boundary they can disagree by a rounding margin — so a gap
+                only earns the alarm colour when the plan genuinely fails.
+                Otherwise it's information, not a warning. */}
             <p
               className={`mt-1 font-display text-xl font-bold tabular ${
-                fire.onTrack ? "text-success" : "text-danger"
+                fire.onTrack
+                  ? "text-success"
+                  : sustainable
+                    ? "text-foreground"
+                    : "text-danger"
               }`}
             >
               {formatCurrency(projectedDisplay)}
@@ -278,7 +288,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
             <p className="mt-0.5 text-xs text-muted-foreground">
               {fire.onTrack
                 ? `${formatCurrency(surplusDisplay)} to spare`
-                : `${formatCurrency(-surplusDisplay)} short`}
+                : `${formatCurrency(-surplusDisplay)} short of it`}
             </p>
           </div>
         </div>
