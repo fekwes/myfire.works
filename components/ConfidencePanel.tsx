@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Area,
   CartesianGrid,
@@ -26,6 +27,74 @@ function tone(rate: number) {
   if (rate >= 0.85) return "text-success";
   if (rate >= 0.6) return "text-foreground";
   return "text-danger";
+}
+
+/** Dismissed once, stays dismissed — this is a first-visit explainer. */
+const EXPLAINER_KEY = "onfire:confidence-explainer-dismissed";
+
+/**
+ * A plain-English intro shown the first time someone opens the Confidence tab,
+ * where the jargon is thickest (success rate, guardrails, percentiles). It
+ * explains the idea rather than the controls, and can be dismissed for good.
+ */
+function ConfidenceExplainer() {
+  const [state, setState] = useState({ ready: false, dismissed: false });
+
+  useEffect(() => {
+    const read = () => {
+      let dismissed = false;
+      try {
+        dismissed = localStorage.getItem(EXPLAINER_KEY) === "1";
+      } catch {
+        // no-op
+      }
+      setState({ ready: true, dismissed });
+    };
+    read();
+  }, []);
+
+  if (!state.ready || state.dismissed) return null;
+
+  const dismiss = () => {
+    try {
+      localStorage.setItem(EXPLAINER_KEY, "1");
+    } catch {
+      // no-op
+    }
+    setState((s) => ({ ...s, dismissed: true }));
+  };
+
+  return (
+    <aside className="relative rounded-xl border border-accent/40 bg-accent/[0.06] p-4 pr-9 text-sm leading-relaxed text-muted-foreground">
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label="Dismiss explanation"
+        className="absolute right-2 top-2 rounded-full p-1 text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground"
+      >
+        <X className="size-4" />
+      </button>
+      <p className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        New here? What this does
+      </p>
+      <p className="mt-2">
+        Markets never deliver a steady return — some decades soar, some slump.
+        This runs your plan through 2,000 random market histories and counts how
+        often your money lasts to the end.
+      </p>
+      <p className="mt-2">
+        The{" "}
+        <span className="font-medium text-foreground">success rate</span> is that
+        share of runs — above ~85% is a comfortable margin, below ~60% the plan
+        is fragile. The three strategies differ in how you react to bad years: a{" "}
+        <span className="font-medium text-foreground">flat</span> withdrawal
+        never changes, while{" "}
+        <span className="font-medium text-foreground">guardrails</span> trim
+        spending (±5% or ±10%) when the pot dips and restore it once markets
+        recover.
+      </p>
+    </aside>
+  );
 }
 
 function SuccessCard({ s }: { s: StrategyResult }) {
@@ -101,6 +170,8 @@ export function ConfidencePanel({ inputs }: { inputs: FireInputs }) {
 
   return (
     <div className="space-y-4">
+      <ConfidenceExplainer />
+
       <p className="text-sm leading-relaxed text-muted-foreground">
         Instead of one fixed return, this runs 2,000 randomised market paths to
         estimate the <span className="font-medium text-foreground">probability</span>{" "}
