@@ -1,18 +1,14 @@
 "use client";
 
 import { ArrowRight } from "lucide-react";
-import Link from "next/link";
 import { usePlan } from "@/components/PlanProvider";
-
-const primary =
-  "inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-90";
-const secondary =
-  "inline-flex items-center justify-center rounded-full border border-border bg-surface px-6 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground";
+import { ButtonLink } from "@/components/ui";
 
 /**
  * Landing call-to-action. New visitors are pushed into the quiz; returning
  * visitors (a plan already saved on this device) are offered a direct route
- * back into their planner instead.
+ * back into their planner instead. The signature action uses the brand
+ * (ember) button — the one place the accent is spent on the landing.
  */
 export function LandingCta() {
   const { hasStoredPlan, hydrated } = usePlan();
@@ -23,23 +19,23 @@ export function LandingCta() {
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
         {returning ? (
           <>
-            <Link href="/planner" className={primary}>
+            <ButtonLink href="/planner" variant="brand" className="px-6 py-3">
               Continue to your planner
               <ArrowRight className="size-4" />
-            </Link>
-            <Link href="/start" className={secondary}>
+            </ButtonLink>
+            <ButtonLink href="/start" variant="secondary" className="px-6 py-3">
               Start over
-            </Link>
+            </ButtonLink>
           </>
         ) : (
           <>
-            <Link href="/start" className={primary}>
+            <ButtonLink href="/start" variant="brand" className="px-6 py-3">
               Build my plan
               <ArrowRight className="size-4" />
-            </Link>
-            <Link href="/planner" className={secondary}>
+            </ButtonLink>
+            <ButtonLink href="/planner" variant="secondary" className="px-6 py-3">
               Skip to the planner
-            </Link>
+            </ButtonLink>
           </>
         )}
       </div>

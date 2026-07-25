@@ -229,6 +229,52 @@ body {
   animation: landing-rise 0.6s var(--ease-out) both;
 }
 
+/* Signature brand moment — a single ember "launch trail" draws itself in once
+ * as the hero loads (the growth curve rising to a burst), then the spark pops.
+ * Path length is normalised via pathLength="1" so it's geometry-independent.
+ * Fully disabled under reduced-motion (drawn state shown statically). */
+@keyframes trail-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.hero-trail {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: trail-draw 1.5s var(--ease-out) 0.25s both;
+}
+
+@keyframes spark-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.spark-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spark-pop 0.5s var(--ease-spring) 1.55s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-trail {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+  .spark-pop {
+    opacity: 1;
+    animation: none;
+  }
+}
+
 .quiz-step {
   animation: quiz-step-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
