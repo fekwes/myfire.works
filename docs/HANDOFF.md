@@ -57,8 +57,9 @@ tax, plus Coast FIRE and Monte Carlo confidence modelling.
 ## Tech stack
 
 Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind v4 ·
-Recharts · Vitest · `next-themes` · Supabase (`@supabase/ssr`) · Anthropic SDK
-(AI tips route, model `claude-opus-4-8`).
+Recharts · Vitest · `next-themes` · Supabase (`@supabase/ssr`)
+(AI tips route uses **Google Gemini** via `@google/genai` and `GEMINI_API_KEY` —
+not the Anthropic SDK, despite older notes below).
 
 ## Design language ("Ink & Lime")
 
@@ -138,7 +139,8 @@ App builds and deploys with or without these; they switch features on.
    - `NEXT_PUBLIC_SUPABASE_URL` = `https://cnbeqbxgnvruyrtsxwxt.supabase.co`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = anon key (public, browser-safe under RLS)
    - `SUPABASE_SERVICE_ROLE_KEY` = service-role key (secret; for account deletion) — **rotate first, it was shared in chat**
-   - `ANTHROPIC_API_KEY` = secret (AI tips stay disabled until set)
+   - `GEMINI_API_KEY` = secret (AI tips stay disabled until set). The app uses
+     Google Gemini, *not* Anthropic — earlier drafts of this doc said otherwise.
    - `NEXT_PUBLIC_SITE_URL` = the Vercel prod URL (OG cards / sitemap / share links)
 3. **Deploy:** merge PR #1 → `main` (Vercel↔GitHub connected) for production, or push the branch for a preview URL.
 4. Locally, the same vars live in `.env.local` (gitignored, never committed).
@@ -159,4 +161,4 @@ next thing; a deploy to Vercel would make the portfolio piece shareable.
 
 - `docs/ARCHITECTURE.md` still has a few pre-property/pre-2026 phrasings ("21 tests", "two balances", "flat 5% applied identically to ISA and SIPP", "past age 58") — refresh it.
 - Consider showing property value / total net worth somewhere visual (currently only flows via GIA jumps + sustainability).
-- Deploy to Vercel (add `NEXT_PUBLIC_SUPABASE_*` + `ANTHROPIC_API_KEY` env vars; add the deployed URL to Supabase Auth redirect URLs).
+- Deploy to Vercel (add `NEXT_PUBLIC_SUPABASE_*` + `GEMINI_API_KEY` env vars; add the deployed URL to Supabase Auth redirect URLs).
