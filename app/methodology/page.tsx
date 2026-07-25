@@ -46,6 +46,55 @@ function Term({ children }: { children: React.ReactNode }) {
   return <span className="font-medium text-foreground">{children}</span>;
 }
 
+/**
+ * Contents for the sections below. Keep in step with the `<Section>` ids — a
+ * link here that doesn't match a section id goes nowhere.
+ */
+const CONTENTS = [
+  { id: "projection", group: "The engine", title: "A year-by-year projection" },
+  { id: "income-tax", group: "Tax", title: "UK Income Tax (2026/27)" },
+  { id: "cgt", group: "Tax", title: "Capital Gains Tax on the GIA" },
+  { id: "property", group: "Assets", title: "Property" },
+  { id: "sipp", group: "Pensions", title: "SIPP access & the 25%" },
+  { id: "state-pension", group: "Pensions", title: "State Pension" },
+  { id: "confidence", group: "Modes", title: "Confidence (Monte Carlo)" },
+  { id: "coast", group: "Modes", title: "Coast FIRE" },
+  { id: "assumptions", group: "Caveats", title: "Assumptions & simplifications" },
+] as const;
+
+function Contents() {
+  return (
+    <nav
+      aria-labelledby="contents-heading"
+      className="rounded-2xl border border-border bg-surface p-5 sm:p-6"
+    >
+      <h2
+        id="contents-heading"
+        className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground"
+      >
+        Contents
+      </h2>
+      <ol className="mt-3 grid grid-cols-1 gap-x-6 gap-y-0.5 sm:grid-cols-2">
+        {CONTENTS.map((s, i) => (
+          <li key={s.id}>
+            <a
+              href={`#${s.id}`}
+              className="group flex items-baseline gap-2.5 rounded py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <span className="font-mono text-[0.7rem] tabular text-primary">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="group-hover:underline group-hover:underline-offset-2">
+                {s.title}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
 export default function MethodologyPage() {
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
@@ -72,6 +121,10 @@ export default function MethodologyPage() {
             qualified adviser before acting on any figure here.
           </span>
         </p>
+      </div>
+
+      <div className="mb-5">
+        <Contents />
       </div>
 
       <div className="space-y-5">
