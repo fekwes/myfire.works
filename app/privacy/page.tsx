@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Privacy",
   description:
     "What Fireworks stores, what it doesn't, and where your figures go. Plain English.",
+  alternates: { canonical: "/privacy" },
 };
 
 function Section({
@@ -67,7 +68,7 @@ export default function PrivacyPage() {
         <p>
           When you press <span className="text-foreground">Get tips</span>, a
           summary of your plan&apos;s figures (ages, balances, contributions, the
-          projected outcome) is sent to Anthropic&apos;s Claude to generate the
+          projected outcome) is sent to Google&apos;s Gemini to generate the
           suggestions. No name, email, or account identifier is included. If you
           never press it, nothing is sent.
         </p>

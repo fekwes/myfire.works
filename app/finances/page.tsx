@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Your finances",
   description:
     "Edit everything behind your Fireworks plan: ISA, SIPP and GIA balances, contributions, property, growth, inflation and the statutory scenario.",
+  alternates: { canonical: "/finances" },
 };
 
 export default function FinancesPage() {

@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Planner",
   description:
     "The full Fireworks planner: model your FIRE number, drawdown across ISA, GIA, SIPP and State Pension, Coast FIRE and Monte Carlo confidence.",
+  alternates: { canonical: "/planner" },
 };
 
 export default async function PlannerPage({

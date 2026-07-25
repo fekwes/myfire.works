@@ -14,6 +14,12 @@ create table if not exists public.portfolios (
 
 alter table public.portfolios enable row level security;
 
+-- Table-level grants for the logged-in role. RLS (below) still restricts every
+-- row to its owner; these grants just let the `authenticated` role reach the
+-- table at all. `anon` is intentionally NOT granted — signed-out visitors have
+-- no business touching saved plans.
+grant select, insert, update, delete on public.portfolios to authenticated;
+
 create policy "read own plans"
   on public.portfolios for select
   using (auth.uid() = user_id);
