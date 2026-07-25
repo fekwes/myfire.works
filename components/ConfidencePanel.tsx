@@ -183,29 +183,59 @@ export function ConfidencePanel({ inputs }: { inputs: FireInputs }) {
                   axisLine={false}
                   width={52}
                 />
-                <Tooltip content={<FanTooltip />} />
+                <Tooltip
+                  content={<FanTooltip />}
+                  cursor={{
+                    stroke: "var(--color-muted-foreground)",
+                    strokeWidth: 1,
+                    strokeDasharray: "3 3",
+                  }}
+                />
+                {/* One entity, two marks: the shaded band is the uncertainty
+                    around the median line, so both wear the same hue. */}
                 <Area
                   dataKey="band"
                   stroke="none"
-                  fill="var(--color-brand)"
-                  fillOpacity={0.15}
+                  fill="var(--color-data-1)"
+                  fillOpacity={0.16}
                   isAnimationActive={false}
                 />
                 <Line
                   dataKey="p50"
-                  stroke="var(--color-brand)"
-                  strokeWidth={2.5}
+                  stroke="var(--color-data-1)"
+                  strokeWidth={2}
                   dot={false}
+                  activeDot={{
+                    r: 4,
+                    strokeWidth: 2,
+                    stroke: "var(--color-chart-surface)",
+                  }}
                   isAnimationActive={false}
                 />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
 
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className="inline-block h-0.5 w-4 rounded-full bg-data-1"
+              />
+              Median outcome
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className="inline-block h-2.5 w-4 rounded-sm bg-data-1/20"
+              />
+              10th–90th percentile
+            </span>
+          </div>
+
           <p className="text-xs text-muted-foreground">
-            Portfolio value (flat withdrawal): median line, shaded 10th–90th
-            percentile. {result.sims.toLocaleString()} paths ·{" "}
-            {Math.round(result.mean * 1000) / 10}% mean ·{" "}
+            Portfolio value, flat withdrawal. {result.sims.toLocaleString()}{" "}
+            paths · {Math.round(result.mean * 1000) / 10}% mean ·{" "}
             {Math.round(result.vol * 1000) / 10}% volatility.
           </p>
         </>

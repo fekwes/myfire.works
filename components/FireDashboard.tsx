@@ -7,6 +7,7 @@ import { AiInsights } from "@/components/AiInsights";
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { ConfidencePanel } from "@/components/ConfidencePanel";
 import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
+import { Spark } from "@/components/Logo";
 import { PlanActions } from "@/components/PlanActions";
 import { PlanChecklist } from "@/components/PlanChecklist";
 import { usePlan } from "@/components/PlanProvider";
@@ -152,9 +153,9 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
   const sustainable = plan.sustainableToLifeExpectancy;
 
   const coastNote = coast.isCoastFire
-    ? "🔥 Coast FIRE — you could stop contributing now and still reach this."
+    ? "Coast FIRE — you could stop contributing now and still reach this."
     : coast.coastAge !== null
-      ? `🔥 Coast FIRE at age ${coast.coastAge} — after that you could stop contributing.`
+      ? `Coast FIRE at age ${coast.coastAge} — after that you could stop contributing.`
       : null;
 
   return (
@@ -188,8 +189,9 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <MonoLabel>Your plan</MonoLabel>
-            <h2 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">
-              {sustainable ? "You're on track 🎉" : "There's a shortfall"}
+            <h2 className="mt-2 flex items-center gap-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">
+              {sustainable ? "You're on track" : "There's a shortfall"}
+              {sustainable && <Spark size={22} className="text-brand" />}
             </h2>
             <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted-foreground">
               {sustainable
@@ -197,7 +199,8 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
                 : `Your savings fully cover your target income until age ${lastsTo}, but fall short from age ${firstShortfall}. Raise contributions, trim the target, or retire a little later to close it.`}
             </p>
             {coastNote && (
-              <p className="mt-2 text-xs font-medium text-muted-foreground">
+              <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Spark size={13} className="shrink-0 text-primary" />
                 {coastNote}
               </p>
             )}

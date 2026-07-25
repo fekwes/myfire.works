@@ -59,6 +59,16 @@ function ChartTooltip({
   );
 }
 
+/**
+ * Hovered point marker: 8px across with a 2px surface ring, so it stays
+ * readable where two series cross.
+ */
+const activeDot = {
+  r: 4,
+  strokeWidth: 2,
+  stroke: "var(--color-chart-surface)",
+};
+
 export function AssetTimelineChart({
   result,
   realTerms = false,
@@ -104,17 +114,20 @@ export function AssetTimelineChart({
           data={data}
           margin={{ top: 12, right: 12, bottom: 0, left: 0 }}
         >
+          {/* Hue is bound to the account, never to draw order or rank: ISA is
+              always ember, SIPP always violet, GIA always teal. Hiding an
+              empty GIA therefore never repaints the other two. */}
           <defs>
             <linearGradient id="isaFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--color-data-2)" stopOpacity={0.3} />
-              <stop offset="100%" stopColor="var(--color-data-2)" stopOpacity={0.01} />
-            </linearGradient>
-            <linearGradient id="sippFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--color-data-1)" stopOpacity={0.35} />
+              <stop offset="0%" stopColor="var(--color-data-1)" stopOpacity={0.32} />
               <stop offset="100%" stopColor="var(--color-data-1)" stopOpacity={0.01} />
             </linearGradient>
+            <linearGradient id="sippFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-data-2)" stopOpacity={0.32} />
+              <stop offset="100%" stopColor="var(--color-data-2)" stopOpacity={0.01} />
+            </linearGradient>
             <linearGradient id="giaFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--color-data-3)" stopOpacity={0.3} />
+              <stop offset="0%" stopColor="var(--color-data-3)" stopOpacity={0.32} />
               <stop offset="100%" stopColor="var(--color-data-3)" stopOpacity={0.01} />
             </linearGradient>
           </defs>
@@ -137,15 +150,23 @@ export function AssetTimelineChart({
             axisLine={false}
             width={52}
           />
-          <Tooltip content={<ChartTooltip />} />
+          <Tooltip
+            content={<ChartTooltip />}
+            cursor={{
+              stroke: "var(--color-muted-foreground)",
+              strokeWidth: 1,
+              strokeDasharray: "3 3",
+            }}
+          />
           <Legend
             iconType="plainline"
             wrapperStyle={{ fontSize: 12, paddingTop: 4 }}
           />
-          {/* Vertically separated labels so they never collide */}
+          {/* Milestone annotations stay neutral so they never read as a series.
+              Labels sit at opposite corners so they can't collide. */}
           <ReferenceLine
             x={sippAccessAge}
-            stroke="var(--color-brand)"
+            stroke="var(--color-muted-foreground)"
             strokeDasharray="4 4"
             label={{
               value: "SIPP access",
@@ -169,11 +190,11 @@ export function AssetTimelineChart({
             type="monotone"
             dataKey="ISA"
             name="ISA"
-            stroke="var(--color-data-2)"
+            stroke="var(--color-data-1)"
             fill="url(#isaFill)"
-            strokeWidth={2.5}
+            strokeWidth={2}
             dot={false}
-            activeDot={{ r: 4, strokeWidth: 0 }}
+            activeDot={activeDot}
           />
           {hasGia && (
             <Area
@@ -182,20 +203,20 @@ export function AssetTimelineChart({
               name="GIA"
               stroke="var(--color-data-3)"
               fill="url(#giaFill)"
-              strokeWidth={2.5}
+              strokeWidth={2}
               dot={false}
-              activeDot={{ r: 4, strokeWidth: 0 }}
+              activeDot={activeDot}
             />
           )}
           <Area
             type="monotone"
             dataKey="SIPP"
             name="SIPP"
-            stroke="var(--color-data-1)"
+            stroke="var(--color-data-2)"
             fill="url(#sippFill)"
-            strokeWidth={2.5}
+            strokeWidth={2}
             dot={false}
-            activeDot={{ r: 4, strokeWidth: 0 }}
+            activeDot={activeDot}
           />
           {hasProperty && (
             <Line
@@ -206,7 +227,7 @@ export function AssetTimelineChart({
               strokeWidth={1.5}
               strokeDasharray="5 4"
               dot={false}
-              activeDot={{ r: 4, strokeWidth: 0 }}
+              activeDot={activeDot}
             />
           )}
         </ComposedChart>

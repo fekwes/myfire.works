@@ -51,9 +51,11 @@ export function IncomeSafetyChart({
     }));
 
   const target = result.inputs.targetAnnualIncome;
+  const hasShortfall = data.some((d) => d.shortfall);
 
   return (
-    <div className="h-56 w-full">
+    <div className="w-full">
+      <div className="h-56 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
@@ -90,7 +92,7 @@ export function IncomeSafetyChart({
               fontSize: 10,
             }}
           />
-          <Bar dataKey="netIncome" radius={[3, 3, 0, 0]} maxBarSize={18}>
+          <Bar dataKey="netIncome" radius={[4, 4, 0, 0]} maxBarSize={18}>
             {data.map((entry) => (
               <Cell
                 key={entry.age}
@@ -102,6 +104,34 @@ export function IncomeSafetyChart({
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      </div>
+
+      {/* State is never colour-alone: name both states in a key. */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="inline-block size-2.5 rounded-sm bg-success"
+          />
+          Target met
+        </span>
+        {hasShortfall && (
+          <span className="flex items-center gap-1.5">
+            <span
+              aria-hidden
+              className="inline-block size-2.5 rounded-sm bg-danger"
+            />
+            Shortfall
+          </span>
+        )}
+        <span className="flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="inline-block h-0 w-4 border-t border-dashed border-muted-foreground"
+          />
+          Your target ({formatCurrency(target)})
+        </span>
+      </div>
     </div>
   );
 }

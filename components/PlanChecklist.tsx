@@ -4,6 +4,7 @@ import { ArrowRight, Check, ChevronDown, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { Spark } from "@/components/Logo";
 import { usePlan } from "@/components/PlanProvider";
 import { Card } from "@/components/ui";
 import {
@@ -81,9 +82,12 @@ export function PlanChecklist() {
           <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             {complete ? "Your plan is all set" : "Complete your plan"}
           </h3>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
             {complete ? (
-              <>Nice — you&apos;ve set up every part of your plan. 🎉</>
+              <>
+                <Spark size={14} className="shrink-0 text-brand" />
+                Nice — you&apos;ve set up every part of your plan.
+              </>
             ) : (
               <>
                 <span className="font-semibold text-foreground tabular">

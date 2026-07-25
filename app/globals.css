@@ -35,10 +35,17 @@
   --danger: #dc2626;
   --success: #17803d;
 
-  /* Chart data ramp — ember · violet · teal */
+  /* Chart data ramp — ember · violet · teal. These are the *mark* colours, a
+   * step apart from the UI accents above (which are tuned for text on this
+   * ground). Validated for CVD separation, chroma and contrast against the
+   * chart surface — re-run the dataviz validator before changing them. */
   --data-1: #c2560a;
   --data-2: #5b4bd6;
-  --data-3: #0e7c8b;
+  --data-3: #0e9bb0;
+
+  /* The surface charts are drawn on — used for the hairline gaps and rings
+   * that keep adjacent/overlapping marks from bleeding into each other. */
+  --chart-surface: #ffffff;
 
   /* Backdrop texture */
   --grid-line: rgba(23, 18, 38, 0.05);
@@ -80,9 +87,13 @@
   --danger: #fb7185;
   --success: #56d68a;
 
-  --data-1: #ffad4e;
-  --data-2: #9e8cff;
-  --data-3: #4fc6d9;
+  /* Chart marks on the night surface — deeper than the UI ember/violet above
+   * so multi-series charts stay separable (validated, see the light block). */
+  --data-1: #d1731f;
+  --data-2: #6f5cd8;
+  --data-3: #2596ad;
+
+  --chart-surface: #191333;
 
   /* Backdrop texture */
   --grid-line: rgba(255, 255, 255, 0.04);
@@ -115,6 +126,7 @@
   --color-data-1: var(--data-1);
   --color-data-2: var(--data-2);
   --color-data-3: var(--data-3);
+  --color-chart-surface: var(--chart-surface);
 
   --font-sans: var(--font-geist-sans);
   --font-display: var(--font-display);
@@ -183,6 +195,7 @@ body {
     --data-1: #b04e08;
     --data-2: #4b3dc0;
     --data-3: #0e7c8b;
+    --chart-surface: #ffffff;
     --success: #17803d;
     --danger: #b91c1c;
   }
