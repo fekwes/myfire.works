@@ -1,13 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { FeeDragCard } from "@/components/FeeDragCard";
-import { FinancesNav } from "@/components/FinancesNav";
+import {
+  FINANCE_SECTIONS,
+  type FinanceSectionId,
+  FinancesNav,
+} from "@/components/FinancesNav";
 import { FireForm } from "@/components/FireForm";
 import { usePlan } from "@/components/PlanProvider";
 import { SavedPlans } from "@/components/SavedPlans";
 import { ButtonLink, Card } from "@/components/ui";
+
+const SECTION_IDS = FINANCE_SECTIONS.map((s) => s.id) as readonly string[];
+const isSectionId = (v: string): v is FinanceSectionId =>
+  SECTION_IDS.includes(v);
 
 /**
  * Your Finances — the full detail behind the plan: balances, contributions,
@@ -17,6 +26,26 @@ import { ButtonLink, Card } from "@/components/ui";
 export function FinancesPanel() {
   const { inputs, setInputs } = usePlan();
   const { configured, user } = useAuth();
+  const [active, setActive] = useState<FinanceSectionId>("basics");
+
+  // Deep-link support: the dashboard checklist links to /finances#balances,
+  // #funds, #scenario, etc. Select the matching tab on load and whenever the
+  // hash changes (e.g. a checklist link clicked while already here).
+  useEffect(() => {
+    const syncFromHash = () => {
+      const id = window.location.hash.replace("#", "");
+      if (id && isSectionId(id)) setActive(id);
+    };
+    syncFromHash();
+    window.addEventListener("hashchange", syncFromHash);
+    return () => window.removeEventListener("hashchange", syncFromHash);
+  }, []);
+
+  const selectSection = (id: FinanceSectionId) => {
+    setActive(id);
+    // Reflect the tab in the URL without scrolling the page.
+    window.history.replaceState(null, "", `#${id}`);
+  };
 
   return (
     <div className="space-y-5">
@@ -65,10 +94,14 @@ export function FinancesPanel() {
 
       {/* Rail alongside the form on large screens; a chip row above it below. */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[11rem_minmax(0,1fr)]">
-        <FinancesNav />
+        <FinancesNav active={active} onSelect={selectSection} />
         <div className="min-w-0 space-y-5">
           <Card padding="lg">
-            <FireForm value={inputs} onChange={setInputs} />
+            <FireForm
+              value={inputs}
+              onChange={setInputs}
+              activeSection={active}
+            />
           </Card>
           <FeeDragCard />
         </div>

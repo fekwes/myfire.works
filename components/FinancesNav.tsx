@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-const SECTIONS = [
+export const FINANCE_SECTIONS = [
   { id: "basics", label: "Basics" },
   { id: "balances", label: "Balances" },
   { id: "funds", label: "Funds & fees" },
@@ -11,55 +9,40 @@ const SECTIONS = [
   { id: "assumptions", label: "Assumptions" },
 ] as const;
 
+export type FinanceSectionId = (typeof FINANCE_SECTIONS)[number]["id"];
+
 /**
- * Section rail for Your Finances. The form is long by nature — this makes it
- * navigable instead of a single scroll, and marks where you are.
- *
- * Sits alongside the form on large screens; becomes a scrollable chip row
- * above it on small ones.
+ * Section switcher for Edit plan. The form is long by nature, so rather than one
+ * endless scroll we show a single section at a time and switch with these tabs
+ * — a horizontal, scrollable chip row on mobile; a sticky vertical rail on large
+ * screens. Controlled by the parent so a deep-link hash can select a tab.
  */
-export function FinancesNav() {
-  const [active, setActive] = useState<string>(SECTIONS[0].id);
-
-  useEffect(() => {
-    const targets = SECTIONS.map((s) => document.getElementById(s.id)).filter(
-      (el): el is HTMLElement => el !== null,
-    );
-    if (targets.length === 0) return;
-
-    // Highlight the section nearest the top of the viewport, biased below the
-    // sticky header so a section counts as "current" once it reaches it.
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible[0]?.target.id) setActive(visible[0].target.id);
-      },
-      { rootMargin: "-120px 0px -55% 0px", threshold: 0 },
-    );
-    for (const el of targets) observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
+export function FinancesNav({
+  active,
+  onSelect,
+}: {
+  active: string;
+  onSelect: (id: FinanceSectionId) => void;
+}) {
   return (
-    <nav aria-label="Sections of your finances">
+    <nav aria-label="Sections of your plan">
       <ul className="flex gap-1.5 overflow-x-auto pb-1 lg:sticky lg:top-24 lg:flex-col lg:overflow-visible lg:pb-0">
-        {SECTIONS.map((s) => {
+        {FINANCE_SECTIONS.map((s) => {
           const current = active === s.id;
           return (
             <li key={s.id} className="shrink-0">
-              <a
-                href={`#${s.id}`}
+              <button
+                type="button"
+                onClick={() => onSelect(s.id)}
                 aria-current={current ? "true" : undefined}
-                className={`block rounded-full px-3 py-1.5 text-sm transition-colors lg:rounded-lg ${
+                className={`block w-full rounded-full px-3 py-1.5 text-left text-sm transition-colors lg:rounded-lg ${
                   current
                     ? "bg-surface-muted font-medium text-foreground lg:border-l-2 lg:border-primary lg:bg-transparent"
                     : "text-muted-foreground hover:text-foreground lg:border-l-2 lg:border-transparent"
                 }`}
               >
                 {s.label}
-              </a>
+              </button>
             </li>
           );
         })}

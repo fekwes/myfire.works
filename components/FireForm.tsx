@@ -4,7 +4,6 @@ import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { FundSelect } from "@/components/FundSelect";
-import { Collapsible } from "@/components/ui";
 import { setChecklistFlag } from "@/lib/checklist";
 import {
   DEFAULT_ASSUMPTIONS,
@@ -45,6 +44,8 @@ export const DEFAULT_FIRE_FORM_VALUES: FireInputs = {
 interface FireFormProps {
   value: FireInputs;
   onChange: (inputs: FireInputs) => void;
+  /** Which section is visible — the finances page shows one tab at a time. */
+  activeSection: string;
 }
 
 /**
@@ -188,7 +189,7 @@ function Block({
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         {tooltip && <Tooltip text={tooltip} label={title} />}
       </div>
-      <div className="mt-3 grid grid-cols-2 items-end gap-4">{children}</div>
+      <div className="mt-3 grid grid-cols-1 items-end gap-4 sm:grid-cols-2">{children}</div>
     </div>
   );
 }
@@ -199,15 +200,17 @@ function Section({
   id,
   title,
   description,
+  hidden,
   children,
 }: {
   id: string;
   title: string;
   description?: string;
+  hidden?: boolean;
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-24 space-y-4">
+    <section id={id} hidden={hidden} className="space-y-4">
       <div>
         <h2 className="font-display text-base font-bold tracking-tight text-foreground">
           {title}
@@ -223,51 +226,24 @@ function Section({
   );
 }
 
-/** True when the plan actually includes a home or a rental. */
-function hasProperty(v: FireInputs): boolean {
-  return (v.homeValue ?? 0) > 0 || (v.rentalValue ?? 0) > 0;
-}
-
-/** Collapsed-state label for Property, so it still says what's in there. */
-function propertySummary(v: FireInputs): string {
-  const parts: string[] = [];
-  if ((v.homeValue ?? 0) > 0) parts.push("home");
-  if ((v.rentalValue ?? 0) > 0) parts.push("rental");
-  return parts.length ? parts.join(" + ") : "not included";
-}
-
-/** True when any statutory figure has been moved off its default. */
-function hasCustomAssumptions(v: FireInputs): boolean {
-  return (
-    num(v.sippAccessAge, DEFAULT_ASSUMPTIONS.sippAccessAge) !==
-      DEFAULT_ASSUMPTIONS.sippAccessAge ||
-    num(v.statePensionAge, DEFAULT_ASSUMPTIONS.statePensionAge) !==
-      DEFAULT_ASSUMPTIONS.statePensionAge ||
-    num(v.statePensionAnnual, DEFAULT_ASSUMPTIONS.statePensionAnnual) !==
-      DEFAULT_ASSUMPTIONS.statePensionAnnual ||
-    num(v.lifeExpectancyAge, DEFAULT_ASSUMPTIONS.lifeExpectancyAge) !==
-      DEFAULT_ASSUMPTIONS.lifeExpectancyAge ||
-    num(v.inflationRate, DEFAULT_INFLATION_RATE) !== DEFAULT_INFLATION_RATE
-  );
-}
-
-function assumptionsSummary(v: FireInputs): string {
-  return hasCustomAssumptions(v) ? "customised" : "using defaults";
-}
-
-/** Module-level so the summary helpers above can share it with the component. */
+/** Small helper: a value or its fallback when undefined. */
 function num(v: number | undefined, fallback: number): number {
   return v === undefined ? fallback : v;
 }
 
-export function FireForm({ value, onChange }: FireFormProps) {
+export function FireForm({ value, onChange, activeSection }: FireFormProps) {
   const set = <K extends keyof FireInputs>(key: K, next: FireInputs[K]) =>
     onChange({ ...value, [key]: next });
 
   return (
-    <div className="space-y-8">
-      <Section id="basics" title="Your basics" description="Ages and the income you're aiming for.">
-        <div className="grid grid-cols-2 items-end gap-4">
+    <div>
+      <Section
+        id="basics"
+        title="Your basics"
+        description="Ages and the income you're aiming for."
+        hidden={activeSection !== "basics"}
+      >
+        <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
           <Field label="Current age">
             <NumberInput
               value={value.currentAge}
@@ -303,7 +279,11 @@ export function FireForm({ value, onChange }: FireFormProps) {
         </Field>
       </Section>
 
-      <Section id="balances" title="Balances & contributions">
+      <Section
+        id="balances"
+        title="Balances & contributions"
+        hidden={activeSection !== "balances"}
+      >
         {/* Dots match the chart's fixed account→hue binding: ISA ember,
             SIPP violet, GIA teal. Keep these in step with AssetTimelineChart. */}
         <Block
@@ -374,6 +354,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
         id="funds"
         title="Funds & fees"
         description="Pick a Vanguard UK fund for each pot to set a fee-aware growth rate, or type your own."
+        hidden={activeSection !== "funds"}
       >
         <FundBlock
           title="ISA fund"
@@ -395,12 +376,11 @@ export function FireForm({ value, onChange }: FireFormProps) {
         />
       </Section>
 
-      <Collapsible
+      <Section
         id="property"
         title="Property"
         description="Optional — a home you live in and/or a rental."
-        summary={propertySummary(value)}
-        defaultOpen={hasProperty(value)}
+        hidden={activeSection !== "property"}
       >
         <Block
           title="Rental property"
@@ -474,12 +454,13 @@ export function FireForm({ value, onChange }: FireFormProps) {
             />
           </Field>
         </Block>
-      </Collapsible>
+      </Section>
 
       <Section
         id="scenario"
         title="Withdrawals"
         description="How you take your pension, and any part-time work."
+        hidden={activeSection !== "scenario"}
       >
         <Field
           label="Pension access"
@@ -522,14 +503,13 @@ export function FireForm({ value, onChange }: FireFormProps) {
 
       </Section>
 
-      <Collapsible
+      <Section
         id="assumptions"
         title="Statutory assumptions"
         description="Ages and figures set by the government, plus inflation. The defaults are the current 2026/27 rules — change them only if your situation differs."
-        summary={assumptionsSummary(value)}
-        defaultOpen={hasCustomAssumptions(value)}
+        hidden={activeSection !== "assumptions"}
       >
-        <div className="grid grid-cols-2 items-end gap-4">
+        <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
           <Field
             label="SIPP access age"
             tooltip="UK minimum pension age is 55 today, rising to 57 in April 2028 — the default here."
@@ -556,7 +536,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 items-end gap-4">
+        <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
           <Field
             label="State Pension age"
             tooltip="66 today, rising to 67 (2026–2028) then 68. Default is 67."
@@ -596,7 +576,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
             onChange={(v) => set("inflationRate", v)}
           />
         </Field>
-      </Collapsible>
+      </Section>
     </div>
   );
 }
