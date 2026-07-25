@@ -78,19 +78,14 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
             <PlanProvider>
             <div aria-hidden className="app-backdrop" />
             <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
-              <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-2 px-4 sm:px-6">
-                <div className="flex min-w-0 items-center gap-2">
-                  <HeaderLogo />
-                  <span className="shrink-0 rounded-full border border-primary/40 bg-brand/10 px-1.5 py-0.5 font-mono text-[0.58rem] font-medium uppercase tracking-wider text-primary">
-                    beta
-                  </span>
-                </div>
-                <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
+                <HeaderLogo />
+                <div className="flex shrink-0 items-center gap-1 sm:gap-2">
                   <Nav />
                   <AuthButton />
                   <ThemeToggle />
