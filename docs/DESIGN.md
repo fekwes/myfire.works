@@ -90,10 +90,34 @@ is what keeps "celebratory" from tipping into "gimmicky".
 
 Charts are part of the brand, not an afterthought. The launch-trail arc is the
 house style for growth lines: an ember path with a warm, "arriving" endpoint, a
-soft gradient area fill, and a faint grid. Ember (`--data-1`) is your path;
-violet (`--data-2`) and teal (`--data-3`) carry comparisons and guardrails.
-Semantic colour (`--success` green / `--danger` rose) is kept separate from the
-ember accent. Build the full system with the **dataviz skill**.
+soft gradient area fill, and a faint grid.
+
+**The ramp is validated, not eyeballed.** `--data-1/2/3` are the *mark* colours
+and are deliberately a step apart from the UI accents (which are tuned for text
+on their ground). Both modes pass all six checks of the dataviz validator —
+lightness band, chroma floor, CVD separation, normal-vision floor and contrast
+against `--chart-surface`:
+
+| | ember (`--data-1`) | violet (`--data-2`) | teal (`--data-3`) |
+|---|---|---|---|
+| light | `#c2560a` | `#5b4bd6` | `#0e9bb0` |
+| dark | `#d1731f` | `#6f5cd8` | `#2596ad` |
+
+Re-run `scripts/validate_palette.js` from the **dataviz skill** before changing
+any of them.
+
+Rules that hold everywhere:
+
+- **Hue is bound to the entity, never to draw order.** ISA is always ember,
+  SIPP violet, GIA teal — so hiding an empty GIA never repaints the others.
+  The account dots in `FireForm` use the same binding; keep them in step.
+- **Status colour is reserved** (`--success` / `--danger`) for state, never for
+  "series 4", and never carries meaning alone — name the states in a key.
+- **Marks**: 2px strokes, 4px bar ends, 8px active dots with a 2px
+  `--chart-surface` ring, recessive dashed grid, neutral milestone annotations.
+- **A legend is always present for ≥2 series**; a single series is named by the
+  caption instead. Text wears text tokens — never the series colour.
+- Every time-series chart ships a dashed crosshair + tooltip.
 
 ## Voice
 

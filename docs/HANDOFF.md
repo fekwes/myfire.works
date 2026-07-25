@@ -1,4 +1,31 @@
-# OnFIRE — project handoff / context
+# Fireworks — project handoff / context
+
+> **Rebranded.** The product is now **Fireworks** (domain **myfire.works**),
+> wordmark `Fire·works`, design system **"Night & Ember"**. See
+> `docs/DESIGN.md`. Much of the OnFIRE-era detail below still applies to the
+> engine and infrastructure — the name and visual language are what changed.
+>
+> **Internal identifiers were deliberately left alone** so existing data keeps
+> working: the `onfire:plan` localStorage key, `onfire:flag:*` flags, the
+> `onfire:flags` event, the Supabase `portfolios` table and the GitHub repo
+> name. Do not "finish" the rename by changing those.
+>
+> **What shipped in the rebrand/overhaul (branch
+> `claude/onfire-stage-6-onboarding-tghour-95enze`):**
+> 1. Identity — tokens, Trajectory Burst logo/favicon/OG, naming + voice,
+>    `docs/DESIGN.md`.
+> 2. Landing rebuilt — ember CTA, launch-trail reveal, house-style preview
+>    chart, icon markers.
+> 3. Quiz — the redundant Lean/Fat personas are gone (they only re-asked the
+>    spending target); it now asks target → ages → strategy
+>    (`standard | coast | barista`) via `StrategyId` in `lib/quiz.ts`.
+> 4. Profiles — `lib/profiles.ts` + a rebuilt `SavedPlans` with real Load /
+>    rename / copy / delete and **errors that are actually surfaced** (writes
+>    used to fail silently and look successful).
+> 5. Charts — one validated data-viz system (see `docs/DESIGN.md`), plus fixes
+>    for status colour used by position rather than meaning.
+
+## Original OnFIRE handoff (pre-rebrand)
 
 Read this first when continuing work in a new session. It's the single source
 of truth for where the project stands and what's next.

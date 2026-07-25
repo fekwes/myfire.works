@@ -253,9 +253,11 @@ export function FireForm({ value, onChange }: FireFormProps) {
         title="Balances & contributions"
         description="What you hold now and add each month. Leave any at £0."
       >
+        {/* Dots match the chart's fixed account→hue binding: ISA ember,
+            SIPP violet, GIA teal. Keep these in step with AssetTimelineChart. */}
         <Block
           title="ISA — tax-free bridge"
-          dotClass="bg-data-2"
+          dotClass="bg-data-1"
           tooltip="Individual Savings Account — 100% tax-free to withdraw at any age, so it's drawn first (and bridges you until your pension unlocks)."
         >
           <Field label="Current balance">
@@ -276,7 +278,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
 
         <Block
           title="SIPP — the pension"
-          dotClass="bg-data-1"
+          dotClass="bg-data-2"
           tooltip="Self-Invested Personal Pension (plus any workplace pensions). Locked until your access age — 57 from 2028 — then 25% is tax-free and the rest is taxable income, topped up by your State Pension."
         >
           <Field label="Current balance">
@@ -349,7 +351,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
       >
         <Block
           title="Rental property"
-          dotClass="bg-accent"
+          dotClass="bg-muted-foreground/60"
           tooltip="Rental income is taxed as income and offsets your target in retirement. Optionally sell it later — residential CGT applies and the net proceeds move into your GIA."
         >
           <Field label="Current value">
@@ -441,7 +443,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
 
         <Block
           title="Part-time work — Barista FIRE"
-          dotClass="bg-accent"
+          dotClass="bg-muted-foreground/60"
           tooltip="Taxable part-time earnings in early retirement. They offset your target — so your pots draw down less — until the age you stop."
         >
           <Field label="Annual income">
