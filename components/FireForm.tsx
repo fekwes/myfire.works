@@ -2,8 +2,9 @@
 
 import { Info } from "lucide-react";
 import type { ReactNode } from "react";
-import { useId } from "react";
+import { useId, useState } from "react";
 import { FundSelect } from "@/components/FundSelect";
+import { Collapsible } from "@/components/ui";
 import { setChecklistFlag } from "@/lib/checklist";
 import {
   DEFAULT_ASSUMPTIONS,
@@ -46,16 +47,22 @@ interface FireFormProps {
   onChange: (inputs: FireInputs) => void;
 }
 
-function Tooltip({ text }: { text: string }) {
+/**
+ * An info affordance. `label` names the thing being explained so the button
+ * has an accessible name — an icon-only button with none reads as a bare
+ * "button" to a screen reader, and there are a lot of these on one page.
+ */
+function Tooltip({ text, label }: { text: string; label?: string }) {
   const id = useId();
   return (
     <span className="group/tip relative inline-flex">
       <button
         type="button"
+        aria-label={label ? `About ${label}` : "More information"}
         aria-describedby={id}
         className="text-muted-foreground outline-none hover:text-foreground focus-visible:text-foreground"
       >
-        <Info className="size-3.5" />
+        <Info aria-hidden className="size-3.5" />
       </button>
       <span
         role="tooltip"
@@ -83,7 +90,7 @@ export function Field({
     <label className={`block ${className ?? ""}`}>
       <span className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
         {label}
-        {tooltip && <Tooltip text={tooltip} />}
+        {tooltip && <Tooltip text={tooltip} label={label} />}
       </span>
       {children}
     </label>
@@ -105,6 +112,13 @@ export function NumberInput({
   min?: number;
   step?: number;
 }) {
+  // While the field is being edited it holds raw text, so clearing it to type
+  // a new number shows an empty box — but only finite values ever reach the
+  // plan. Emitting the NaN from an empty input used to poison every derived
+  // figure ("£NaN") and persist as null.
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? (Number.isFinite(value) ? String(value) : "");
+
   return (
     <div className="flex items-center rounded-lg border border-border bg-background transition-colors hover:border-muted-foreground/40 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30">
       {prefix && (
@@ -113,11 +127,18 @@ export function NumberInput({
       <input
         type="number"
         inputMode="decimal"
-        value={Number.isNaN(value) ? "" : value}
+        value={shown}
         min={Number.isFinite(min) ? min : undefined}
         step={step}
         onFocus={(e) => e.target.select()}
-        onChange={(e) => onChange(e.target.valueAsNumber)}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          const next = e.target.valueAsNumber;
+          if (Number.isFinite(next)) onChange(next);
+        }}
+        // Blur commits: drop the draft so the field shows the stored value
+        // again (an abandoned empty field reverts rather than wiping the plan).
+        onBlur={() => setDraft(null)}
         className="tabular w-full min-w-0 bg-transparent px-3 py-2 text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
       {suffix && (
@@ -163,9 +184,9 @@ function Block({
   return (
     <div className="rounded-xl border border-border bg-surface-muted p-4">
       <div className="flex items-center gap-1.5">
-        {dotClass && <span className={`size-2 rounded-full ${dotClass}`} />}
+        {dotClass && <span aria-hidden className={`size-2 rounded-full ${dotClass}`} />}
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        {tooltip && <Tooltip text={tooltip} />}
+        {tooltip && <Tooltip text={tooltip} label={title} />}
       </div>
       <div className="mt-3 grid grid-cols-2 items-end gap-4">{children}</div>
     </div>
@@ -202,12 +223,46 @@ function Section({
   );
 }
 
+/** True when the plan actually includes a home or a rental. */
+function hasProperty(v: FireInputs): boolean {
+  return (v.homeValue ?? 0) > 0 || (v.rentalValue ?? 0) > 0;
+}
+
+/** Collapsed-state label for Property, so it still says what's in there. */
+function propertySummary(v: FireInputs): string {
+  const parts: string[] = [];
+  if ((v.homeValue ?? 0) > 0) parts.push("home");
+  if ((v.rentalValue ?? 0) > 0) parts.push("rental");
+  return parts.length ? parts.join(" + ") : "not included";
+}
+
+/** True when any statutory figure has been moved off its default. */
+function hasCustomAssumptions(v: FireInputs): boolean {
+  return (
+    num(v.sippAccessAge, DEFAULT_ASSUMPTIONS.sippAccessAge) !==
+      DEFAULT_ASSUMPTIONS.sippAccessAge ||
+    num(v.statePensionAge, DEFAULT_ASSUMPTIONS.statePensionAge) !==
+      DEFAULT_ASSUMPTIONS.statePensionAge ||
+    num(v.statePensionAnnual, DEFAULT_ASSUMPTIONS.statePensionAnnual) !==
+      DEFAULT_ASSUMPTIONS.statePensionAnnual ||
+    num(v.lifeExpectancyAge, DEFAULT_ASSUMPTIONS.lifeExpectancyAge) !==
+      DEFAULT_ASSUMPTIONS.lifeExpectancyAge ||
+    num(v.inflationRate, DEFAULT_INFLATION_RATE) !== DEFAULT_INFLATION_RATE
+  );
+}
+
+function assumptionsSummary(v: FireInputs): string {
+  return hasCustomAssumptions(v) ? "customised" : "using defaults";
+}
+
+/** Module-level so the summary helpers above can share it with the component. */
+function num(v: number | undefined, fallback: number): number {
+  return v === undefined ? fallback : v;
+}
+
 export function FireForm({ value, onChange }: FireFormProps) {
   const set = <K extends keyof FireInputs>(key: K, next: FireInputs[K]) =>
     onChange({ ...value, [key]: next });
-
-  const num = (v: number | undefined, fallback: number) =>
-    v === undefined ? fallback : v;
 
   return (
     <div className="space-y-8">
@@ -253,9 +308,11 @@ export function FireForm({ value, onChange }: FireFormProps) {
         title="Balances & contributions"
         description="What you hold now and add each month. Leave any at £0."
       >
+        {/* Dots match the chart's fixed account→hue binding: ISA ember,
+            SIPP violet, GIA teal. Keep these in step with AssetTimelineChart. */}
         <Block
           title="ISA — tax-free bridge"
-          dotClass="bg-data-2"
+          dotClass="bg-data-1"
           tooltip="Individual Savings Account — 100% tax-free to withdraw at any age, so it's drawn first (and bridges you until your pension unlocks)."
         >
           <Field label="Current balance">
@@ -276,7 +333,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
 
         <Block
           title="SIPP — the pension"
-          dotClass="bg-data-1"
+          dotClass="bg-data-2"
           tooltip="Self-Invested Personal Pension (plus any workplace pensions). Locked until your access age — 57 from 2028 — then 25% is tax-free and the rest is taxable income, topped up by your State Pension."
         >
           <Field label="Current balance">
@@ -342,14 +399,16 @@ export function FireForm({ value, onChange }: FireFormProps) {
         />
       </Section>
 
-      <Section
+      <Collapsible
         id="property"
         title="Property"
         description="Optional — a home you live in and/or a rental."
+        summary={propertySummary(value)}
+        defaultOpen={hasProperty(value)}
       >
         <Block
           title="Rental property"
-          dotClass="bg-accent"
+          dotClass="bg-muted-foreground/60"
           tooltip="Rental income is taxed as income and offsets your target in retirement. Optionally sell it later — residential CGT applies and the net proceeds move into your GIA."
         >
           <Field label="Current value">
@@ -419,12 +478,12 @@ export function FireForm({ value, onChange }: FireFormProps) {
             />
           </Field>
         </Block>
-      </Section>
+      </Collapsible>
 
       <Section
         id="scenario"
-        title="Withdrawal & scenario"
-        description="How you draw your pension, part-time work, and the statutory settings."
+        title="Withdrawals"
+        description="How you take your pension, and any part-time work."
       >
         <Field
           label="Pension access"
@@ -441,7 +500,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
 
         <Block
           title="Part-time work — Barista FIRE"
-          dotClass="bg-accent"
+          dotClass="bg-muted-foreground/60"
           tooltip="Taxable part-time earnings in early retirement. They offset your target — so your pots draw down less — until the age you stop."
         >
           <Field label="Annual income">
@@ -465,6 +524,15 @@ export function FireForm({ value, onChange }: FireFormProps) {
           </Field>
         </Block>
 
+      </Section>
+
+      <Collapsible
+        id="assumptions"
+        title="Statutory assumptions"
+        description="Ages and figures set by the government, plus inflation. The defaults are the current 2026/27 rules — change them only if your situation differs."
+        summary={assumptionsSummary(value)}
+        defaultOpen={hasCustomAssumptions(value)}
+      >
         <div className="grid grid-cols-2 items-end gap-4">
           <Field
             label="SIPP access age"
@@ -532,7 +600,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
             onChange={(v) => set("inflationRate", v)}
           />
         </Field>
-      </Section>
+      </Collapsible>
     </div>
   );
 }

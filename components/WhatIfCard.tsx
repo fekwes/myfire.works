@@ -7,6 +7,19 @@ import { Card } from "@/components/ui";
 import { formatCurrency } from "@/lib/format";
 import { retirementSensitivity } from "@/lib/what-if";
 
+/**
+ * Status colour reflects the *outcome*, never which card it is. "Already
+ * covered" is good news and reads green wherever it appears; a figure you'd
+ * need to find is a trade-off, not a failure, so it stays neutral ink.
+ */
+type LeverTone = "danger" | "success" | "neutral";
+
+const TONE_CLASS: Record<LeverTone, string> = {
+  danger: "text-danger",
+  success: "text-success",
+  neutral: "text-foreground",
+};
+
 function Lever({
   icon,
   heading,
@@ -18,7 +31,7 @@ function Lever({
   heading: string;
   value: string;
   sub: string;
-  tone: "danger" | "success";
+  tone: LeverTone;
 }) {
   return (
     <div className="rounded-xl border border-border bg-surface-muted p-4">
@@ -29,9 +42,7 @@ function Lever({
         </span>
       </div>
       <p
-        className={`mt-1.5 font-display text-xl font-bold tabular ${
-          tone === "danger" ? "text-danger" : "text-success"
-        }`}
+        className={`mt-1.5 font-display text-xl font-bold tabular ${TONE_CLASS[tone]}`}
       >
         {value}
       </p>
@@ -57,7 +68,13 @@ export function WhatIfCard() {
           <Lever
             icon={<TrendingUp className="size-3.5" />}
             heading={`A year earlier — age ${s.earlierAge}`}
-            tone="danger"
+            tone={
+              s.earlierExtraMonthly === null
+                ? "danger"
+                : s.earlierExtraMonthly < 1
+                  ? "success"
+                  : "neutral"
+            }
             value={
               s.earlierExtraMonthly === null
                 ? "Not by saving alone"
@@ -77,7 +94,7 @@ export function WhatIfCard() {
         <Lever
           icon={<TrendingDown className="size-3.5" />}
           heading={`A year later — age ${s.laterAge}`}
-          tone="success"
+          tone={s.laterSavingMonthly < 1 ? "neutral" : "success"}
           value={
             s.laterSavingMonthly < 1
               ? "No change needed"

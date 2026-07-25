@@ -16,13 +16,80 @@ export function savePlanLocal(inputs: FireInputs): void {
   }
 }
 
+/**
+ * The three figures a plan is meaningless without. There's no sensible
+ * fallback for "how old are you" or "what do you want to live on", so a plan
+ * missing them is rejected outright.
+ */
+const ESSENTIAL_FIELDS = [
+  "currentAge",
+  "retirementAge",
+  "targetAnnualIncome",
+] as const;
+
+/**
+ * Numbers the engine needs present, but where zero is a perfectly sensible
+ * reading of "absent" — someone with no GIA, or a link from an older build
+ * that didn't carry a field. Filled in rather than used to reject the plan,
+ * so an old or partial share link still opens.
+ */
+const ZERO_FILLED_FIELDS = [
+  "isaBalance",
+  "isaMonthlyContribution",
+  "sippBalance",
+  "sippMonthlyContribution",
+] as const;
+
+/**
+ * Make a parsed blob safe to hand to the engine, or reject it.
+ *
+ * Plans arrive as ordinary JSON that anything can have written — an older
+ * build, a hand-edited devtools value, a truncated share link someone pasted,
+ * or a field that was mid-edit when the tab closed (`NaN` serialises to
+ * `null`). A single non-numeric value would otherwise flow straight into the
+ * projection and surface as `£NaN`, or worse as a quietly wrong figure.
+ *
+ * The rule is graded by how recoverable each field is, so validation stays
+ * safe without being brittle about old links:
+ *
+ * - an **essential** field (the ages, the target) that isn't a finite number
+ *   invalidates the plan — there's no honest default for it;
+ * - a **balance or contribution** that's missing or unusable becomes 0, which
+ *   is what "not provided" actually means for money;
+ * - any other field that isn't a finite number is dropped, letting the
+ *   engine's own default apply.
+ */
+export function sanitisePlanInput(parsed: unknown): FireInputs | null {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return null;
+  }
+  const source = parsed as Record<string, unknown>;
+
+  for (const key of ESSENTIAL_FIELDS) {
+    if (typeof source[key] !== "number" || !Number.isFinite(source[key])) {
+      return null;
+    }
+  }
+
+  const clean: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (typeof value === "number" && !Number.isFinite(value)) continue;
+    if (value === null || value === undefined) continue;
+    clean[key] = value;
+  }
+  for (const key of ZERO_FILLED_FIELDS) {
+    if (typeof clean[key] !== "number") clean[key] = 0;
+  }
+  return clean as unknown as FireInputs;
+}
+
 /** Read a previously-saved plan, or `null` if none/invalid. Safe on the server. */
 export function loadPlanLocal(): FireInputs | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(PLAN_STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as FireInputs;
+    return sanitisePlanInput(JSON.parse(raw));
   } catch {
     return null;
   }

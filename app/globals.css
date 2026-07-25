@@ -3,43 +3,53 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ------------------------------------------------------------------ *
- * Design tokens — "Ink & Lime"
- * Bold, modern, professional. Signature electric-lime accent on a
- * warm-ink base; a cool blue as the secondary data colour. Chosen to
- * read as a premium fintech product, not a template.
+ * Design tokens — "Night & Ember" (Fireworks)
+ * A deep-indigo night sky, an incandescent ember/gold signature, and a
+ * periwinkle-violet counter-spark for data. The launch-trail arc → burst
+ * of a firework is the house gesture: the signature warm tones mark the
+ * moment a plan "goes off" (financial independence). Chosen to read as a
+ * premium, celebratory fintech product — not a template, not the generic
+ * lime/emerald "AI" look.
  * ------------------------------------------------------------------ */
 
 :root {
-  --background: #fafaf7;
-  --foreground: #14161a;
+  --background: #fbf7f0;
+  --foreground: #171226;
 
   --surface: #ffffff;
-  --surface-muted: #f2f2ea;
-  --border: #e5e4dd;
+  --surface-muted: #f4eee2;
+  --border: #eae3d6;
 
-  /* Signature accent — deep lime, readable on light surfaces */
-  --primary: #4d7c0f;
+  /* Signature accent — burnt ember, readable on warm-paper surfaces */
+  --primary: #c2560a;
   --primary-foreground: #ffffff;
 
-  /* Bright lime for highlight fills / badges */
-  --brand: #84cc16;
+  /* Bright ember for highlight fills / badges */
+  --brand: #ff8a3d;
 
-  /* Secondary data / links */
-  --accent: #2563eb;
+  /* Secondary spark — periwinkle violet (links / secondary data) */
+  --accent: #5b4bd6;
 
-  --muted-foreground: #5a616e;
+  --muted-foreground: #6a6480;
 
   --danger: #dc2626;
-  --success: #4d7c0f;
+  --success: #17803d;
 
-  /* Chart data ramp */
-  --data-1: #4d7c0f;
-  --data-2: #2563eb;
-  --data-3: #d97706;
+  /* Chart data ramp — ember · violet · teal. These are the *mark* colours, a
+   * step apart from the UI accents above (which are tuned for text on this
+   * ground). Validated for CVD separation, chroma and contrast against the
+   * chart surface — re-run the dataviz validator before changing them. */
+  --data-1: #c2560a;
+  --data-2: #5b4bd6;
+  --data-3: #0e9bb0;
+
+  /* The surface charts are drawn on — used for the hairline gaps and rings
+   * that keep adjacent/overlapping marks from bleeding into each other. */
+  --chart-surface: #ffffff;
 
   /* Backdrop texture */
-  --grid-line: rgba(20, 22, 26, 0.05);
-  --glow: rgba(132, 204, 22, 0.12);
+  --grid-line: rgba(23, 18, 38, 0.05);
+  --glow: rgba(255, 138, 61, 0.14);
 
   /* Motion — shared easing + durations so transitions feel intentional,
      not the generic "everything fades" default. */
@@ -55,33 +65,39 @@
 }
 
 .dark {
-  --background: #0b0c10;
-  --foreground: #f3f5f8;
+  --background: #0f0b1e;
+  --foreground: #f3f1fb;
 
-  --surface: #14161c;
-  --surface-muted: #1b1e26;
-  --border: #282c36;
+  --surface: #191333;
+  --surface-muted: #211a3f;
+  --border: #2c2450;
 
-  /* Signature accent — electric lime on ink */
-  --primary: #bef264;
-  --primary-foreground: #0c1a05;
+  /* Signature accent — incandescent ember/gold on night indigo */
+  --primary: #ffad4e;
+  --primary-foreground: #241005;
 
-  --brand: #bef264;
+  /* Bright gold for highlight fills / the "burst" */
+  --brand: #ffc24b;
 
-  --accent: #7dd3fc;
+  /* Secondary spark — periwinkle violet */
+  --accent: #9e8cff;
 
-  --muted-foreground: #99a1ae;
+  --muted-foreground: #a69fc6;
 
   --danger: #fb7185;
-  --success: #bef264;
+  --success: #56d68a;
 
-  --data-1: #bef264;
-  --data-2: #7dd3fc;
-  --data-3: #fbbf24;
+  /* Chart marks on the night surface — deeper than the UI ember/violet above
+   * so multi-series charts stay separable (validated, see the light block). */
+  --data-1: #d1731f;
+  --data-2: #6f5cd8;
+  --data-3: #2596ad;
+
+  --chart-surface: #191333;
 
   /* Backdrop texture */
   --grid-line: rgba(255, 255, 255, 0.04);
-  --glow: rgba(190, 242, 100, 0.1);
+  --glow: rgba(255, 122, 41, 0.12);
 
   /* Elevation reads as deeper, softer shadows on ink. */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -110,6 +126,7 @@
   --color-data-1: var(--data-1);
   --color-data-2: var(--data-2);
   --color-data-3: var(--data-3);
+  --color-chart-surface: var(--chart-surface);
 
   --font-sans: var(--font-geist-sans);
   --font-display: var(--font-display);
@@ -130,7 +147,7 @@ body {
 
 ::selection {
   background: var(--brand);
-  color: #0c1a05;
+  color: #241005;
 }
 
 /* Baseline keyboard-focus ring for anything interactive. `:where()` keeps the
@@ -169,15 +186,17 @@ body {
   :root,
   .dark {
     --background: #ffffff;
-    --foreground: #14161a;
+    --foreground: #171226;
     --surface: #ffffff;
-    --surface-muted: #f5f5f0;
-    --border: #d8d8d0;
+    --surface-muted: #f6f1e8;
+    --border: #ddd6c8;
     --muted-foreground: #444444;
-    --data-1: #4d7c0f;
-    --data-2: #2563eb;
-    --data-3: #d97706;
-    --success: #4d7c0f;
+    --primary: #b04e08;
+    --data-1: #b04e08;
+    --data-2: #4b3dc0;
+    --data-3: #0e7c8b;
+    --chart-surface: #ffffff;
+    --success: #17803d;
     --danger: #b91c1c;
   }
   header,
@@ -221,6 +240,52 @@ body {
 
 .landing-rise {
   animation: landing-rise 0.6s var(--ease-out) both;
+}
+
+/* Signature brand moment — a single ember "launch trail" draws itself in once
+ * as the hero loads (the growth curve rising to a burst), then the spark pops.
+ * Path length is normalised via pathLength="1" so it's geometry-independent.
+ * Fully disabled under reduced-motion (drawn state shown statically). */
+@keyframes trail-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.hero-trail {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: trail-draw 1.5s var(--ease-out) 0.25s both;
+}
+
+@keyframes spark-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.spark-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spark-pop 0.5s var(--ease-spring) 1.55s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-trail {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+  .spark-pop {
+    opacity: 1;
+    animation: none;
+  }
 }
 
 .quiz-step {

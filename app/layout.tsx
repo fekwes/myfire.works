@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AuthButton } from "@/components/AuthButton";
 import { AuthProvider } from "@/components/AuthProvider";
 import { HeaderLogo } from "@/components/HeaderLogo";
-import { Nav } from "@/components/Nav";
+import { MobileNav, Nav } from "@/components/Nav";
 import { PlanProvider } from "@/components/PlanProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -28,16 +28,16 @@ const bricolage = Bricolage_Grotesque({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const description =
-  "OnFIRE models your UK Financial Independence, Retire Early plan across ISA, GIA, SIPP, State Pension and property — with correct 2026/27 tax, Coast FIRE and Monte Carlo confidence.";
+  "Fireworks models your UK Financial Independence, Retire Early plan across ISA, GIA, SIPP, State Pension and property — with correct 2026/27 tax, Coast FIRE and Monte Carlo confidence.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "OnFIRE — UK FIRE Planner",
-    template: "%s · OnFIRE",
+    default: "Fireworks — UK FIRE Planner",
+    template: "%s · Fireworks",
   },
   description,
-  applicationName: "OnFIRE",
+  applicationName: "Fireworks",
   keywords: [
     "FIRE",
     "UK FIRE",
@@ -53,15 +53,15 @@ export const metadata: Metadata = {
   authors: [{ name: "fekwes", url: "https://github.com/fekwes" }],
   openGraph: {
     type: "website",
-    siteName: "OnFIRE",
-    title: "OnFIRE — UK FIRE Planner",
+    siteName: "Fireworks",
+    title: "Fireworks — UK FIRE Planner",
     description,
     url: siteUrl,
     locale: "en_GB",
   },
   twitter: {
     card: "summary_large_image",
-    title: "OnFIRE — UK FIRE Planner",
+    title: "Fireworks — UK FIRE Planner",
     description,
   },
 };
@@ -83,26 +83,29 @@ export default function RootLayout({
             <PlanProvider>
             <div aria-hidden className="app-backdrop" />
             <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
-              <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-                <div className="flex items-center gap-2">
+              <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-2 px-4 sm:px-6">
+                <div className="flex min-w-0 items-center gap-2">
                   <HeaderLogo />
-                  <span className="rounded-full border border-primary/40 bg-brand/10 px-1.5 py-0.5 font-mono text-[0.58rem] font-medium uppercase tracking-wider text-primary">
+                  <span className="shrink-0 rounded-full border border-primary/40 bg-brand/10 px-1.5 py-0.5 font-mono text-[0.58rem] font-medium uppercase tracking-wider text-primary">
                     beta
                   </span>
                 </div>
-                <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                   <Nav />
                   <AuthButton />
                   <ThemeToggle />
                 </div>
+              </div>
+              <div className="mx-auto w-full max-w-6xl">
+                <MobileNav />
               </div>
             </header>
             <main className="flex flex-1 flex-col">{children}</main>
             <footer className="border-t border-border">
               <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-xs text-muted-foreground sm:px-6">
                 <p>
-                  <span className="font-medium text-foreground">OnFIRE</span> —
-                  UK financial independence modelling across ISA, GIA, SIPP and
+                  <span className="font-medium text-foreground">Fireworks</span>{" "}
+                  — UK financial independence modelling across ISA, GIA, SIPP and
                   State Pension.
                 </p>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1">

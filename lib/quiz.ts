@@ -48,113 +48,93 @@ export function lifestyleIncome(id: LifestyleId, customAmount: number): number {
   return PLSA_LIFESTYLES.find((l) => l.id === id)!.amount;
 }
 
-export type PersonaId = "standard" | "lean" | "fat" | "coast" | "barista";
+/**
+ * How you get to financial independence — a genuine strategy choice.
+ *
+ * Note the deliberate omission of "Lean" and "Fat" FIRE. Those archetypes
+ * differ from Standard FIRE *only* by how much you plan to spend each year,
+ * which the quiz asks directly (and far more precisely) in the spending-target
+ * step. Offering them as a separate question asked the same thing twice and
+ * silently overwrote the user's own number. Lean vs. fat is now simply where
+ * you land on the target — these three are the choices that actually change
+ * the shape of the plan.
+ */
+export type StrategyId = "standard" | "coast" | "barista";
 
-export interface FirePersona {
-  id: PersonaId;
+export interface FireStrategy {
+  id: StrategyId;
   label: string;
   /** One-line concept — this is the educational payload. */
   tagline: string;
-  /** Which lifestyle the persona pre-selects. */
-  defaultLifestyle: LifestyleId;
-  /** Custom target used when defaultLifestyle is "custom" (e.g. Fat FIRE). */
-  customIncome?: number;
-  /** Suggested retirement age for this archetype. */
-  retirementAge: number;
 }
 
-export const FIRE_PERSONAS: FirePersona[] = [
+export const FIRE_STRATEGIES: FireStrategy[] = [
   {
     id: "standard",
-    label: "Standard FIRE",
-    tagline: "Retire early and live comfortably off your savings.",
-    defaultLifestyle: "comfortable",
-    retirementAge: 55,
-  },
-  {
-    id: "lean",
-    label: "Lean FIRE",
-    tagline: "Retire as early as possible on a lean, frugal budget.",
-    defaultLifestyle: "minimum",
-    retirementAge: 50,
-  },
-  {
-    id: "fat",
-    label: "Fat FIRE",
-    tagline: "Retire early with plenty to spare for the good life.",
-    defaultLifestyle: "custom",
-    customIncome: 60000,
-    retirementAge: 55,
+    label: "Retire fully",
+    tagline:
+      "Keep investing until you stop working, then live off the pots. The classic FIRE path.",
   },
   {
     id: "coast",
-    label: "Coast FIRE",
-    tagline: "Save hard early, then coast — let it grow without adding more.",
-    defaultLifestyle: "moderate",
-    retirementAge: 60,
+    label: "Coast to it",
+    tagline:
+      "Save hard now, then stop adding and let compounding finish the job on its own.",
   },
   {
     id: "barista",
-    label: "Barista FIRE",
-    tagline: "Leave full-time work early; part-time covers the rest.",
-    defaultLifestyle: "moderate",
-    retirementAge: 50,
+    label: "Go part-time first",
+    tagline:
+      "Leave full-time work early and let part-time earnings bridge you to the State Pension.",
   },
 ];
 
-export const PERSONA_BY_ID: Record<PersonaId, FirePersona> = Object.fromEntries(
-  FIRE_PERSONAS.map((p) => [p.id, p]),
-) as Record<PersonaId, FirePersona>;
+export const STRATEGY_BY_ID: Record<StrategyId, FireStrategy> =
+  Object.fromEntries(FIRE_STRATEGIES.map((s) => [s.id, s])) as Record<
+    StrategyId,
+    FireStrategy
+  >;
 
-/** Default part-time income + end age applied to the Barista persona. */
+/** Default part-time income applied to the "go part-time first" strategy. */
 export const BARISTA_ANNUAL_INCOME = 15000;
 
-/** The answers the redesigned quiz collects — persona, lifestyle, and ages. */
+/** Retirement age the quiz starts from when the user hasn't set one yet. */
+export const DEFAULT_RETIREMENT_AGE = 55;
+
+/** The answers the quiz collects — spending target, ages, and strategy. */
 export interface QuizState {
-  persona: PersonaId;
   lifestyle: LifestyleId;
   /** Only meaningful when lifestyle === "custom". */
   customIncome: number;
   currentAge: number;
   retirementAge: number;
+  strategy: StrategyId;
 }
 
-/** Initial answers, seeded from the default persona so every step is valid. */
+/** Initial answers — sensible middle-of-the-road defaults, all steps valid. */
 export function initialQuizState(): QuizState {
-  const persona = FIRE_PERSONAS[0];
   return {
-    persona: persona.id,
-    lifestyle: persona.defaultLifestyle,
-    customIncome: persona.customIncome ?? 40000,
+    lifestyle: "moderate",
+    customIncome: 40000,
     currentAge: 35,
-    retirementAge: persona.retirementAge,
-  };
-}
-
-/** Apply a persona's defaults (lifestyle, custom income, retirement age). */
-export function applyPersona(state: QuizState, personaId: PersonaId): QuizState {
-  const persona = PERSONA_BY_ID[personaId];
-  return {
-    ...state,
-    persona: personaId,
-    lifestyle: persona.defaultLifestyle,
-    customIncome: persona.customIncome ?? state.customIncome,
-    retirementAge: persona.retirementAge,
+    retirementAge: DEFAULT_RETIREMENT_AGE,
+    strategy: "standard",
   };
 }
 
 /**
  * Turn the quiz answers into a complete `FireInputs`. Target income comes from
- * the chosen lifestyle (PLSA) or a custom figure; the persona sets the strategy
- * (Barista adds part-time income to State Pension age; Coast is a normal plan
- * whose coast card lights up). Balances start at 0 and contributions at modest
- * placeholders — the user fills real numbers in later, in the planner.
+ * the chosen lifestyle (PLSA) or a custom figure; the strategy shapes the plan
+ * ("go part-time first" adds part-time income to State Pension age; "coast to
+ * it" is a normal plan whose Coast FIRE card lights up). Balances start at 0
+ * and contributions at modest placeholders — the user fills real numbers in
+ * later, in the planner.
  */
 export function assembleQuizInputs(state: QuizState): FireInputs {
   const targetAnnualIncome = lifestyleIncome(state.lifestyle, state.customIncome);
   const statePensionAge = DEFAULT_ASSUMPTIONS.statePensionAge;
 
-  const barista = state.persona === "barista";
+  const barista = state.strategy === "barista";
 
   return {
     currentAge: state.currentAge,
@@ -174,7 +154,7 @@ export function assembleQuizInputs(state: QuizState): FireInputs {
     giaGrowth: QUIZ_POT_GROWTH,
     sippGrowth: QUIZ_POT_GROWTH,
 
-    // Barista FIRE: part-time work bridges income until the State Pension.
+    // Part-time first: part-time work bridges income until the State Pension.
     partTimeAnnualIncome: barista ? BARISTA_ANNUAL_INCOME : 0,
     partTimeUntilAge: barista ? statePensionAge : 0,
 

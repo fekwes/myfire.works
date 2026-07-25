@@ -1,4 +1,44 @@
-# OnFIRE — project handoff / context
+# OnFIRE — handoff archive (pre-rebrand)
+
+> ## 👉 Read [`HANDOFF-FIREWORKS.md`](./HANDOFF-FIREWORKS.md) instead.
+>
+> That file is the current source of truth: repo map, deploy/env, the
+> identifiers that must never be renamed, known gaps and the backlog. This
+> file is kept for history — where the two disagree, the other one wins.
+
+> **Rebranded.** The product is now **Fireworks** (domain **myfire.works**),
+> wordmark `Fire·works`, design system **"Night & Ember"**. See
+> `docs/DESIGN.md`. Much of the OnFIRE-era detail below still applies to the
+> engine and infrastructure — the name and visual language are what changed.
+>
+> **Internal identifiers were deliberately left alone** so existing data keeps
+> working: the `onfire:plan` localStorage key, `onfire:flag:*` flags, the
+> `onfire:flags` event, the Supabase `portfolios` table and the GitHub repo
+> name. Do not "finish" the rename by changing those.
+>
+> **What shipped in the rebrand/overhaul (branch
+> `claude/onfire-stage-6-onboarding-tghour-95enze`):**
+> 1. Identity — tokens, Trajectory Burst logo/favicon/OG, naming + voice,
+>    `docs/DESIGN.md`.
+> 2. Landing rebuilt — ember CTA, launch-trail reveal, house-style preview
+>    chart, icon markers.
+> 3. Quiz — the redundant Lean/Fat personas are gone (they only re-asked the
+>    spending target); it now asks target → ages → strategy
+>    (`standard | coast | barista`) via `StrategyId` in `lib/quiz.ts`.
+> 4. Profiles — `lib/profiles.ts` + a rebuilt `SavedPlans` with real Load /
+>    rename / copy / delete and **errors that are actually surfaced** (writes
+>    used to fail silently and look successful).
+> 5. Charts — one validated data-viz system (see `docs/DESIGN.md`), plus fixes
+>    for status colour used by position rather than meaning.
+> 6. Finances restructured — `Collapsible` progressive disclosure (Property,
+>    Statutory assumptions) + a `FinancesNav` section rail. Account rebuilt on
+>    the design system with real error/success states. Methodology got a
+>    contents list.
+> 7. Fixes from a full verification sweep — **mobile header overflow** (every
+>    page scrolled sideways for returning users), unlabelled icon buttons,
+>    Share not announced, and print showing dead interactive chrome.
+
+## Original OnFIRE handoff (pre-rebrand)
 
 Read this first when continuing work in a new session. It's the single source
 of truth for where the project stands and what's next.
@@ -23,8 +63,9 @@ tax, plus Coast FIRE and Monte Carlo confidence modelling.
 ## Tech stack
 
 Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind v4 ·
-Recharts · Vitest · `next-themes` · Supabase (`@supabase/ssr`) · Anthropic SDK
-(AI tips route, model `claude-opus-4-8`).
+Recharts · Vitest · `next-themes` · Supabase (`@supabase/ssr`)
+(AI tips route uses **Google Gemini** via `@google/genai` and `GEMINI_API_KEY` —
+not the Anthropic SDK, despite older notes below).
 
 ## Design language ("Ink & Lime")
 
@@ -104,7 +145,8 @@ App builds and deploys with or without these; they switch features on.
    - `NEXT_PUBLIC_SUPABASE_URL` = `https://cnbeqbxgnvruyrtsxwxt.supabase.co`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = anon key (public, browser-safe under RLS)
    - `SUPABASE_SERVICE_ROLE_KEY` = service-role key (secret; for account deletion) — **rotate first, it was shared in chat**
-   - `ANTHROPIC_API_KEY` = secret (AI tips stay disabled until set)
+   - `GEMINI_API_KEY` = secret (AI tips stay disabled until set). The app uses
+     Google Gemini, *not* Anthropic — earlier drafts of this doc said otherwise.
    - `NEXT_PUBLIC_SITE_URL` = the Vercel prod URL (OG cards / sitemap / share links)
 3. **Deploy:** merge PR #1 → `main` (Vercel↔GitHub connected) for production, or push the branch for a preview URL.
 4. Locally, the same vars live in `.env.local` (gitignored, never committed).
@@ -125,4 +167,4 @@ next thing; a deploy to Vercel would make the portfolio piece shareable.
 
 - `docs/ARCHITECTURE.md` still has a few pre-property/pre-2026 phrasings ("21 tests", "two balances", "flat 5% applied identically to ISA and SIPP", "past age 58") — refresh it.
 - Consider showing property value / total net worth somewhere visual (currently only flows via GIA jumps + sustainability).
-- Deploy to Vercel (add `NEXT_PUBLIC_SUPABASE_*` + `ANTHROPIC_API_KEY` env vars; add the deployed URL to Supabase Auth redirect URLs).
+- Deploy to Vercel (add `NEXT_PUBLIC_SUPABASE_*` + `GEMINI_API_KEY` env vars; add the deployed URL to Supabase Auth redirect URLs).

@@ -2,6 +2,7 @@
 
 import { Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Button } from "@/components/ui";
 import type { FireSimulationResult } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
 
@@ -62,22 +63,28 @@ export function AiInsights({ result }: { result: FireSimulationResult }) {
   }
 
   return (
-    <div className="mt-7 rounded-xl border border-border bg-surface-muted p-4">
+    // Generated tips are worth printing; an empty prompt with a button isn't.
+    <div
+      className={`mt-7 rounded-xl border border-border bg-surface-muted p-4 ${
+        tips ? "" : "no-print"
+      }`}
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="size-4 text-primary" />
+          <Sparkles aria-hidden className="size-4 text-primary" />
           <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             AI strategy tips
           </h3>
         </div>
-        <button
+        <Button
           type="button"
+          size="sm"
           onClick={handleAnalyze}
           disabled={loading}
-          className="rounded-full bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="no-print"
         >
-          {loading ? "Analyzing…" : tips ? "Regenerate" : "Get tips"}
-        </button>
+          {loading ? "Analysing…" : tips ? "Regenerate" : "Get tips"}
+        </Button>
       </div>
 
       {error && <p className="mt-3 text-xs text-danger">{error}</p>}

@@ -5,6 +5,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { DEFAULT_FIRE_FORM_VALUES } from "@/components/FireForm";
 import type { FireInputs } from "@/lib/fire-engine";
 import { loadPlanLocal, savePlanLocal } from "@/lib/plan-storage";
+import { PROFILES_TABLE } from "@/lib/profiles";
 import { createClient } from "@/lib/supabase/client";
 
 interface PlanState {
@@ -60,7 +61,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const { data } = await createClient()
-          .from("portfolios")
+          .from(PROFILES_TABLE)
           .select("inputs")
           .order("updated_at", { ascending: false })
           .limit(1);

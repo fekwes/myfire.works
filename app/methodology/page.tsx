@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { ButtonLink } from "@/components/ui";
 
 export const metadata: Metadata = {
-  title: "Methodology — OnFIRE",
+  title: "Methodology",
   description:
-    "Exactly what OnFIRE models: the UK tax rules, statutory ages, GIA/CGT approach, Coast FIRE definition, and every simplifying assumption.",
+    "Exactly what Fireworks models: the UK tax rules, statutory ages, GIA/CGT approach, Coast FIRE definition, and every simplifying assumption.",
 };
 
 function MonoLabel({ children }: { children: React.ReactNode }) {
@@ -46,6 +46,55 @@ function Term({ children }: { children: React.ReactNode }) {
   return <span className="font-medium text-foreground">{children}</span>;
 }
 
+/**
+ * Contents for the sections below. Keep in step with the `<Section>` ids — a
+ * link here that doesn't match a section id goes nowhere.
+ */
+const CONTENTS = [
+  { id: "projection", group: "The engine", title: "A year-by-year projection" },
+  { id: "income-tax", group: "Tax", title: "UK Income Tax (2026/27)" },
+  { id: "cgt", group: "Tax", title: "Capital Gains Tax on the GIA" },
+  { id: "property", group: "Assets", title: "Property" },
+  { id: "sipp", group: "Pensions", title: "SIPP access & the 25%" },
+  { id: "state-pension", group: "Pensions", title: "State Pension" },
+  { id: "confidence", group: "Modes", title: "Confidence (Monte Carlo)" },
+  { id: "coast", group: "Modes", title: "Coast FIRE" },
+  { id: "assumptions", group: "Caveats", title: "Assumptions & simplifications" },
+] as const;
+
+function Contents() {
+  return (
+    <nav
+      aria-labelledby="contents-heading"
+      className="rounded-2xl border border-border bg-surface p-5 sm:p-6"
+    >
+      <h2
+        id="contents-heading"
+        className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground"
+      >
+        Contents
+      </h2>
+      <ol className="mt-3 grid grid-cols-1 gap-x-6 gap-y-0.5 sm:grid-cols-2">
+        {CONTENTS.map((s, i) => (
+          <li key={s.id}>
+            <a
+              href={`#${s.id}`}
+              className="group flex items-baseline gap-2.5 rounded py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <span className="font-mono text-[0.7rem] tabular text-primary">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="group-hover:underline group-hover:underline-offset-2">
+                {s.title}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
 export default function MethodologyPage() {
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
@@ -58,20 +107,24 @@ export default function MethodologyPage() {
           Methodology
         </h1>
         <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-          Everything OnFIRE models, and every corner it cuts. The calculation
+          Everything Fireworks models, and every corner it cuts. The calculation
           engine is a single, unit-tested TypeScript module — this page is the
           plain-English version of what it does.
         </p>
         <p className="mt-5 flex items-start gap-2 rounded-lg border border-border bg-surface-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
           <span aria-hidden>ⓘ</span>
           <span>
-            OnFIRE is an{" "}
+            Fireworks is an{" "}
             <Term>educational tool for learning and exploring</Term> UK FIRE
             scenarios. It is not financial, tax, or investment advice. Tax rules
             change and individual circumstances vary — always consult a
             qualified adviser before acting on any figure here.
           </span>
         </p>
+      </div>
+
+      <div className="mb-5">
+        <Contents />
       </div>
 
       <div className="space-y-5">
@@ -167,7 +220,7 @@ export default function MethodologyPage() {
         >
           <p>
             A General Investment Account has no tax wrapper, so selling units to
-            fund income can realise a capital gain. OnFIRE models this in a
+            fund income can realise a capital gain. Fireworks models this in a
             simplified form:
           </p>
           <ul className="list-disc space-y-1.5 pl-5">
@@ -224,7 +277,7 @@ export default function MethodologyPage() {
         >
           <p>
             You can take <Term>25% of your pension tax-free</Term>, up to a cap
-            of <Term>£268,275</Term> (the Lump Sum Allowance). OnFIRE lets you
+            of <Term>£268,275</Term> (the Lump Sum Allowance). Fireworks lets you
             choose how, under <Term>Lifestyle scenario → Pension access</Term>:
           </p>
           <ul className="list-disc space-y-1.5 pl-5">
@@ -235,7 +288,7 @@ export default function MethodologyPage() {
             </li>
             <li>
               <Term>Lump sum</Term> — take the whole 25% as cash up front. Since
-              it can&apos;t fit in an ISA (£20k/yr limit), OnFIRE places it in
+              it can&apos;t fit in an ISA (£20k/yr limit), Fireworks places it in
               your GIA; the rest of the pension is then fully taxable on
               drawdown.
             </li>
@@ -356,11 +409,15 @@ export default function MethodologyPage() {
               target so the pots draw down less early on.
             </li>
             <li>
-              Onboarding is <Term>persona-first</Term>: the quiz asks a FIRE
-              goal, a lifestyle, and your ages. Lifestyle targets use the{" "}
+              Onboarding asks three things: your{" "}
+              <Term>annual spending target</Term>, your ages, and{" "}
+              <Term>how you plan to get there</Term> (retire fully, coast, or go
+              part-time first). Spending targets use the{" "}
               <Term>UK PLSA Retirement Living Standards 2025</Term> (single,
               excluding housing): Minimum £13,400, Moderate £31,700, Comfortable
-              £43,900 — all editable afterwards.
+              £43,900 — or your own figure, and all editable afterwards. There is
+              no separate &ldquo;Lean / Fat FIRE&rdquo; question: those differ
+              only by the spending target you set here.
             </li>
             <li>
               2026/27 tax figures throughout (income tax and CGT thresholds are
@@ -377,12 +434,7 @@ export default function MethodologyPage() {
       </div>
 
       <div className="mt-8 flex flex-wrap items-center gap-4 text-sm">
-        <Link
-          href="/planner"
-          className="rounded-full bg-foreground px-4 py-2 font-semibold text-background transition-opacity hover:opacity-90"
-        >
-          ← Back to the planner
-        </Link>
+        <ButtonLink href="/planner">← Back to the planner</ButtonLink>
         <a
           href="https://github.com/fekwes/onfire"
           target="_blank"

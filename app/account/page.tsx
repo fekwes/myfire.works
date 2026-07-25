@@ -3,7 +3,7 @@ import { AccountPanel } from "@/components/AccountPanel";
 
 export const metadata: Metadata = {
   title: "Account",
-  description: "Manage your OnFIRE sign-in and saved data.",
+  description: "Manage your Fireworks sign-in and saved data.",
 };
 
 export default function AccountPage() {

@@ -20,10 +20,19 @@ function sparklinePath(values: number[], width: number, height: number) {
   const max = Math.max(...values, 1);
   const stepX = width / (values.length - 1);
   const y = (v: number) => height - (v / max) * (height - 6) - 3;
+  const point = (v: number, i: number) => ({ x: i * stepX, y: y(v) });
   const line = values
-    .map((v, i) => `${i === 0 ? "M" : "L"}${(i * stepX).toFixed(1)},${y(v).toFixed(1)}`)
+    .map((v, i) => {
+      const p = point(v, i);
+      return `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+    })
     .join(" ");
-  return { line, area: `${line} L${width},${height} L0,${height} Z` };
+  const last = point(values[values.length - 1], values.length - 1);
+  return {
+    line,
+    area: `${line} L${width},${height} L0,${height} Z`,
+    end: last,
+  };
 }
 
 export function LandingHeroPreview() {
@@ -38,7 +47,7 @@ export function LandingHeroPreview() {
       (y.isaBalanceEnd + y.giaBalanceEnd + y.sippBalanceEnd) /
       (1 + infl) ** (y.age - SAMPLE.currentAge),
   );
-  const { line, area } = sparklinePath(values, 320, 64);
+  const { line, area, end } = sparklinePath(values, 320, 64);
 
   return (
     <div className="landing-rise rounded-3xl border border-border bg-surface p-6 shadow-[var(--shadow-lg)] [animation-delay:120ms]">
@@ -67,21 +76,41 @@ export function LandingHeroPreview() {
       </p>
 
       <svg
-        viewBox="0 0 320 64"
-        className="mt-5 w-full"
-        preserveAspectRatio="none"
+        viewBox="0 0 320 70"
+        className="mt-5 w-full overflow-visible"
+        preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label="Projected assets rising over time"
+        aria-label="Projected assets rising over time, ending at your FIRE moment"
       >
-        <path d={area} fill="var(--brand)" opacity={0.14} />
+        <defs>
+          <linearGradient id="hero-preview-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.28} />
+            <stop offset="100%" stopColor="var(--brand)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        {/* faint baseline */}
+        <line
+          x1={0}
+          y1={64}
+          x2={320}
+          y2={64}
+          stroke="var(--border)"
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+        />
+        <path d={area} fill="url(#hero-preview-fill)" />
         <path
           d={line}
           fill="none"
           stroke="var(--primary)"
-          strokeWidth={2}
+          strokeWidth={2.25}
           strokeLinecap="round"
+          strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
         />
+        {/* the burst — the FI moment at the end of the trail */}
+        <circle cx={end.x} cy={end.y} r={5.5} fill="var(--brand)" opacity={0.28} />
+        <circle cx={end.x} cy={end.y} r={2.75} fill="var(--primary)" />
       </svg>
 
       <div className="mt-5 grid grid-cols-2 gap-3">

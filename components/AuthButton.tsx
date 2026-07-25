@@ -2,14 +2,18 @@
 
 import { ChevronDown, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { Menu } from "@/components/ui";
+import { Button, Menu } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+
+const authInputClasses =
+  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30";
 
 export function AuthButton() {
   const { user, loading, configured } = useAuth();
   const router = useRouter();
+  const panelId = useId();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -57,17 +61,23 @@ export function AuthButton() {
 
   return (
     <div className="relative">
-      <button
+      <Button
         type="button"
+        size="sm"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-xs font-semibold text-background transition-opacity hover:opacity-90"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-controls={panelId}
       >
-        <UserIcon className="size-3.5" />
+        <UserIcon aria-hidden className="size-3.5" />
         Sign in
-      </button>
+      </Button>
 
       {open && (
-        <div className="absolute right-0 top-full z-40 mt-2 w-72 rounded-xl border border-border bg-surface p-4 shadow-xl">
+        <div
+          id={panelId}
+          className="absolute right-0 top-full z-40 mt-2 w-72 rounded-xl border border-border bg-surface p-4 shadow-xl"
+        >
           <div className="flex items-center gap-1 rounded-full border border-border bg-surface-muted p-1 text-xs">
             {(["signin", "signup"] as const).map((m) => (
               <button
@@ -89,38 +99,47 @@ export function AuthButton() {
           </div>
 
           <form onSubmit={submit} className="mt-3 space-y-2.5">
-            <input
-              type="email"
-              required
-              placeholder="you@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-            />
-            <input
-              type="password"
-              required
-              minLength={6}
-              placeholder="Password (min 6 chars)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-            />
-            <button
-              type="submit"
-              disabled={busy}
-              className="w-full rounded-lg bg-foreground px-3 py-2 text-sm font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {busy
-                ? "…"
-                : mode === "signin"
-                  ? "Sign in"
-                  : "Create account"}
-            </button>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-foreground">
+                Email
+              </span>
+              <input
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="you@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={authInputClasses}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-foreground">
+                Password
+              </span>
+              <input
+                type="password"
+                required
+                minLength={6}
+                autoComplete={
+                  mode === "signin" ? "current-password" : "new-password"
+                }
+                placeholder="At least 6 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={authInputClasses}
+              />
+            </label>
+            <Button type="submit" disabled={busy} className="w-full">
+              {busy ? "…" : mode === "signin" ? "Sign in" : "Create account"}
+            </Button>
           </form>
 
           {message && (
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            <p
+              role="alert"
+              className="mt-2 text-xs leading-relaxed text-muted-foreground"
+            >
               {message}
             </p>
           )}

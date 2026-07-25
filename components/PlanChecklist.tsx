@@ -4,8 +4,9 @@ import { ArrowRight, Check, ChevronDown, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { Spark } from "@/components/Logo";
 import { usePlan } from "@/components/PlanProvider";
-import { Card } from "@/components/ui";
+import { ButtonLink, Card } from "@/components/ui";
 import {
   buildChecklist,
   type ChecklistFlags,
@@ -75,15 +76,19 @@ export function PlanChecklist() {
   const pct = Math.round((done / total) * 100);
 
   return (
-    <Card>
+    // Setup prompts are for the screen, not for a printed plan.
+    <Card className="no-print">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             {complete ? "Your plan is all set" : "Complete your plan"}
           </h3>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
             {complete ? (
-              <>Nice — you&apos;ve set up every part of your plan. 🎉</>
+              <>
+                <Spark size={14} className="shrink-0 text-brand" />
+                Nice — you&apos;ve set up every part of your plan.
+              </>
             ) : (
               <>
                 <span className="font-semibold text-foreground tabular">
@@ -125,13 +130,10 @@ export function PlanChecklist() {
             </p>
           </div>
           {next.href && (
-            <Link
-              href={next.href}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background transition-opacity hover:opacity-90"
-            >
+            <ButtonLink href={next.href} size="sm" className="shrink-0">
               {next.cta}
-              <ArrowRight className="size-3.5" />
-            </Link>
+              <ArrowRight aria-hidden className="size-3.5" />
+            </ButtonLink>
           )}
         </div>
       )}
