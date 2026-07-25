@@ -303,11 +303,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
         </Field>
       </Section>
 
-      <Section
-        id="balances"
-        title="Balances & contributions"
-        description="What you hold now and add each month — check your provider portals or last statements. A rough figure is fine; leave any at £0."
-      >
+      <Section id="balances" title="Balances & contributions">
         {/* Dots match the chart's fixed account→hue binding: ISA ember,
             SIPP violet, GIA teal. Keep these in step with AssetTimelineChart. */}
         <Block

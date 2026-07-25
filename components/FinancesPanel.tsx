@@ -16,7 +16,7 @@ import { ButtonLink, Card } from "@/components/ui";
  */
 export function FinancesPanel() {
   const { inputs, setInputs } = usePlan();
-  const { configured } = useAuth();
+  const { configured, user } = useAuth();
 
   return (
     <div className="space-y-5">
@@ -41,21 +41,27 @@ export function FinancesPanel() {
         </div>
       </Card>
 
-      {configured && (
-        <Card>
-          <h2 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Profiles
-          </h2>
-          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-            Keep as many versions of your plan as you like — &ldquo;retire at
-            55&rdquo;, &ldquo;with the rental&rdquo;, a leaner target — and load
-            any of them back.
-          </p>
-          <div className="mt-4">
-            <SavedPlans inputs={inputs} onLoad={setInputs} />
-          </div>
-        </Card>
-      )}
+      {/* Before sign-in this is just a one-line nudge (SavedPlans renders the
+          dashed prompt itself); the full Profiles card only appears once signed
+          in, when there's actually something to manage. */}
+      {configured &&
+        (user ? (
+          <Card>
+            <h2 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              Profiles
+            </h2>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              Keep as many versions of your plan as you like — &ldquo;retire at
+              55&rdquo;, &ldquo;with the rental&rdquo;, a leaner target — and load
+              any of them back.
+            </p>
+            <div className="mt-4">
+              <SavedPlans inputs={inputs} onLoad={setInputs} />
+            </div>
+          </Card>
+        ) : (
+          <SavedPlans inputs={inputs} onLoad={setInputs} />
+        ))}
 
       {/* Rail alongside the form on large screens; a chip row above it below. */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[11rem_minmax(0,1fr)]">

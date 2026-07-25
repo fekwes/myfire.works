@@ -28,15 +28,10 @@ export function LandingCta() {
             </ButtonLink>
           </>
         ) : (
-          <>
-            <ButtonLink href="/start" variant="brand" className="px-6 py-3">
-              Build my plan
-              <ArrowRight className="size-4" />
-            </ButtonLink>
-            <ButtonLink href="/planner" variant="secondary" className="px-6 py-3">
-              Skip to the planner
-            </ButtonLink>
-          </>
+          <ButtonLink href="/start" variant="brand" className="px-6 py-3">
+            Build my plan
+            <ArrowRight className="size-4" />
+          </ButtonLink>
         )}
       </div>
 

@@ -41,7 +41,7 @@ export function FundSelect({
           <option value="custom">Custom growth rate</option>
           {VANGUARD_FUNDS.map((f) => (
             <option key={f.id} value={f.id}>
-              {f.name} · OCF {pct(f.ocf)}
+              {f.name}
             </option>
           ))}
         </select>
