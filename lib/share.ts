@@ -1,4 +1,5 @@
 import type { FireInputs } from "./fire-engine";
+import { sanitisePlanInput } from "./plan-storage";
 
 /**
  * Encode a plan into a URL-safe string for a read-only share link
@@ -14,23 +15,17 @@ export function encodePlan(inputs: FireInputs): string {
 /**
  * Decode a shared-plan parameter back into `FireInputs`, or `null` if it's
  * missing, malformed, or doesn't look like a plan. Never throws.
+ *
+ * A share link is the least trusted input in the app — anyone can hand you
+ * one — so it goes through exactly the same validation as a stored plan
+ * rather than a looser check of its own. (`typeof x === "number"` isn't
+ * enough on its own: `JSON.parse('{"currentAge":1e999}')` yields Infinity.)
  */
 export function decodePlan(param: string | null | undefined): FireInputs | null {
   if (!param) return null;
   try {
     const b64 = param.replace(/-/g, "+").replace(/_/g, "/");
-    const parsed = JSON.parse(atob(b64));
-    if (typeof parsed !== "object" || parsed === null) return null;
-    // Sanity-check the fields every plan must have.
-    const p = parsed as Record<string, unknown>;
-    if (
-      typeof p.currentAge !== "number" ||
-      typeof p.retirementAge !== "number" ||
-      typeof p.targetAnnualIncome !== "number"
-    ) {
-      return null;
-    }
-    return parsed as FireInputs;
+    return sanitisePlanInput(JSON.parse(atob(b64)));
   } catch {
     return null;
   }

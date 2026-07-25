@@ -78,6 +78,11 @@ export function QuizNumberInput({
   step?: number;
   autoFocus?: boolean;
 }) {
+  // Same contract as the planner's NumberInput: the field can be empty while
+  // you retype, but only finite values reach the quiz state.
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? (Number.isFinite(value) ? String(value) : "");
+
   return (
     <div className="flex items-center rounded-xl border border-border bg-background transition-colors hover:border-muted-foreground/40 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30">
       {prefix && (
@@ -88,11 +93,16 @@ export function QuizNumberInput({
         inputMode="decimal"
         // biome-ignore lint/a11y/noAutofocus: intentional for a one-field-per-screen quiz
         autoFocus={autoFocus}
-        value={Number.isNaN(value) ? "" : value}
+        value={shown}
         min={Number.isFinite(min) ? min : undefined}
         step={step}
         onFocus={(e) => e.target.select()}
-        onChange={(e) => onChange(e.target.valueAsNumber)}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          const next = e.target.valueAsNumber;
+          if (Number.isFinite(next)) onChange(next);
+        }}
+        onBlur={() => setDraft(null)}
         className="tabular w-full min-w-0 bg-transparent px-4 py-3 text-lg outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
       {suffix && (

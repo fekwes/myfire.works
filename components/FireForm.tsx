@@ -2,7 +2,7 @@
 
 import { Info } from "lucide-react";
 import type { ReactNode } from "react";
-import { useId } from "react";
+import { useId, useState } from "react";
 import { FundSelect } from "@/components/FundSelect";
 import { Collapsible } from "@/components/ui";
 import { setChecklistFlag } from "@/lib/checklist";
@@ -112,6 +112,13 @@ export function NumberInput({
   min?: number;
   step?: number;
 }) {
+  // While the field is being edited it holds raw text, so clearing it to type
+  // a new number shows an empty box — but only finite values ever reach the
+  // plan. Emitting the NaN from an empty input used to poison every derived
+  // figure ("£NaN") and persist as null.
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? (Number.isFinite(value) ? String(value) : "");
+
   return (
     <div className="flex items-center rounded-lg border border-border bg-background transition-colors hover:border-muted-foreground/40 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30">
       {prefix && (
@@ -120,11 +127,18 @@ export function NumberInput({
       <input
         type="number"
         inputMode="decimal"
-        value={Number.isNaN(value) ? "" : value}
+        value={shown}
         min={Number.isFinite(min) ? min : undefined}
         step={step}
         onFocus={(e) => e.target.select()}
-        onChange={(e) => onChange(e.target.valueAsNumber)}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          const next = e.target.valueAsNumber;
+          if (Number.isFinite(next)) onChange(next);
+        }}
+        // Blur commits: drop the draft so the field shows the stored value
+        // again (an abandoned empty field reverts rather than wiping the plan).
+        onBlur={() => setDraft(null)}
         className="tabular w-full min-w-0 bg-transparent px-3 py-2 text-sm outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
       {suffix && (
