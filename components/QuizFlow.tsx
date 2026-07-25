@@ -139,6 +139,7 @@ function StepLifestyle({
     <StepShell
       heading="How much will you spend each year?"
       helper="Take-home spending per year, in today's money. Benchmarks are the UK PLSA Retirement Living Standards (single, excluding housing) — this one number drives your FIRE target."
+      why="Your yearly spending is the biggest lever on your FIRE number — everything else in the plan sizes around it."
       onContinue={onNext}
     >
       <div className="grid gap-2.5">
@@ -213,6 +214,7 @@ function StepAges({
     <StepShell
       heading="Your age, and when you'd like to stop"
       helper="This sets the whole timeline — how long you're building, and how long the money has to last."
+      why="Your ages fix the timeline: the years left to build the pot, and the years it then has to cover."
       onContinue={onNext}
       onBack={onBack}
     >
@@ -260,6 +262,7 @@ function StepStrategy({
     <StepShell
       heading="How do you want to get there?"
       helper={`Three routes to age ${retirementAge}. You can change this — and everything else — in the planner.`}
+      why="Your route changes the shape of the plan — when you stop adding money, and whether part-time work bridges you to the State Pension."
       onContinue={onNext}
       onBack={onBack}
     >
@@ -313,6 +316,7 @@ function StepSavings({
     <StepShell
       heading="Roughly what have you saved so far?"
       helper="A ballpark total across your ISAs, pensions and other savings is fine. This is the one number that turns your result from a guess into a real verdict — but you can skip it."
+      why="Without a starting balance we can only project from your contributions — a rough figure is what makes the verdict actually about you."
       onContinue={onNext}
       onBack={onBack}
       continueLabel="See my number"
