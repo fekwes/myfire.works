@@ -154,13 +154,19 @@ body {
   background: color-mix(in srgb, var(--accent) 38%, transparent);
 }
 
-/* Baseline keyboard-focus ring for anything interactive. `:where()` keeps the
- * specificity at 0, so a component's own focus styles (Button, inputs) always
- * win; elements without any get this safety net. */
-:where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-  border-radius: 4px;
+/* Baseline keyboard-focus ring for anything interactive. It lives in
+ * `@layer base` on purpose: an *unlayered* rule beats every Tailwind utility
+ * regardless of specificity (cascade layers outrank specificity), so a
+ * component's own `outline-none` could never win — it drew a second ember
+ * outline inside a wrapped input, around the field only and missing its £ and
+ * suffix. In `base`, the later `utilities` layer wins, so a component's own
+ * focus styles override it; elements without any still get this safety net. */
+@layer base {
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }
 
 /* Honour reduced-motion globally — neutralise animations/transitions for users
