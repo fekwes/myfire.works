@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { Button, ButtonLink, Card } from "@/components/ui";
 import { clearPlanLocal } from "@/lib/plan-storage";
+import { PROFILES_TABLE } from "@/lib/profiles";
 import { createClient } from "@/lib/supabase/client";
 
 const inputClasses =
@@ -163,10 +164,10 @@ function SignedIn({ email, userId }: { email: string; userId: string }) {
     try {
       const res = await fetch("/api/account/delete", { method: "POST" });
       if (!res.ok) {
-        await createClient().from("portfolios").delete().eq("user_id", userId);
+        await createClient().from(PROFILES_TABLE).delete().eq("user_id", userId);
       }
     } catch {
-      await createClient().from("portfolios").delete().eq("user_id", userId);
+      await createClient().from(PROFILES_TABLE).delete().eq("user_id", userId);
     }
     clearPlanLocal();
     await createClient().auth.signOut();

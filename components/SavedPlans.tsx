@@ -14,6 +14,7 @@ import {
   nextCopyName,
   normaliseProfileName,
   type Profile,
+  PROFILES_TABLE,
   sortProfiles,
 } from "@/lib/profiles";
 import { createClient } from "@/lib/supabase/client";
@@ -51,7 +52,7 @@ export function SavedPlans({
   const fetchProfiles = useCallback(async () => {
     const supabase = createClient();
     const { data, error: readError } = await supabase
-      .from("portfolios")
+      .from(PROFILES_TABLE)
       .select("id, name, inputs, updated_at");
     return {
       profiles: sortProfiles((data as Profile[]) ?? []),
@@ -122,7 +123,7 @@ export function SavedPlans({
     setBusy(true);
     const supabase = createClient();
     const { data, error: writeError } = await supabase
-      .from("portfolios")
+      .from(PROFILES_TABLE)
       .insert({
         user_id: user!.id,
         name: newName,
@@ -144,7 +145,7 @@ export function SavedPlans({
     setBusy(true);
     const supabase = createClient();
     const { error: writeError } = await supabase
-      .from("portfolios")
+      .from(PROFILES_TABLE)
       .update({ inputs, updated_at: new Date().toISOString() })
       .eq("id", profile.id);
     setBusy(false);
@@ -193,7 +194,7 @@ export function SavedPlans({
     setBusy(true);
     const supabase = createClient();
     const { error: writeError } = await supabase
-      .from("portfolios")
+      .from(PROFILES_TABLE)
       .update({ name: next, updated_at: new Date().toISOString() })
       .eq("id", profile.id);
     setBusy(false);
@@ -207,7 +208,7 @@ export function SavedPlans({
     setBusy(true);
     const supabase = createClient();
     const { error: writeError } = await supabase
-      .from("portfolios")
+      .from(PROFILES_TABLE)
       .delete()
       .eq("id", profile.id);
     setBusy(false);

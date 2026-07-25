@@ -1,6 +1,15 @@
 import type { FireInputs } from "./fire-engine";
 
 /**
+ * The Supabase table saved profiles live in.
+ *
+ * The name predates the Fireworks rebrand and is deliberately kept: it is the
+ * live table in every existing project, so renaming it here would orphan every
+ * plan anyone has already saved. `lib/identifiers.test.ts` pins it.
+ */
+export const PROFILES_TABLE = "portfolios";
+
+/**
  * A saved profile — one named set of plan inputs, stored per user in the
  * `portfolios` table. "Profile" is the user-facing word; the table name is
  * historical and deliberately left alone so existing saves keep working.

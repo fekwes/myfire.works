@@ -16,11 +16,24 @@ export function savePlanLocal(inputs: FireInputs): void {
   }
 }
 
-/** The fields a plan can't be simulated without. */
-const REQUIRED_NUMERIC_FIELDS = [
+/**
+ * The three figures a plan is meaningless without. There's no sensible
+ * fallback for "how old are you" or "what do you want to live on", so a plan
+ * missing them is rejected outright.
+ */
+const ESSENTIAL_FIELDS = [
   "currentAge",
   "retirementAge",
   "targetAnnualIncome",
+] as const;
+
+/**
+ * Numbers the engine needs present, but where zero is a perfectly sensible
+ * reading of "absent" — someone with no GIA, or a link from an older build
+ * that didn't carry a field. Filled in rather than used to reject the plan,
+ * so an old or partial share link still opens.
+ */
+const ZERO_FILLED_FIELDS = [
   "isaBalance",
   "isaMonthlyContribution",
   "sippBalance",
@@ -30,15 +43,20 @@ const REQUIRED_NUMERIC_FIELDS = [
 /**
  * Make a parsed blob safe to hand to the engine, or reject it.
  *
- * Stored plans are ordinary JSON that anything can have written — an older
- * build, a hand-edited devtools value, or a field that was mid-edit when the
- * tab closed (`NaN` serialises to `null`). A single non-numeric value would
- * otherwise flow straight into the projection and surface as `£NaN`, or worse
- * as a quietly wrong figure, so:
+ * Plans arrive as ordinary JSON that anything can have written — an older
+ * build, a hand-edited devtools value, a truncated share link someone pasted,
+ * or a field that was mid-edit when the tab closed (`NaN` serialises to
+ * `null`). A single non-numeric value would otherwise flow straight into the
+ * projection and surface as `£NaN`, or worse as a quietly wrong figure.
  *
- * - a required field that isn't a finite number invalidates the whole plan
- *   (better a clean start than a plan silently computed from age 0);
- * - an optional field that isn't a finite number is dropped, letting the
+ * The rule is graded by how recoverable each field is, so validation stays
+ * safe without being brittle about old links:
+ *
+ * - an **essential** field (the ages, the target) that isn't a finite number
+ *   invalidates the plan — there's no honest default for it;
+ * - a **balance or contribution** that's missing or unusable becomes 0, which
+ *   is what "not provided" actually means for money;
+ * - any other field that isn't a finite number is dropped, letting the
  *   engine's own default apply.
  */
 export function sanitisePlanInput(parsed: unknown): FireInputs | null {
@@ -47,7 +65,7 @@ export function sanitisePlanInput(parsed: unknown): FireInputs | null {
   }
   const source = parsed as Record<string, unknown>;
 
-  for (const key of REQUIRED_NUMERIC_FIELDS) {
+  for (const key of ESSENTIAL_FIELDS) {
     if (typeof source[key] !== "number" || !Number.isFinite(source[key])) {
       return null;
     }
@@ -58,6 +76,9 @@ export function sanitisePlanInput(parsed: unknown): FireInputs | null {
     if (typeof value === "number" && !Number.isFinite(value)) continue;
     if (value === null || value === undefined) continue;
     clean[key] = value;
+  }
+  for (const key of ZERO_FILLED_FIELDS) {
+    if (typeof clean[key] !== "number") clean[key] = 0;
   }
   return clean as unknown as FireInputs;
 }

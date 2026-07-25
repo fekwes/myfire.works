@@ -85,6 +85,60 @@ describe("plan-storage", () => {
   });
 });
 
+describe("sanitisePlanInput — how forgiving it is, by field", () => {
+  const essentials = {
+    currentAge: 40,
+    retirementAge: 52,
+    targetAnnualIncome: 30000,
+  };
+
+  it("rejects a plan missing an essential figure", () => {
+    for (const key of Object.keys(essentials)) {
+      const partial: Record<string, unknown> = { ...essentials };
+      delete partial[key];
+      expect(sanitisePlanInput(partial)).toBeNull();
+    }
+  });
+
+  /**
+   * Old and partial links must still open. A plan carrying only the three
+   * essentials is a real plan — someone with nothing saved yet — so the
+   * balances fill in at zero rather than the link being refused.
+   */
+  it("opens a plan that carries only the essentials, zero-filling money", () => {
+    const out = sanitisePlanInput(essentials);
+    expect(out).not.toBeNull();
+    expect(out?.currentAge).toBe(40);
+    expect(out?.isaBalance).toBe(0);
+    expect(out?.isaMonthlyContribution).toBe(0);
+    expect(out?.sippBalance).toBe(0);
+    expect(out?.sippMonthlyContribution).toBe(0);
+  });
+
+  it("zero-fills a balance that arrived unusable rather than rejecting", () => {
+    const out = sanitisePlanInput({
+      ...essentials,
+      isaBalance: null,
+      sippBalance: Number.NaN,
+      isaMonthlyContribution: "600",
+    });
+    expect(out?.isaBalance).toBe(0);
+    expect(out?.sippBalance).toBe(0);
+    expect(out?.isaMonthlyContribution).toBe(0);
+  });
+
+  it("still refuses a non-finite essential", () => {
+    expect(
+      sanitisePlanInput({ ...essentials, currentAge: Number.POSITIVE_INFINITY }),
+    ).toBeNull();
+  });
+
+  it("leaves real balances untouched", () => {
+    const out = sanitisePlanInput({ ...essentials, isaBalance: 120000 });
+    expect(out?.isaBalance).toBe(120000);
+  });
+});
+
 describe("sanitisePlanInput", () => {
   const valid = {
     currentAge: 40,
@@ -106,11 +160,14 @@ describe("sanitisePlanInput", () => {
     }
   });
 
-  it.each(Object.keys(valid))("rejects a non-finite %s", (key) => {
-    expect(sanitisePlanInput({ ...valid, [key]: Number.NaN })).toBeNull();
-    expect(sanitisePlanInput({ ...valid, [key]: null })).toBeNull();
-    expect(sanitisePlanInput({ ...valid, [key]: "40" })).toBeNull();
-  });
+  it.each(["currentAge", "retirementAge", "targetAnnualIncome"])(
+    "rejects a non-finite %s",
+    (key) => {
+      expect(sanitisePlanInput({ ...valid, [key]: Number.NaN })).toBeNull();
+      expect(sanitisePlanInput({ ...valid, [key]: null })).toBeNull();
+      expect(sanitisePlanInput({ ...valid, [key]: "40" })).toBeNull();
+    },
+  );
 
   it("strips non-finite optional numbers so engine defaults apply", () => {
     const out = sanitisePlanInput({

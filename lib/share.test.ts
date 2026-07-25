@@ -48,9 +48,23 @@ describe("share encode/decode", () => {
     expect(decodePlan(link)).toBeNull();
   });
 
-  it("rejects a link missing a required balance", () => {
+  /**
+   * Backward compatibility: a link from an older build (or one that simply
+   * never carried a balance) still opens, with the money zero-filled. Only a
+   * link missing something with no honest default is refused.
+   */
+  it("opens a link missing a balance, zero-filling it", () => {
     const withoutIsa: Record<string, unknown> = { ...inputs };
     delete withoutIsa.isaBalance;
-    expect(decodePlan(encodePlan(withoutIsa as never))).toBeNull();
+    const decoded = decodePlan(encodePlan(withoutIsa as never));
+    expect(decoded).not.toBeNull();
+    expect(decoded?.isaBalance).toBe(0);
+    expect(decoded?.currentAge).toBe(inputs.currentAge);
+  });
+
+  it("rejects a link missing an essential figure", () => {
+    const withoutAge: Record<string, unknown> = { ...inputs };
+    delete withoutAge.currentAge;
+    expect(decodePlan(encodePlan(withoutAge as never))).toBeNull();
   });
 });
