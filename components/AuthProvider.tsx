@@ -28,10 +28,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!isSupabaseConfigured) return;
     const supabase = createClient();
 
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth
+      .getUser()
+      .then(({ data }) => setUser(data.user ?? null))
+      // A flaky network must not brick the auth UI: without this, `loading`
+      // stayed true forever and the Sign in button never rendered.
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
 
     const {
       data: { subscription },

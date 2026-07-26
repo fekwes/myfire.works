@@ -2,9 +2,11 @@
 
 import { ChevronDown, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { usePlan } from "@/components/PlanProvider";
 import { Button, Menu } from "@/components/ui";
+import { PROFILES_TABLE } from "@/lib/profiles";
 import { createClient } from "@/lib/supabase/client";
 
 const authInputClasses =
@@ -12,14 +14,33 @@ const authInputClasses =
 
 export function AuthButton() {
   const { user, loading, configured } = useAuth();
+  const { inputs } = usePlan();
   const router = useRouter();
   const panelId = useId();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  // Dismiss the popover on outside-click or Escape.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   if (!configured || loading) return null;
 
@@ -45,9 +66,48 @@ export function AuthButton() {
           options: { emailRedirectTo: `${location.origin}/auth/callback` },
         });
         if (error) throw error;
-        if (data.session) setOpen(false);
-        else setMessage("Check your email to confirm your account.");
+        if (data.session) {
+          // Confirmation off: they're signed in now. Persist the plan they just
+          // built as their first profile so "sign up" actually saves it, then
+          // land them in the app.
+          try {
+            await supabase.from(PROFILES_TABLE).insert({
+              user_id: data.session.user.id,
+              name: "My plan",
+              inputs,
+              updated_at: new Date().toISOString(),
+            });
+          } catch {
+            // Non-fatal — the plan is still safe locally.
+          }
+          setOpen(false);
+          router.push("/planner");
+        } else {
+          setMessage(
+            "Check your email to confirm your account, then sign in — your plan is saved on this device meanwhile.",
+          );
+        }
       }
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function forgotPassword() {
+    if (!email) {
+      setMessage("Enter your email above first, then tap “Forgot password”.");
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    try {
+      const { error } = await createClient().auth.resetPasswordForEmail(email, {
+        redirectTo: `${location.origin}/account`,
+      });
+      if (error) throw error;
+      setMessage("Password reset link sent — check your email.");
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -60,7 +120,7 @@ export function AuthButton() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <Button
         type="button"
         size="sm"
@@ -135,6 +195,17 @@ export function AuthButton() {
             </Button>
           </form>
 
+          {mode === "signin" && (
+            <button
+              type="button"
+              onClick={forgotPassword}
+              disabled={busy}
+              className="mt-2 text-xs text-muted-foreground transition-colors hover:text-foreground hover:underline disabled:opacity-50"
+            >
+              Forgot password?
+            </button>
+          )}
+
           {message && (
             <p
               role="alert"
@@ -172,7 +243,11 @@ function AccountMenu({ email }: { email: string }) {
         {
           label: "Sign out",
           icon: <LogOut className="size-3.5" />,
-          onSelect: () => createClient().auth.signOut(),
+          onSelect: async () => {
+            await createClient().auth.signOut();
+            // Full reload home so no signed-in UI lingers.
+            window.location.href = "/";
+          },
         },
       ]}
     />
