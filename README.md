@@ -1,40 +1,52 @@
-# OnFIRE — UK Financial Independence, Retire Early Planner
+# Fireworks — UK FIRE planner
 
 [![CI](https://github.com/fekwes/onfire/actions/workflows/ci.yml/badge.svg)](https://github.com/fekwes/onfire/actions/workflows/ci.yml)
 
-A dashboard that models a UK FIRE plan across the three phases that actually determine whether early retirement works in the UK: drawing down an **ISA/GIA bridge** before your pension is accessible, taking the **25% tax-free SIPP lump sum** and paying UK income tax on the rest, and letting the **State Pension** offset your drawdown from age 67.
-
-Built with [Next.js](https://nextjs.org), TypeScript, Tailwind CSS, and [Claude Code](https://claude.com/product/claude-code) as an AI pair-programmer — see [How this was built](#how-this-was-built) below for exactly what that means and what I did versus what the AI did.
+A UK **FIRE** (Financial Independence, Retire Early) planner that models the three phases that actually decide whether early retirement works in the UK — drawing down an **ISA/GIA bridge** before your pension unlocks, taking the **25% tax-free SIPP lump sum** and paying real income tax on the rest, and letting the **State Pension** offset your drawdown later — with the **UK tax you'll actually pay**, year by year.
 
 > For planning purposes only. Not financial advice.
 
+The name is a double meaning: **FIRE** × **fireworks** — the celebratory moment a plan "goes off" — and the domain (`myfire.works`) reads as *it works*. Built with [Next.js](https://nextjs.org) and [Claude Code](https://claude.com/product/claude-code) as an AI pair-programmer; see [How this was built](#how-this-was-built).
+
 ## What it does
 
-1. **Bridge phase** — from your target retirement age until your SIPP unlocks (57 by default; the UK minimum pension age rises to 57 in April 2028), income is drawn from your **ISA** (tax-free) first, then your **GIA** (with Capital Gains Tax on the gains portion of each withdrawal).
-2. **SIPP phase** — at your access age, up to £268,275 (25% of the pot) is taken as a tax-free lump sum; the rest is drawn down and taxed against 2026/27 UK income tax bands.
-3. **State Pension phase** — from State Pension age (67 by default), State Pension income reduces how much SIPP needs to be withdrawn each year to hit your target.
+1. **Bridge phase** — from your target retirement age until your SIPP unlocks (57 from April 2028), income comes from your **ISA** (tax-free) first, then your **GIA** (Capital Gains Tax on the gains portion of each withdrawal).
+2. **Pension phase** — at your access age, up to £268,275 (25% of the pot) is available tax-free; the rest is drawn against 2026/27 UK income-tax bands.
+3. **State Pension phase** — from State Pension age (67 by default), it reduces how much your pots must fund.
 
-You enter your ages, target income, and current ISA/GIA/SIPP balances and contributions — the statutory ages, State Pension amount and growth rate are all editable under **Assumptions**. The app simulates every year to your life-expectancy horizon and shows the asset timeline, the exact year you cross from bridge funding to SIPP funding, and whether your net income holds up in every year.
+On top of the core drawdown engine:
+
+- **Your FIRE number** — bisects the pot you need at retirement vs. what you're on course for, in today's money.
+- **Per-wrapper portfolios** — build a real portfolio in each of ISA/GIA/SIPP from a searchable ~40-fund UK catalogue (or custom holdings), with weights and fee-aware growth. **Import with AI** reads a pasted broker statement or a CSV.
+- **Property** — a rental (taxable income, optional later sale) and a home (net worth, optional downsize to release tax-free cash).
+- **Confidence** — a Monte Carlo pass stress-tests the plan against bad markets, seeded from your actual equity/bond split.
+- **Coast FIRE**, inflation in real terms, share links, CSV/JSON/print export, and optional saved profiles behind sign-in.
+
+## The interesting part: the engine
+
+[`lib/fire-engine.ts`](lib/fire-engine.ts) is a standalone, fully-tested TypeScript module — no framework dependencies — that models:
+
+- **UK income tax** (2026/27, rest-of-UK) including the £100,000–£125,140 personal-allowance taper, verified against known HMRC figures.
+- **A gross-up solver.** Given a target *net* income plus other taxable income (the State Pension, rental, part-time work), there's no clean closed-form inverse of a progressive tax function with a tapering allowance — so the engine uses **bisection search** instead of a hand-derived band-by-band formula. A small, deliberate trade of "clever maths" for "obviously correct and easy to verify".
+- **A full year-by-year simulation** — tracking ISA/GIA/SIPP separately (each with its own growth), applying contributions, the 25% lump sum, property events, and the withdrawal waterfall — producing the data the dashboard charts directly.
+
+**One design rule worth calling out:** returns are always **deterministic**. A wrapper is a balance plus a single net-of-fees growth rate. When you build a portfolio, that rate is *derived* from your holdings — each holding's expected return comes from its **asset class** ([`lib/assets.ts`](lib/assets.ts)), never a per-fund guess. Even the AI import only classifies fund names into asset classes; it never invents a return. So the whole projection is reproducible from the URL, and nothing an LLM says can move a number.
+
+Full write-up: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Contributor's map, deploy notes and roadmap: [docs/HANDOFF-FIREWORKS.md](docs/HANDOFF-FIREWORKS.md).
 
 ## Tech stack
 
 | | |
 |---|---|
-| Framework | Next.js 16 (App Router), React 19, TypeScript |
-| Styling | Tailwind CSS v4, `next-themes` for dark/light mode |
-| Charts | Recharts |
-| Testing | Vitest |
-| AI insights | Google Gemini API (`gemini-flash-latest`), structured JSON outputs |
+| Framework | Next.js 16 (App Router, Turbopack), React 19, TypeScript |
+| Styling | Tailwind CSS v4, `next-themes` (dark default) — the "Night & Ember" design system |
+| Charts | Recharts, on a colour-blind-validated data ramp |
+| Auth & saved plans | Supabase (`@supabase/ssr`), Row-Level Security |
+| AI features | Google Gemini (`gemini-flash-latest`), structured JSON output |
+| Testing | Vitest (168 tests) |
+| Hosting | Vercel (Speed Insights, cookieless) |
 
-## The interesting part: the tax engine
-
-[`lib/fire-engine.ts`](lib/fire-engine.ts) is a standalone, fully-tested TypeScript module — no framework dependencies — that models:
-
-- **UK income tax** (2026/27, rest-of-UK rates) including the £100,000–£125,140 personal allowance taper, verified against known HMRC figures (e.g. tax on £200,000 = £76,203, tax exactly at the additional-rate threshold £125,140 = £42,516).
-- **A gross-up solver.** Given a target *net* income plus other taxable income (like the State Pension), there's no clean closed-form inverse of a progressive tax function with a tapering allowance — so the engine uses bisection search instead of hand-deriving a band-by-band formula. It's a small, deliberate trade of "clever math" for "obviously correct and easy to verify."
-- **A full year-by-year simulation** — 40+ years, tracking two balances, applying growth, contributions, the one-off lump sum, and the withdrawal waterfall (ISA first, SIPP second) — producing the data the dashboard charts directly.
-
-21 Vitest unit tests pin the tax function to specific known values and exercise the simulation end-to-end (bridge-only funding, lump-sum timing, shortfall detection, full sustainability). Full write-up: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+The app builds and runs with **none** of the optional services configured — auth, AI and saved plans each degrade to a friendly state — so it deploys safely without them.
 
 ## Getting started
 
@@ -45,61 +57,39 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). Everything core works with no configuration.
 
-To use the AI insights feature, copy the env template and add a key:
+To enable the optional features, copy the env template and fill in what you need:
 
 ```bash
 cp .env.local.example .env.local
-# then set GEMINI_API_KEY in .env.local (free key from https://aistudio.google.com)
 ```
 
-## Running tests
+| Variable | Enables |
+|---|---|
+| `GEMINI_API_KEY` | AI tips + AI portfolio import ([free key](https://aistudio.google.com/apikey)) |
+| `NEXT_PUBLIC_SUPABASE_URL` / `_ANON_KEY` | sign-in + saved profiles |
+| `SUPABASE_SERVICE_ROLE_KEY` | full account deletion (server-only) |
+| `NEXT_PUBLIC_SITE_URL` | canonical/OG/sitemap/share URLs |
+
+## Running the checks
 
 ```bash
-npm test
+npm test          # Vitest
+npx tsc --noEmit  # types
+npm run lint      # ESLint
+npm run build     # production build
 ```
+
+## Status
+
+Live on Vercel, deploying from `main`. Core engine, onboarding quiz, tabbed dashboard/edit-plan, per-wrapper portfolios + AI import, property, Monte Carlo, SEO and the design system are all shipped. Next up: verifying saved profiles against a live Supabase, then partner/joint plans and Scottish tax bands. The full roadmap and "things not to rename" live in [docs/HANDOFF-FIREWORKS.md](docs/HANDOFF-FIREWORKS.md).
 
 ## How this was built
 
-I'm not going to pretend this was hand-typed line by line — it wasn't. I built it with **Claude Code**, working from a five-part technical spec I wrote (reproduced below), and I think *how* I used the tool is the more useful thing to show a recruiter than pretending otherwise.
+I built this with **Claude Code** as an AI pair-programmer, and *how* I used it is the more useful thing to show than pretending otherwise. What I actually did:
 
-What I actually did:
-
-- **Wrote the spec.** Each prompt below specifies a concrete deliverable — file names, exact UK tax rules (25% lump sum, £268,275 cap, State Pension offset), specific UI requirements — not "build me a FIRE calculator."
-- **Reviewed every change**, including the generated tests. One test asserted SIPP drawdown would kick in for a scenario where — once I worked through the numbers — the ISA balance legitimately never depletes (a £300k ISA growing at 5% against a £30k/year target simply lasts). That's not a bug, it's correct behavior for that input; the fix was to the test's fixture, not the engine. Catching that required actually understanding the simulation, not just reading a green checkmark.
-- **Verified the tax math by hand** against the known UK band thresholds and the personal-allowance taper before trusting the unit tests that pin them.
-- **Tested the UI live in a browser** at every stage (theme toggle, form validation, chart tooltips, error states) rather than relying on the type-checker and lint being clean.
-- **Made the calls the AI can't make for me** — e.g. choosing a Next.js web app over a native app given the actual constraints (this needs no server infrastructure to speak of, hosts for free on Vercel, and has none of a native app's App Store overhead), with a PWA as the upgrade path if a "phone app" feel is wanted later.
-
-<details>
-<summary><strong>The five prompts used to build this app</strong></summary>
-
-**1. Project Architecture & Theme**
-> I am building a modern UK FIRE (Financial Independence, Retire Early) application using Next.js and Tailwind CSS. Clean up the default template homepage and establish a sleek, trustworthy dark/light financial dashboard layout with clean typography.
-
-**2. Core UK FIRE Calculation Engine**
-> Create a dedicated TypeScript utility file `lib/fire-engine.ts`. Build calculation logic tailored specifically to UK tax rules:
-> 1. Bridge Phase: Calculate ISA/GIA drawdown to bridge income from target early retirement age up to SIPP accessibility age (age 58).
-> 2. SIPP Phase: Model tax-free lump sum (25% up to £268,275 cap) and taxable drawdown after age 58 using UK income tax bands.
-> 3. State Pension: Integrate State Pension income entering at age 67 to automatically offset SIPP drawdown requirements.
-> Include unit tests in `lib/fire-engine.test.ts` to verify the math.
-
-**3. User Inputs Component**
-> Build an interactive UI form component in `components/FireForm.tsx` where users can input: Current Age & Target Retirement Age, Target Net Annual Income, Current ISA/GIA Balance vs. Monthly Contribution, Current SIPP Balance vs. Monthly Contribution. Ensure inputs have sensible UK defaults and clear tooltips explaining the Bridge vs. Pension mechanics.
-
-**4. Dynamic Dashboard & Charting**
-> Install `recharts` and build a main dashboard view. Render a visual timeline chart showing asset balances (ISA vs SIPP) declining over time, highlighting the exact year the user transitions from ISA Bridge funding to SIPP funding, and showing net annual post-tax income safety.
-
-**5. AI Scenario Insights (Optional Feature)**
-> Add an API route `app/api/analyze/route.ts` that takes the user's FIRE simulation results and calls Claude to generate 3 tailored UK strategy tips (e.g., optimizing SIPP tax relief vs ISA bridge funding based on current UK income tax bands).
-
-</details>
-
-## Assumptions & limitations
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#assumptions--simplifications) for the full list — briefly: 2026/27 rest-of-UK tax rates only (no Scottish rates), a flat nominal growth assumption, GIA Capital Gains Tax modelled in a simplified form (the starting GIA balance is assumed to carry no embedded gain; dividend tax isn't modelled), and a configurable life-expectancy horizon.
-
-## License
-
-MIT
+- **Owned the spec and the tax rules** — the 25% lump sum and £268,275 cap, the personal-allowance taper, the ISA→GIA→SIPP waterfall, the deterministic-returns rule above — and verified every figure against real 2026/27 UK guidance rather than trusting generated numbers.
+- **Reviewed every change, including the tests.** One generated test asserted SIPP drawdown for a scenario where — once I worked the numbers — the ISA legitimately never depletes; the fix was the fixture, not the engine. Catching that needs understanding the simulation, not reading a green tick.
+- **Made the calls the AI can't** — a static web app over native (free hosting, no App Store overhead), asset-class-based returns over per-fund guesses, keeping the projection reproducible from a URL.
+- **Tested the UI live in a browser** at every step, in both themes and at mobile width — this codebase has a documented history of bugs that were invisible until measured.

@@ -58,13 +58,16 @@ app/
   start/page.tsx        onboarding quiz    finances/page.tsx  all inputs
   methodology/page.tsx  the docs page      account/page.tsx   sign-in + data
   privacy/  error.tsx  not-found.tsx  opengraph-image.tsx  icon.svg
-  api/analyze/route.ts        AI tips (Gemini, rate-limited)
-  api/account/delete/route.ts full account deletion (service-role)
+  api/analyze/route.ts            AI tips (Gemini, rate-limited)
+  api/estimate-portfolio/route.ts AI portfolio import — Gemini name→class only
+  api/account/delete/route.ts     full account deletion (service-role)
 
 components/
-  FireDashboard.tsx     planner: summary, tabs, charts
+  FireDashboard.tsx     Dashboard: summary, tabs, charts
   FireForm.tsx          every input; Field/NumberInput live here
-  FinancesPanel.tsx  FinancesNav.tsx      the Finances screen + section rail
+  FinancesPanel.tsx  FinancesNav.tsx      the Edit-plan screen + tab bar
+  PortfolioEditor.tsx   per-wrapper "define portfolio" (search/weights/custom/copy)
+  PortfolioImport.tsx   "Import with AI" (paste/CSV → /api/estimate-portfolio)
   QuizFlow.tsx  quiz/QuizPrimitives.tsx   onboarding
   SavedPlans.tsx        Profiles (save/load/rename/copy/delete)
   AssetTimelineChart · IncomeSafetyChart · ConfidencePanel   the three charts
@@ -73,13 +76,23 @@ components/
 
 lib/
   fire-engine.ts        the engine. Read docs/ARCHITECTURE.md before touching.
+  assets.ts             asset-class returns/fees + the Holding portfolio model
+  vanguard-funds.ts     the ~40-fund catalogue + allocation / fee-drag helpers
   fire-number.ts  coast-fire.ts  monte-carlo.ts  what-if.ts
   quiz.ts               quiz state + assembleQuizInputs
   plan-storage.ts       localStorage + sanitisePlanInput (the validator)
   share.ts              ?p= encode/decode (uses the same validator)
   profiles.ts           profile naming/sorting/errors + PROFILES_TABLE
-  checklist.ts  format.ts  export.ts  vanguard-funds.ts  rate-limit.ts
+  checklist.ts  format.ts  export.ts  rate-limit.ts
 ```
+
+**Portfolio model (the one thing to understand before touching funds):** a
+wrapper is one balance + one net-of-fees **growth scalar** that the engine
+consumes. When a wrapper has `*Holdings`, `resolveInputs` derives that scalar
+from them (balance-weighted `holdingsNetGrowth`), and **expected returns come
+from each holding's `assetClass`** (`ASSET_CLASS_RETURN` in `lib/assets.ts`) —
+never from a per-fund number or an LLM. Keep it that way: the projection must
+stay deterministic and reproducible from the URL.
 
 ## 5. Design system — "Night & Ember"
 
@@ -107,15 +120,18 @@ gracefully — so a public launch without Supabase is safe.
 | `NEXT_PUBLIC_SUPABASE_URL` | auth + saved profiles |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser-safe under RLS |
 | `SUPABASE_SERVICE_ROLE_KEY` | **server-only.** Full account deletion; without it, deletion degrades to data-only |
-| `GEMINI_API_KEY` | AI tips (**not** an Anthropic key) |
-| `NEXT_PUBLIC_SITE_URL` | OG cards, sitemap, share links |
+| `GEMINI_API_KEY` | AI tips **and** the AI portfolio import (**not** an Anthropic key) |
+| `NEXT_PUBLIC_SITE_URL` | OG cards, sitemap, share links (use the full `https://…` origin — a protocol-less value is now tolerated but set it properly) |
 
 Set the Supabase vars for **preview** as well as production if you want to test
 Profiles on a preview URL.
 
 **Supabase setup:** run `supabase/migrations/20260101000000_portfolios.sql` in
-the SQL editor (DDL can't run with the API keys), and add every deployed origin
-to **Auth → Redirect URLs**, or sign-in breaks in production.
+the SQL editor (DDL can't run with the API keys). It creates the `portfolios`
+table, enables RLS, **and grants the `authenticated` role table access** — the
+grant matters: without it, logged-in saves hit "permission denied" even though
+RLS is correct. Also add every deployed origin to **Auth → Redirect URLs**, or
+sign-in breaks in production.
 
 ## 7. Conventions
 
@@ -153,45 +169,82 @@ Worth knowing, because each cost real debugging:
 
 ## 9. Current state
 
-**Shipped (PR #3, merged):** the Fireworks rebrand and a full UX/UI overhaul —
-identity, landing, quiz (the redundant Lean/Fat personas removed), planner,
-Finances restructure, Profiles rebuild, Account, Methodology, one validated
-chart system, and fixes for the bugs in §8.
+**Live:** production on Vercel at `https://onfire-nu.vercel.app` (custom domain
+`myfire.works` still to be pointed). Auto-deploys from `main`.
 
-**Green:** 160 tests · `tsc` · `eslint` · production build. Swept 5 widths × 2
-themes × 7 routes with no overflow and no unnamed controls; reduced-motion,
-keyboard, print and share/adopt all verified in-browser.
+**Merged history:**
+- **PR #3** — Fireworks rebrand + UX/UI overhaul (identity, landing, quiz,
+  planner, Finances, Profiles, Account, Methodology, one validated chart system).
+- **PR #7** — production build fix (hardened `NEXT_PUBLIC_SITE_URL` so a
+  protocol-less value can't crash `next build`), Vercel Speed Insights, SEO
+  (self-canonical URLs + `WebSite`/`WebApplication` JSON-LD), the "Night &
+  Ember" backdrop redesign, and the AI-provider correction to Gemini.
+- **PR #9** — the second UX/product pass, below.
+
+**PR #9 — onboarding, naming, mobile finances, portfolios, AI import:**
+- **Onboarding:** removed the landing "skip to the planner" (it bypassed the
+  quiz → checklist arc); lighter Profiles block before sign-in; clearer copy.
+- **Naming:** header tabs are now **"Dashboard"** (was Planner) and **"Edit
+  plan"** (was Your Finances). **Routes are unchanged** (`/planner`,
+  `/finances`) so deep-links, share links and the checklist keep working — only
+  the labels moved. Methodology left the header for the footer, which also
+  carries a Contact `mailto:` and the "not financial advice" line.
+- **Finances is tabbed**, not one long scroll: `FinancesNav` is a controlled
+  tab bar and `FireForm` renders one section at a time; the `#hash` still
+  selects the tab (the checklist deep-links rely on this). Inputs are
+  single-column on mobile.
+- **Per-wrapper portfolios (headline):** each ISA/GIA/SIPP wrapper has an
+  "Optional: define portfolio" editor — a searchable ~40-fund catalogue,
+  multiple holdings with weights, custom holdings, copy-across-wrappers, and a
+  live net-of-fees growth. Model in **`lib/assets.ts`**: `FireInputs.*Holdings`
+  are optional and `resolveInputs` derives each wrapper's growth scalar from
+  them, so the engine / share links / Monte Carlo are untouched.
+- **AI import (Phase 5):** "Import with AI" pastes a statement / uploads a CSV;
+  `/api/estimate-portfolio` has **Gemini classify fund names → asset class + fee
+  only** — expected returns still come from the asset class, so the projection
+  stays deterministic and reproducible. Gated on `GEMINI_API_KEY`, consented,
+  privacy page updated.
+- **Sign-in fixes:** `getUser()` no longer bricks the auth UI on a flaky
+  network; sign-up now saves the just-built plan as a first "My plan" profile
+  and routes in; sign-out awaits + redirects home; added "Forgot password?";
+  the sign-in popover closes on outside-click / Escape.
+- **Legacy removed** (no old plans to protect): the `fundForGrowth`
+  reverse-lookup and the `VANGUARD_FUNDS` / `VanguardFund` aliases are gone;
+  allocation and fee-drag are holdings-only. `sanitisePlanInput` was kept — it
+  hardens untrusted share-link input, which is timeless, not old-plan compat.
+
+**Green:** 168 tests · `tsc` · `eslint` · production build.
 
 ### Known gaps
-
-- 🔴 **Profiles has never been exercised against a live Supabase.** It's
-  covered by unit tests and the signed-out path only. **Do this first:** sign
-  in, then Save → reload → Load → rename → Save a copy → delete.
-- 🟡 `docs/ARCHITECTURE.md` still has pre-property/pre-2026 phrasings ("21
-  tests", "two balances", "flat 5% applied identically to ISA and SIPP").
-- 🟡 No automated a11y/visual regression in CI — the sweeps were ad-hoc
-  Playwright scripts run by hand.
-- 🟡 Rate limiting is in-memory per instance; multi-instance production needs
+- 🔴 **Signed-in Profiles and the new "sign-up saves your plan" flow have not
+  been run against a live Supabase** (there's no login in the dev loop). **Do
+  this first:** sign up → confirm the plan auto-saved as a profile →
+  Save/Load/rename/copy/delete → sign out → sign back in on a fresh browser and
+  confirm the plan restores.
+- 🟡 **AI import needs a real `GEMINI_API_KEY` to verify the classification** —
+  only the graceful no-key path was tested locally.
+- 🟡 `docs/ARCHITECTURE.md` still has pre-property/pre-2026 phrasings.
+- 🟡 Rate limiting is in-memory per instance; multi-instance prod needs
   Upstash/Vercel KV behind the `RateLimiter` interface.
-- 🟡 Single-person plans only — no partner/joint modelling.
+- 🟡 Single-person plans only; rest-of-UK tax only; property has no mortgage.
 
 ## 10. Backlog — candidate next moves
 
 Roughly highest value first. Nothing here is started.
 
-1. **Verify Profiles end-to-end**, then decide whether plans should sync
-   automatically rather than via an explicit Save.
-2. **Onboarding → activation.** The quiz seeds placeholder contributions; the
-   checklist nudges people to real numbers. Measure where they drop off.
-3. **Partner / joint plans** — the most-requested gap in UK FIRE tooling, and
-   a real engine change (two allowances, two pensions).
-4. **Scottish tax bands** — currently rest-of-UK only, and called out as a
-   caveat on `/methodology`.
-5. **Mortgages** on the property model (currently value + growth only).
-6. **Automated regression:** Playwright a11y + visual snapshots in CI, so the
-   §8-class bugs can't come back.
-7. **Analytics** — cookieless and privacy-friendly only, to keep `/privacy`
-   honest.
+1. **Verify Profiles + the sign-up-saves-plan flow end-to-end** against live
+   Supabase (see gaps), then decide whether plans should sync automatically vs.
+   an explicit Save.
+2. **Verify AI import** with a real Gemini key; then consider Excel (.xlsx), a
+   Google-Sheets link, and a review step before imported holdings are applied.
+3. **Custom domain** `myfire.works` → Vercel domains + `NEXT_PUBLIC_SITE_URL` +
+   Supabase redirect URLs; then Search Console + submit the sitemap.
+4. **Partner / joint plans** — the most-requested UK FIRE gap; a real engine
+   change (two allowances, two pensions, two State Pensions).
+5. **Scottish tax bands** — rest-of-UK only today; verify every 2026/27 figure.
+6. **Mortgages** on the property model (value + growth only today).
+7. **Automated regression:** Playwright a11y + visual snapshots in CI.
+8. **Analytics** — cookieless and privacy-friendly only, to keep `/privacy` honest.
 
 ---
 
