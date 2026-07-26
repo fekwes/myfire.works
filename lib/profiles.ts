@@ -103,8 +103,12 @@ export function describeProfileError(
 ): string | null {
   if (!error) return null;
   const code = error.code ?? "";
-  // Undefined table — the migration hasn't been run on this project.
-  if (code === "42P01") {
+  // Undefined table — the migration hasn't been run on this project. `42P01` is
+  // Postgres'; `PGRST205` is what PostgREST returns when the table isn't in its
+  // schema cache, which is what a caller actually sees. Missing it meant the
+  // commonest setup mistake surfaced as a raw "Could not find the table
+  // 'public.portfolios' in the schema cache".
+  if (code === "42P01" || code === "PGRST205") {
     return action === "read"
       ? "Saved plans aren't set up on this project yet, so there's nothing to load."
       : "Saved plans aren't set up on this project yet, so nothing was saved.";

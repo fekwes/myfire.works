@@ -107,6 +107,17 @@ describe("describeProfileError", () => {
     expect(describeProfileError({ code: "42P01" })).toMatch(/aren't set up/i);
   });
 
+  // What a caller actually sees when the migration was never run: PostgREST
+  // reports the table missing from its schema cache, not Postgres' 42P01.
+  it("explains a missing table reported by PostgREST", () => {
+    expect(
+      describeProfileError({
+        code: "PGRST205",
+        message: "Could not find the table 'public.portfolios' in the schema cache",
+      }),
+    ).toMatch(/aren't set up/i);
+  });
+
   it("explains a permission failure", () => {
     expect(describeProfileError({ code: "42501" })).toMatch(/permission/i);
   });

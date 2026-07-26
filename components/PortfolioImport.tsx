@@ -24,8 +24,13 @@ const MAX_FILE_BYTES = 512 * 1024;
  * AI-assisted portfolio import. The pasted text (or an uploaded CSV read as
  * text) is sent to a server route that asks Gemini to classify each holding
  * into an asset class + fee — the expected *returns* still come from the asset
- * class in the engine, so the projection stays deterministic. The user reviews
- * the result before it's applied.
+ * class in the engine, so the projection stays deterministic.
+ *
+ * Imported holdings are applied **immediately** — they land in the wrapper's
+ * editor, where they can be corrected, but there is no confirm step in between.
+ * A dedicated review step is on the backlog; until it exists, don't describe
+ * this as reviewed, because a misclassified fund silently changes the
+ * wrapper's growth rate.
  */
 export function PortfolioImport({
   onImport,
