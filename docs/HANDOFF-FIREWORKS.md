@@ -245,10 +245,12 @@ text reaching the browser. 226 tests.
   Everything else is covered by tests now — malformed replies, invented asset
   classes, absurd fees, weights that don't sum to 1, prompt injection in the
   pasted document. Run `npm run smoke:ai-import` against a dev server with a key.
-- 🔴 **Rate limiting is per-instance, so the global cap isn't global.** On Vercel
+- 🟡 **Rate limiting is per-instance, so the global cap isn't global.** On Vercel
   each instance has its own `Map`, making the "500/day" backstop *500 × instances*
-  and resetting on cold start. This one has a bill attached — do it before any
-  real traffic. See `docs/REVIEW-2026-07.md` R1.
+  and resetting on cold start. **No bill attached — the Gemini key has no billing
+  enabled, so it's the free tier.** The risk is quota exhaustion silently turning
+  both AI features off for everyone until it resets. See `docs/REVIEW-2026-07.md`
+  R1 for the two fixes, in order.
 - 🟡 Recharts is ~124 KB gz of /planner's 359 KB. Lazy-loading was tried,
   measured and reverted (it duplicates the library); replacing it with plain SVG
   is the real lever. R2.
