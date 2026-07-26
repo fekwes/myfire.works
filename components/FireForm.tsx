@@ -3,8 +3,8 @@
 import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
-import { FundSelect } from "@/components/FundSelect";
-import { Collapsible } from "@/components/ui";
+import { PortfolioEditor, type ReuseSource } from "@/components/PortfolioEditor";
+import { holdingsNetGrowth } from "@/lib/assets";
 import { setChecklistFlag } from "@/lib/checklist";
 import {
   DEFAULT_ASSUMPTIONS,
@@ -45,6 +45,8 @@ export const DEFAULT_FIRE_FORM_VALUES: FireInputs = {
 interface FireFormProps {
   value: FireInputs;
   onChange: (inputs: FireInputs) => void;
+  /** Which section is visible — the finances page shows one tab at a time. */
+  activeSection: string;
 }
 
 /**
@@ -174,11 +176,14 @@ function Block({
   title,
   dotClass,
   tooltip,
+  footer,
   children,
 }: {
   title: string;
   dotClass?: string;
   tooltip?: string;
+  /** Full-width content below the two-column input grid (e.g. the portfolio). */
+  footer?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -188,7 +193,8 @@ function Block({
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         {tooltip && <Tooltip text={tooltip} label={title} />}
       </div>
-      <div className="mt-3 grid grid-cols-2 items-end gap-4">{children}</div>
+      <div className="mt-3 grid grid-cols-1 items-end gap-4 sm:grid-cols-2">{children}</div>
+      {footer}
     </div>
   );
 }
@@ -199,15 +205,17 @@ function Section({
   id,
   title,
   description,
+  hidden,
   children,
 }: {
   id: string;
   title: string;
   description?: string;
+  hidden?: boolean;
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-24 space-y-4">
+    <section id={id} hidden={hidden} className="space-y-4">
       <div>
         <h2 className="font-display text-base font-bold tracking-tight text-foreground">
           {title}
@@ -223,51 +231,89 @@ function Section({
   );
 }
 
-/** True when the plan actually includes a home or a rental. */
-function hasProperty(v: FireInputs): boolean {
-  return (v.homeValue ?? 0) > 0 || (v.rentalValue ?? 0) > 0;
-}
-
-/** Collapsed-state label for Property, so it still says what's in there. */
-function propertySummary(v: FireInputs): string {
-  const parts: string[] = [];
-  if ((v.homeValue ?? 0) > 0) parts.push("home");
-  if ((v.rentalValue ?? 0) > 0) parts.push("rental");
-  return parts.length ? parts.join(" + ") : "not included";
-}
-
-/** True when any statutory figure has been moved off its default. */
-function hasCustomAssumptions(v: FireInputs): boolean {
-  return (
-    num(v.sippAccessAge, DEFAULT_ASSUMPTIONS.sippAccessAge) !==
-      DEFAULT_ASSUMPTIONS.sippAccessAge ||
-    num(v.statePensionAge, DEFAULT_ASSUMPTIONS.statePensionAge) !==
-      DEFAULT_ASSUMPTIONS.statePensionAge ||
-    num(v.statePensionAnnual, DEFAULT_ASSUMPTIONS.statePensionAnnual) !==
-      DEFAULT_ASSUMPTIONS.statePensionAnnual ||
-    num(v.lifeExpectancyAge, DEFAULT_ASSUMPTIONS.lifeExpectancyAge) !==
-      DEFAULT_ASSUMPTIONS.lifeExpectancyAge ||
-    num(v.inflationRate, DEFAULT_INFLATION_RATE) !== DEFAULT_INFLATION_RATE
-  );
-}
-
-function assumptionsSummary(v: FireInputs): string {
-  return hasCustomAssumptions(v) ? "customised" : "using defaults";
-}
-
-/** Module-level so the summary helpers above can share it with the component. */
+/** Small helper: a value or its fallback when undefined. */
 function num(v: number | undefined, fallback: number): number {
   return v === undefined ? fallback : v;
 }
 
-export function FireForm({ value, onChange }: FireFormProps) {
+/**
+ * Growth + optional fund portfolio for one wrapper. A single "Expected growth"
+ * figure is shown until a portfolio is defined; once it is, growth is derived
+ * from the holdings (net of fees) and the plain figure gives way to the editor.
+ */
+function WrapperPortfolio({
+  label,
+  growth,
+  holdings,
+  onGrowth,
+  onPortfolio,
+  reuseSources,
+}: {
+  label: string;
+  growth: number | undefined;
+  holdings: FireInputs["isaHoldings"];
+  onGrowth: (g: number) => void;
+  onPortfolio: (h: FireInputs["isaHoldings"]) => void;
+  reuseSources: ReuseSource[];
+}) {
+  const hasHoldings = !!holdings && holdings.length > 0;
+  return (
+    <>
+      {!hasHoldings && (
+        <div className="mt-4">
+          <Field label="Expected growth (net of fees)">
+            <PercentInput value={num(growth, 0.05)} onChange={onGrowth} />
+          </Field>
+        </div>
+      )}
+      <PortfolioEditor
+        label={label}
+        holdings={holdings}
+        onChange={onPortfolio}
+        reuseSources={reuseSources}
+      />
+    </>
+  );
+}
+
+export function FireForm({ value, onChange, activeSection }: FireFormProps) {
   const set = <K extends keyof FireInputs>(key: K, next: FireInputs[K]) =>
     onChange({ ...value, [key]: next });
 
+  // The other wrappers whose portfolio can be copied into this one.
+  const reuseFor = (self: "isa" | "sipp" | "gia"): ReuseSource[] =>
+    (
+      [
+        { id: "isa", label: "ISA", holdings: value.isaHoldings },
+        { id: "sipp", label: "SIPP", holdings: value.sippHoldings },
+        { id: "gia", label: "GIA", holdings: value.giaHoldings },
+      ] as const
+    )
+      .filter((w) => w.id !== self && w.holdings && w.holdings.length > 0)
+      .map((w) => ({ id: w.id, label: w.label, holdings: w.holdings ?? [] }));
+
+  // Set a wrapper's holdings and its derived growth in ONE update — two separate
+  // set() calls would each read the same stale `value` and clobber each other.
+  const setPortfolio = (
+    hKey: "isaHoldings" | "sippHoldings" | "giaHoldings",
+    gKey: "isaGrowth" | "sippGrowth" | "giaGrowth",
+    h: FireInputs["isaHoldings"],
+  ) =>
+    onChange({
+      ...value,
+      [hKey]: h,
+      [gKey]: h && h.length > 0 ? holdingsNetGrowth(h) : value[gKey],
+    });
+
   return (
-    <div className="space-y-8">
-      <Section id="basics" title="Your basics" description="Ages and the income you're aiming for.">
-        <div className="grid grid-cols-2 items-end gap-4">
+    <div>
+      <Section
+        id="basics"
+        title="Your basics"
+        description="Ages and the income you're aiming for."
+        hidden={activeSection !== "basics"}
+      >
+        <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
           <Field label="Current age">
             <NumberInput
               value={value.currentAge}
@@ -306,7 +352,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
       <Section
         id="balances"
         title="Balances & contributions"
-        description="What you hold now and add each month — check your provider portals or last statements. A rough figure is fine; leave any at £0."
+        hidden={activeSection !== "balances"}
       >
         {/* Dots match the chart's fixed account→hue binding: ISA ember,
             SIPP violet, GIA teal. Keep these in step with AssetTimelineChart. */}
@@ -314,6 +360,16 @@ export function FireForm({ value, onChange }: FireFormProps) {
           title="ISA — tax-free bridge"
           dotClass="bg-data-1"
           tooltip="Individual Savings Account — 100% tax-free to withdraw at any age, so it's drawn first (and bridges you until your pension unlocks)."
+          footer={
+            <WrapperPortfolio
+              label="ISA"
+              growth={value.isaGrowth}
+              holdings={value.isaHoldings}
+              onGrowth={(v) => set("isaGrowth", v)}
+              onPortfolio={(h) => setPortfolio("isaHoldings", "isaGrowth", h)}
+              reuseSources={reuseFor("isa")}
+            />
+          }
         >
           <Field label="Current balance">
             <NumberInput
@@ -335,6 +391,16 @@ export function FireForm({ value, onChange }: FireFormProps) {
           title="SIPP — the pension"
           dotClass="bg-data-2"
           tooltip="Self-Invested Personal Pension (plus any workplace pensions). Locked until your access age — 57 from 2028 — then 25% is tax-free and the rest is taxable income, topped up by your State Pension."
+          footer={
+            <WrapperPortfolio
+              label="SIPP"
+              growth={value.sippGrowth}
+              holdings={value.sippHoldings}
+              onGrowth={(v) => set("sippGrowth", v)}
+              onPortfolio={(h) => setPortfolio("sippHoldings", "sippGrowth", h)}
+              reuseSources={reuseFor("sipp")}
+            />
+          }
         >
           <Field label="Current balance">
             <NumberInput
@@ -356,6 +422,16 @@ export function FireForm({ value, onChange }: FireFormProps) {
           title="Other investments — GIA"
           dotClass="bg-data-3"
           tooltip="A General Investment Account: drawn after the ISA, with Capital Gains Tax on gains above the £3,000 exemption."
+          footer={
+            <WrapperPortfolio
+              label="GIA"
+              growth={value.giaGrowth}
+              holdings={value.giaHoldings}
+              onGrowth={(v) => set("giaGrowth", v)}
+              onPortfolio={(h) => setPortfolio("giaHoldings", "giaGrowth", h)}
+              reuseSources={reuseFor("gia")}
+            />
+          }
         >
           <Field label="Current balance">
             <NumberInput
@@ -375,36 +451,10 @@ export function FireForm({ value, onChange }: FireFormProps) {
       </Section>
 
       <Section
-        id="funds"
-        title="Funds & fees"
-        description="Pick a Vanguard UK fund for each pot to set a fee-aware growth rate, or type your own."
-      >
-        <FundBlock
-          title="ISA fund"
-          growth={value.isaGrowth}
-          onPick={(g) => set("isaGrowth", g)}
-          onGrowth={(v) => set("isaGrowth", v)}
-        />
-        <FundBlock
-          title="SIPP fund"
-          growth={value.sippGrowth}
-          onPick={(g) => set("sippGrowth", g)}
-          onGrowth={(v) => set("sippGrowth", v)}
-        />
-        <FundBlock
-          title="GIA fund"
-          growth={value.giaGrowth}
-          onPick={(g) => set("giaGrowth", g)}
-          onGrowth={(v) => set("giaGrowth", v)}
-        />
-      </Section>
-
-      <Collapsible
         id="property"
         title="Property"
         description="Optional — a home you live in and/or a rental."
-        summary={propertySummary(value)}
-        defaultOpen={hasProperty(value)}
+        hidden={activeSection !== "property"}
       >
         <Block
           title="Rental property"
@@ -478,12 +528,13 @@ export function FireForm({ value, onChange }: FireFormProps) {
             />
           </Field>
         </Block>
-      </Collapsible>
+      </Section>
 
       <Section
         id="scenario"
         title="Withdrawals"
         description="How you take your pension, and any part-time work."
+        hidden={activeSection !== "scenario"}
       >
         <Field
           label="Pension access"
@@ -526,14 +577,13 @@ export function FireForm({ value, onChange }: FireFormProps) {
 
       </Section>
 
-      <Collapsible
+      <Section
         id="assumptions"
         title="Statutory assumptions"
         description="Ages and figures set by the government, plus inflation. The defaults are the current 2026/27 rules — change them only if your situation differs."
-        summary={assumptionsSummary(value)}
-        defaultOpen={hasCustomAssumptions(value)}
+        hidden={activeSection !== "assumptions"}
       >
-        <div className="grid grid-cols-2 items-end gap-4">
+        <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
           <Field
             label="SIPP access age"
             tooltip="UK minimum pension age is 55 today, rising to 57 in April 2028 — the default here."
@@ -560,7 +610,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 items-end gap-4">
+        <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
           <Field
             label="State Pension age"
             tooltip="66 today, rising to 67 (2026–2028) then 68. Default is 67."
@@ -600,32 +650,7 @@ export function FireForm({ value, onChange }: FireFormProps) {
             onChange={(v) => set("inflationRate", v)}
           />
         </Field>
-      </Collapsible>
-    </div>
-  );
-}
-
-/** ISA/SIPP/GIA fund picker + resulting net growth, for the Funds section. */
-function FundBlock({
-  title,
-  growth,
-  onPick,
-  onGrowth,
-}: {
-  title: string;
-  growth: number | undefined;
-  onPick: (netGrowth: number) => void;
-  onGrowth: (growth: number) => void;
-}) {
-  return (
-    <div className="rounded-xl border border-border bg-surface-muted p-4">
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-      <div className="mt-3 space-y-4">
-        <FundSelect growth={growth} onPick={onPick} />
-        <Field label="Expected growth (net of fees)">
-          <PercentInput value={growth ?? 0.05} onChange={onGrowth} />
-        </Field>
-      </div>
+      </Section>
     </div>
   );
 }

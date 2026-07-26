@@ -1,3 +1,4 @@
+import type { AssetClass, Holding } from "./assets";
 import type { FireInputs } from "./fire-engine";
 
 /**
@@ -40,6 +41,54 @@ const ZERO_FILLED_FIELDS = [
   "sippMonthlyContribution",
 ] as const;
 
+const HOLDINGS_FIELDS = ["isaHoldings", "sippHoldings", "giaHoldings"] as const;
+
+const VALID_ASSET_CLASSES: readonly string[] = [
+  "global-equity",
+  "us-equity",
+  "multi-asset-100",
+  "multi-asset-80",
+  "multi-asset-60",
+  "global-bonds",
+  "cash",
+];
+
+/**
+ * Validate a wrapper's holdings array from untrusted JSON: each holding needs a
+ * known asset class and finite ocf/weight/return, or it's dropped. Returns
+ * `undefined` (no portfolio) when nothing usable survives, so a malformed blob
+ * falls back to the scalar growth rather than reaching the engine.
+ */
+function sanitiseHoldings(value: unknown): Holding[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const clean: Holding[] = [];
+  for (const item of value) {
+    if (typeof item !== "object" || item === null) continue;
+    const h = item as Record<string, unknown>;
+    if (
+      typeof h.assetClass !== "string" ||
+      !VALID_ASSET_CLASSES.includes(h.assetClass)
+    ) {
+      continue;
+    }
+    const holding: Holding = {
+      assetClass: h.assetClass as AssetClass,
+      ocf: typeof h.ocf === "number" && Number.isFinite(h.ocf) ? h.ocf : 0,
+      weight:
+        typeof h.weight === "number" && Number.isFinite(h.weight) && h.weight >= 0
+          ? h.weight
+          : 0,
+    };
+    if (typeof h.fundId === "string") holding.fundId = h.fundId;
+    if (typeof h.label === "string") holding.label = h.label;
+    if (typeof h.expectedReturn === "number" && Number.isFinite(h.expectedReturn)) {
+      holding.expectedReturn = h.expectedReturn;
+    }
+    clean.push(holding);
+  }
+  return clean.length > 0 ? clean : undefined;
+}
+
 /**
  * Make a parsed blob safe to hand to the engine, or reject it.
  *
@@ -79,6 +128,11 @@ export function sanitisePlanInput(parsed: unknown): FireInputs | null {
   }
   for (const key of ZERO_FILLED_FIELDS) {
     if (typeof clean[key] !== "number") clean[key] = 0;
+  }
+  for (const key of HOLDINGS_FIELDS) {
+    const holdings = sanitiseHoldings(source[key]);
+    if (holdings) clean[key] = holdings;
+    else delete clean[key];
   }
   return clean as unknown as FireInputs;
 }

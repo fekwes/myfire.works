@@ -431,7 +431,7 @@ function StepReveal({
           onClick={onFinish}
           className="flex-1"
         >
-          Open my planner
+          Open my dashboard
           <ArrowRight className="size-4" />
         </Button>
       </div>

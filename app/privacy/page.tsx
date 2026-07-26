@@ -64,13 +64,17 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section title="AI strategy tips">
+      <Section title="AI features">
         <p>
-          When you press <span className="text-foreground">Get tips</span>, a
-          summary of your plan&apos;s figures (ages, balances, contributions, the
-          projected outcome) is sent to Google&apos;s Gemini to generate the
-          suggestions. No name, email, or account identifier is included. If you
-          never press it, nothing is sent.
+          Two optional features use Google&apos;s Gemini, and only when you
+          trigger them. Pressing{" "}
+          <span className="text-foreground">Get tips</span> sends a summary of
+          your plan&apos;s figures (ages, balances, contributions, the projected
+          outcome) to generate suggestions. Using{" "}
+          <span className="text-foreground">Import with AI</span> in a
+          portfolio sends the fund text you paste (or the CSV you upload) so it
+          can be matched to asset classes. No name, email, or account identifier
+          is included, and nothing is sent unless you use these features.
         </p>
       </Section>
 

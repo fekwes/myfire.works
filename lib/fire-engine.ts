@@ -1,3 +1,5 @@
+import { type Holding, holdingsNetGrowth } from "./assets";
+
 export interface UkIncomeTaxBands {
   personalAllowance: number;
   taperThreshold: number;
@@ -79,6 +81,15 @@ export interface FireInputs {
   giaGrowth?: number;
   sippGrowth?: number;
   /**
+   * Optional per-wrapper portfolios. When a wrapper has holdings, its growth
+   * rate is *derived* from them (balance-weighted, net of fees), overriding the
+   * scalar `*Growth` field above. Kept optional so old plans (which only store
+   * the scalar growth) keep working unchanged.
+   */
+  isaHoldings?: Holding[];
+  giaHoldings?: Holding[];
+  sippHoldings?: Holding[];
+  /**
    * Rental property: value grows at `rentalGrowth`; `rentalMonthlyIncome` is
    * taxable rental income (offsets the target in retirement). Optionally sold
    * at `rentalSaleAge` — residential CGT on the gain, net proceeds into the
@@ -114,7 +125,22 @@ export interface FireInputs {
   lifeExpectancyAge?: number;
 }
 
-type ResolvedFireInputs = Required<FireInputs>;
+// Holdings are collapsed into the per-wrapper growth scalars by resolveInputs,
+// so the resolved shape the simulation runs on doesn't carry them.
+type ResolvedFireInputs = Required<
+  Omit<FireInputs, "isaHoldings" | "giaHoldings" | "sippHoldings">
+>;
+
+/** A wrapper's growth: derived from its holdings when present, else the manual
+ *  scalar, else the global fallback. */
+function growthFor(
+  holdings: Holding[] | undefined,
+  manual: number | undefined,
+  fallback: number,
+): number {
+  if (holdings && holdings.length > 0) return holdingsNetGrowth(holdings);
+  return manual ?? fallback;
+}
 
 export type FirePhase = "accumulation" | "bridge" | "sipp" | "state-pension";
 
@@ -169,9 +195,9 @@ function resolveInputs(inputs: FireInputs): ResolvedFireInputs {
     giaBalance: inputs.giaBalance ?? 0,
     giaMonthlyContribution: inputs.giaMonthlyContribution ?? 0,
     growthRate,
-    isaGrowth: inputs.isaGrowth ?? growthRate,
-    giaGrowth: inputs.giaGrowth ?? growthRate,
-    sippGrowth: inputs.sippGrowth ?? growthRate,
+    isaGrowth: growthFor(inputs.isaHoldings, inputs.isaGrowth, growthRate),
+    giaGrowth: growthFor(inputs.giaHoldings, inputs.giaGrowth, growthRate),
+    sippGrowth: growthFor(inputs.sippHoldings, inputs.sippGrowth, growthRate),
     rentalValue: inputs.rentalValue ?? 0,
     rentalGrowth: inputs.rentalGrowth ?? growthRate,
     rentalMonthlyIncome: inputs.rentalMonthlyIncome ?? 0,

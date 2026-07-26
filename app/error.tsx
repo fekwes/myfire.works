@@ -32,7 +32,7 @@ export default function Error({
         </Button>
         {/* Hard link so the error boundary fully resets on navigation. */}
         <a href="/planner" className={buttonClasses("secondary")}>
-          Back to the planner
+          Back to the dashboard
         </a>
       </div>
     </div>

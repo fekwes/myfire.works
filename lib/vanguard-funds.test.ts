@@ -1,19 +1,20 @@
 import { describe, expect, it } from "vitest";
 import type { FireInputs } from "./fire-engine";
 import {
+  estimateFeeDrag,
+  FUNDS,
+  fundToHolding,
+  netGrowth,
   PLATFORM_FEE_CAP,
   PLATFORM_FEE_FLOOR,
   PLATFORM_FEE_RATE,
-  VANGUARD_FUNDS,
-  estimateFeeDrag,
-  fundForGrowth,
-  netGrowth,
   platformFeeForBalance,
   portfolioAllocation,
   portfolioEquityFraction,
 } from "./vanguard-funds";
 
-const fund = (id: string) => VANGUARD_FUNDS.find((f) => f.id === id)!;
+const fund = (id: string) => FUNDS.find((f) => f.id === id)!;
+const hold = (id: string) => [fundToHolding(fund(id), 1)];
 
 describe("platformFeeForBalance", () => {
   it("charges the £48 floor for small balances", () => {
@@ -35,28 +36,14 @@ describe("platformFeeForBalance", () => {
 
 describe("netGrowth", () => {
   it("deducts OCF and the platform fee from the gross return", () => {
-    const vwrp = VANGUARD_FUNDS.find((f) => f.id === "vwrp")!;
+    const vwrp = fund("vwrp");
     // global equity 7% − 0.14% OCF − 0.15% platform.
     expect(netGrowth(vwrp)).toBeCloseTo(0.07 - 0.0014 - PLATFORM_FEE_RATE, 10);
   });
 
   it("cheaper funds keep more of the return", () => {
-    const vwrp = VANGUARD_FUNDS.find((f) => f.id === "vwrp")!;
-    const allCap = VANGUARD_FUNDS.find((f) => f.id === "global-all-cap")!;
     // Same asset class, lower OCF → higher net growth.
-    expect(netGrowth(vwrp)).toBeGreaterThan(netGrowth(allCap));
-  });
-});
-
-describe("fundForGrowth", () => {
-  it("round-trips a preset's net growth back to the fund", () => {
-    const allCap = VANGUARD_FUNDS.find((f) => f.id === "global-all-cap")!;
-    expect(fundForGrowth(netGrowth(allCap))?.id).toBe("global-all-cap");
-  });
-
-  it("returns null for a manually-set growth", () => {
-    expect(fundForGrowth(0.0512345)).toBeNull();
-    expect(fundForGrowth(undefined)).toBeNull();
+    expect(netGrowth(fund("vwrp"))).toBeGreaterThan(netGrowth(fund("global-all-cap")));
   });
 });
 
@@ -75,7 +62,7 @@ describe("portfolioAllocation", () => {
     const a = portfolioAllocation({
       ...base,
       isaBalance: 50_000,
-      isaGrowth: netGrowth(fund("vwrp")),
+      isaHoldings: hold("vwrp"),
     });
     expect(a.equity).toBeCloseTo(1, 6);
     expect(a.bonds).toBeCloseTo(0, 6);
@@ -85,7 +72,7 @@ describe("portfolioAllocation", () => {
     const a = portfolioAllocation({
       ...base,
       sippBalance: 50_000,
-      sippGrowth: netGrowth(fund("lifestrategy-60")),
+      sippHoldings: hold("lifestrategy-60"),
     });
     expect(a.equity).toBeCloseTo(0.6, 6);
     expect(a.bonds).toBeCloseTo(0.4, 6);
@@ -96,9 +83,9 @@ describe("portfolioAllocation", () => {
     const eq = portfolioEquityFraction({
       ...base,
       isaBalance: 75_000,
-      isaGrowth: netGrowth(fund("vwrp")),
+      isaHoldings: hold("vwrp"),
       sippBalance: 25_000,
-      sippGrowth: netGrowth(fund("lifestrategy-60")),
+      sippHoldings: hold("lifestrategy-60"),
     });
     expect(eq).toBeCloseTo(0.9, 6);
   });
@@ -107,11 +94,11 @@ describe("portfolioAllocation", () => {
     expect(portfolioEquityFraction(base)).toBeCloseTo(0.8, 6);
   });
 
-  it("treats a custom-growth wrapper as the neutral default", () => {
+  it("treats a plain-growth wrapper (no portfolio) as the neutral default", () => {
     const eq = portfolioEquityFraction({
       ...base,
       isaBalance: 50_000,
-      isaGrowth: 0.0512345, // no preset matches
+      isaGrowth: 0.0512345,
     });
     expect(eq).toBeCloseTo(0.8, 6);
   });
@@ -124,32 +111,29 @@ describe("estimateFeeDrag", () => {
     targetAnnualIncome: 30000,
     isaBalance: 100_000,
     isaMonthlyContribution: 1000,
-    isaGrowth: netGrowth(VANGUARD_FUNDS[0]),
+    isaHoldings: hold("global-all-cap"),
     sippBalance: 100_000,
     sippMonthlyContribution: 500,
-    sippGrowth: netGrowth(VANGUARD_FUNDS[0]),
+    sippHoldings: hold("global-all-cap"),
   };
 
   it("is a positive, non-trivial sum over a long accumulation", () => {
-    const drag = estimateFeeDrag(base);
-    expect(drag).toBeGreaterThan(0);
+    expect(estimateFeeDrag(base)).toBeGreaterThan(0);
   });
 
   it("grows when fees are higher", () => {
-    const cheap = { ...base };
+    // LifeStrategy 100 (0.22% OCF) drags more than the cheapest tracker (VUAG,
+    // 0.07% OCF) — same asset-class return, so the gap is purely fees.
     const pricey: FireInputs = {
       ...base,
-      isaGrowth: netGrowth(VANGUARD_FUNDS.find((f) => f.id === "lifestrategy-100")!),
-      sippGrowth: netGrowth(VANGUARD_FUNDS.find((f) => f.id === "lifestrategy-100")!),
+      isaHoldings: hold("lifestrategy-100"),
+      sippHoldings: hold("lifestrategy-100"),
     };
-    // LifeStrategy (0.22% OCF) drags more than the All Cap (0.23%)? Compare to
-    // the cheapest tracker instead to keep the ordering unambiguous.
     const cheapest: FireInputs = {
       ...base,
-      isaGrowth: netGrowth(VANGUARD_FUNDS.find((f) => f.id === "vuag")!),
-      sippGrowth: netGrowth(VANGUARD_FUNDS.find((f) => f.id === "vuag")!),
+      isaHoldings: hold("vuag"),
+      sippHoldings: hold("vuag"),
     };
     expect(estimateFeeDrag(pricey)).toBeGreaterThan(estimateFeeDrag(cheapest));
-    expect(estimateFeeDrag(cheap)).toBeGreaterThan(0);
   });
 });

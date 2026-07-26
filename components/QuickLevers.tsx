@@ -23,8 +23,8 @@ export function QuickLevers() {
             Quick levers
           </h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Tweak the essentials here — balances, property, growth and more live
-            in Your Finances.
+            Adjust the numbers you tweak most. Everything else — balances,
+            property, funds — lives under Edit plan.
           </p>
         </div>
         <ButtonLink
@@ -33,7 +33,7 @@ export function QuickLevers() {
           size="sm"
           className="no-print"
         >
-          Edit all your finances →
+          Edit plan →
         </ButtonLink>
       </div>
 

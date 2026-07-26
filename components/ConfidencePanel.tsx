@@ -208,7 +208,7 @@ export function ConfidencePanel({ inputs }: { inputs: FireInputs }) {
                 </button>
               </>
             ) : (
-              "Set from the funds you picked in Your Finances — drag to explore."
+              "Set from the funds you picked in Edit plan — drag to explore."
             )}
           </span>
         </label>

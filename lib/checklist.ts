@@ -1,5 +1,4 @@
 import type { FireInputs } from "./fire-engine";
-import { fundForGrowth } from "./vanguard-funds";
 
 /**
  * The "Complete your plan" checklist: a handful of small steps that turn a
@@ -43,9 +42,9 @@ export function buildChecklist(
     inputs.sippBalance > 0 ||
     (inputs.giaBalance ?? 0) > 0;
   const hasFund =
-    !!fundForGrowth(inputs.isaGrowth) ||
-    !!fundForGrowth(inputs.sippGrowth) ||
-    !!fundForGrowth(inputs.giaGrowth);
+    (inputs.isaHoldings?.length ?? 0) > 0 ||
+    (inputs.sippHoldings?.length ?? 0) > 0 ||
+    (inputs.giaHoldings?.length ?? 0) > 0;
 
   return [
     {
@@ -90,9 +89,9 @@ export function buildChecklist(
     {
       id: "funds",
       label: "Choose your funds",
-      hint: "Pick your Vanguard funds for a fee-aware growth rate.",
+      hint: "Define a portfolio per pot for a fee-aware growth rate.",
       cta: "Pick your funds",
-      href: "/finances#funds",
+      href: "/finances#balances",
       done: hasFund,
     },
     {

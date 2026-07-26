@@ -5,22 +5,22 @@ import { useMemo } from "react";
 import { usePlan } from "@/components/PlanProvider";
 import { Card } from "@/components/ui";
 import { formatCurrency } from "@/lib/format";
-import { estimateFeeDrag, fundForGrowth } from "@/lib/vanguard-funds";
+import { estimateFeeDrag } from "@/lib/vanguard-funds";
 
 /**
- * Fee-drag readout: the estimated £ your funds' OCFs and the Vanguard platform
- * fee cost you by retirement, shown only once at least one wrapper is on a
- * named preset (so the OCFs are known).
+ * Fee-drag readout: the estimated £ your funds' OCFs and the platform fee cost
+ * you by retirement, shown only once at least one wrapper has a defined
+ * portfolio (so the OCFs are known).
  */
 export function FeeDragCard() {
   const { inputs } = usePlan();
-  const usingPresets =
-    !!fundForGrowth(inputs.isaGrowth) ||
-    !!fundForGrowth(inputs.sippGrowth) ||
-    !!fundForGrowth(inputs.giaGrowth);
+  const hasPortfolio =
+    (inputs.isaHoldings?.length ?? 0) > 0 ||
+    (inputs.sippHoldings?.length ?? 0) > 0 ||
+    (inputs.giaHoldings?.length ?? 0) > 0;
   const drag = useMemo(() => estimateFeeDrag(inputs), [inputs]);
 
-  if (!usingPresets || drag < 1) return null;
+  if (!hasPortfolio || drag < 1) return null;
 
   return (
     <Card>
