@@ -16,6 +16,38 @@ export interface RateLimiter {
  * for a single serverless instance; for multi-instance production swap the
  * store for Upstash/Vercel KV behind the same interface.
  */
+/**
+ * Apply limiters in order, stopping at the first that blocks.
+ *
+ * The short-circuit is the point. `check()` *consumes* from its window, so
+ * evaluating every limiter on every request means an already-blocked caller
+ * still spends a token from the global daily budget — and a flood from one IP
+ * then exhausts the global cap and takes the endpoint down for everybody,
+ * which is the exact outcome a global cap exists to prevent. Narrowest limit
+ * first, global backstop last.
+ */
+export function checkInOrder(
+  checks: readonly (() => RateLimitResult)[],
+): RateLimitResult {
+  let last: RateLimitResult = { allowed: true, remaining: 0, retryAfterMs: 0 };
+  for (const check of checks) {
+    last = check();
+    if (!last.allowed) return last;
+  }
+  return last;
+}
+
+/** Best-effort client IP from proxy headers (Vercel and most hosts set these). */
+export function clientIp(request: Request): string {
+  const fwd = request.headers.get("x-forwarded-for");
+  if (fwd) {
+    // Left-most entry is the original client; the rest are proxies.
+    const first = fwd.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  return request.headers.get("x-real-ip") ?? "unknown";
+}
+
 export function createRateLimiter(opts: {
   windowMs: number;
   max: number;

@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { NextResponse } from "next/server";
 import { formatCurrency } from "@/lib/format";
-import { createRateLimiter } from "@/lib/rate-limit";
+import { checkInOrder, clientIp, createRateLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -13,18 +13,16 @@ const perMinute = createRateLimiter({ windowMs: 60_000, max: 5 });
 const perDay = createRateLimiter({ windowMs: 86_400_000, max: 40 });
 const globalPerDay = createRateLimiter({ windowMs: 86_400_000, max: 500 });
 
-/** Best-effort client IP from proxy headers (Vercel/most hosts set these). */
-function clientIp(request: Request): string {
-  const fwd = request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0]!.trim();
-  return request.headers.get("x-real-ip") ?? "unknown";
-}
-
 function limited(request: Request): number | null {
   const ip = clientIp(request);
-  const checks = [perMinute.check(ip), perDay.check(ip), globalPerDay.check("global")];
-  const blocked = checks.find((c) => !c.allowed);
-  return blocked ? Math.ceil(blocked.retryAfterMs / 1000) : null;
+  // Narrowest first, and short-circuiting: an already-blocked caller must not
+  // spend the global daily budget on its way to a 429. See `checkInOrder`.
+  const result = checkInOrder([
+    () => perMinute.check(ip),
+    () => perDay.check(ip),
+    () => globalPerDay.check("global"),
+  ]);
+  return result.allowed ? null : Math.ceil(result.retryAfterMs / 1000);
 }
 
 /** Reject obviously malformed/oversized bodies before doing any paid work. */
@@ -96,9 +94,11 @@ export async function POST(request: Request) {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
+    // Not configured is a deliberate deployment state, not a fault — and the
+    // name of the missing secret is nobody's business but the operator's.
     return NextResponse.json(
-      { error: "GEMINI_API_KEY is not configured on the server." },
-      { status: 500 },
+      { error: "AI tips aren't enabled on this server." },
+      { status: 503 },
     );
   }
 
@@ -162,8 +162,11 @@ UK FIRE simulation summary:
     const parsed = JSON.parse(text) as AnalyzeResponse;
     return NextResponse.json(parsed);
   } catch (error) {
+    // The upstream message can carry quota details, project identifiers and
+    // model internals. It goes to the server log, never to the browser.
+    console.error("analyze: Gemini request failed", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "AI request failed." },
+      { error: "The tips service is unavailable right now — please try again." },
       { status: 502 },
     );
   }

@@ -1,4 +1,4 @@
-import type { AssetClass, Holding } from "./assets";
+import { type Holding, isAssetClass } from "./assets";
 import type { FireInputs } from "./fire-engine";
 
 /**
@@ -43,16 +43,6 @@ const ZERO_FILLED_FIELDS = [
 
 const HOLDINGS_FIELDS = ["isaHoldings", "sippHoldings", "giaHoldings"] as const;
 
-const VALID_ASSET_CLASSES: readonly string[] = [
-  "global-equity",
-  "us-equity",
-  "multi-asset-100",
-  "multi-asset-80",
-  "multi-asset-60",
-  "global-bonds",
-  "cash",
-];
-
 /**
  * Validate a wrapper's holdings array from untrusted JSON: each holding needs a
  * known asset class and finite ocf/weight/return, or it's dropped. Returns
@@ -65,14 +55,9 @@ function sanitiseHoldings(value: unknown): Holding[] | undefined {
   for (const item of value) {
     if (typeof item !== "object" || item === null) continue;
     const h = item as Record<string, unknown>;
-    if (
-      typeof h.assetClass !== "string" ||
-      !VALID_ASSET_CLASSES.includes(h.assetClass)
-    ) {
-      continue;
-    }
+    if (!isAssetClass(h.assetClass)) continue;
     const holding: Holding = {
-      assetClass: h.assetClass as AssetClass,
+      assetClass: h.assetClass,
       ocf: typeof h.ocf === "number" && Number.isFinite(h.ocf) ? h.ocf : 0,
       weight:
         typeof h.weight === "number" && Number.isFinite(h.weight) && h.weight >= 0

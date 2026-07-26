@@ -2,6 +2,7 @@
 
 import { Sparkles, Upload, X } from "lucide-react";
 import { useState } from "react";
+import { MAX_IMPORT_CHARS } from "@/lib/portfolio-import";
 import type { Holding } from "@/lib/vanguard-funds";
 
 interface ApiHolding {
@@ -10,6 +11,14 @@ interface ApiHolding {
   ocf: number;
   weight: number;
 }
+
+/**
+ * Largest file we'll read. A statement export is a few KB; anything far bigger
+ * is the wrong file. Reading it anyway meant `FileReader` pulled the whole
+ * thing into memory and then into a controlled `<textarea>`, which locks the
+ * tab up long before the server gets a chance to reject it.
+ */
+const MAX_FILE_BYTES = 512 * 1024;
 
 /**
  * AI-assisted portfolio import. The pasted text (or an uploaded CSV read as
@@ -30,8 +39,24 @@ export function PortfolioImport({
   const [error, setError] = useState<string | null>(null);
 
   const readFile = (file: File) => {
+    if (file.size > MAX_FILE_BYTES) {
+      setError(
+        "That file is too big to import — export just your holdings, or paste them in above.",
+      );
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = () => setText(String(reader.result ?? ""));
+    reader.onload = () => {
+      setError(null);
+      const content = String(reader.result ?? "");
+      setText(content.slice(0, MAX_IMPORT_CHARS));
+      if (content.length > MAX_IMPORT_CHARS) {
+        setError(
+          "That file was longer than we can read, so only the first part was loaded — check it covers your holdings.",
+        );
+      }
+    };
+    reader.onerror = () => setError("Couldn't read that file.");
     reader.readAsText(file);
   };
 
