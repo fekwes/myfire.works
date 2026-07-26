@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronDown, Copy, Plus, X } from "lucide-react";
+import { ChevronDown, Copy, Plus, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import { PortfolioImport } from "@/components/PortfolioImport";
 import {
   type AssetClass,
   ASSET_CLASS_LABEL,
@@ -63,6 +64,7 @@ export function PortfolioEditor({
   const [open, setOpen] = useState(hasPortfolio);
   const [query, setQuery] = useState("");
   const [showCustom, setShowCustom] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   const derived = hasPortfolio ? holdingsNetGrowth(list) : undefined;
   const weightTotal = list.reduce((s, h) => s + Math.max(0, h.weight), 0);
@@ -259,14 +261,33 @@ export function PortfolioEditor({
                 onCancel={() => setShowCustom(false)}
               />
             ) : (
-              <button
-                type="button"
-                onClick={() => setShowCustom(true)}
-                className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-              >
-                <Plus className="size-3.5" />
-                Add a custom holding
-              </button>
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                <button
+                  type="button"
+                  onClick={() => setShowCustom(true)}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                >
+                  <Plus className="size-3.5" />
+                  Add a custom holding
+                </button>
+                {!showImport && (
+                  <button
+                    type="button"
+                    onClick={() => setShowImport(true)}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  >
+                    <Sparkles className="size-3.5" />
+                    Import with AI
+                  </button>
+                )}
+              </div>
+            )}
+
+            {showImport && (
+              <PortfolioImport
+                onImport={(h) => commit(h)}
+                onClose={() => setShowImport(false)}
+              />
             )}
           </div>
         </div>
