@@ -121,10 +121,24 @@ gracefully — so a public launch without Supabase is safe.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser-safe under RLS |
 | `SUPABASE_SERVICE_ROLE_KEY` | **server-only.** Full account deletion; without it, deletion degrades to data-only |
 | `GEMINI_API_KEY` | AI tips **and** the AI portfolio import (**not** an Anthropic key) |
-| `NEXT_PUBLIC_SITE_URL` | OG cards, sitemap, share links (use the full `https://…` origin — a protocol-less value is now tolerated but set it properly) |
+| `NEXT_PUBLIC_SITE_URL` | OG cards, sitemap, canonicals, share links. **Optional now** — see below |
 
 Set the Supabase vars for **preview** as well as production if you want to test
 Profiles on a preview URL.
+
+**The site origin resolves itself.** `lib/site-url.ts` takes the first candidate
+that is a *plausible hostname* — `NEXT_PUBLIC_SITE_URL`, then Vercel's own
+`VERCEL_PROJECT_PRODUCTION_URL`, then localhost. So the canonical origin is
+correct on Vercel with the variable unset, and it follows whichever domain is
+set **primary** in the dashboard, which means the canonical can never disagree
+with the apex↔www redirect. Only set `NEXT_PUBLIC_SITE_URL` to override that.
+
+This is stricter than it looks, and deliberately so. The variable was once set
+to the whole `KEY=value` line pasted into the dashboard's value box. That
+*parses* — hostname `next_public_site_url=https` — so the build stayed green
+while every canonical, sitemap entry, robots line and OG image URL on the live
+site pointed at a hostname that does not exist. Validating the hostname, not
+just the URL, is what catches it; `lib/site-url.test.ts` pins the case.
 
 **Supabase setup:** run `supabase/migrations/20260101000000_portfolios.sql` in
 the SQL editor (DDL can't run with the API keys). It creates the `portfolios`
@@ -169,8 +183,14 @@ Worth knowing, because each cost real debugging:
 
 ## 9. Current state
 
-**Live:** production on Vercel at `https://onfire-nu.vercel.app` (custom domain
-`myfire.works` still to be pointed). Auto-deploys from `main`.
+**Live:** production on Vercel at **`myfire.works`** (registered at Spaceship;
+DNS pointed, certificate issued, Supabase redirect URLs updated).
+`onfire-nu.vercel.app` still resolves. Auto-deploys from `main`.
+
+⚠️ **`www` is currently the primary domain**, so `myfire.works` 308s to
+`www.myfire.works`. That works and the canonical follows it automatically, but
+the apex is the better brand — set it primary in Vercel → Domains when
+convenient, and nothing in the code needs to change.
 
 **Merged history:**
 - **PR #3** — Fireworks rebrand + UX/UI overhaul (identity, landing, quiz,
@@ -267,8 +287,8 @@ Roughly highest value first. Nothing here is started.
    gaps and `docs/REVIEW-2026-07.md` R1.
 2. **Human verification of the signed-in flows** (see gaps), then decide whether
    plans should sync automatically vs. an explicit Save.
-3. **Custom domain** `myfire.works` → Vercel domains + `NEXT_PUBLIC_SITE_URL` +
-   Supabase redirect URLs; then Search Console + submit the sitemap.
+3. **Search Console** — add `myfire.works` as a property and submit
+   `/sitemap.xml`. The domain itself is done (§9); this is the leftover.
 4. **Multi-country groundwork** — the wrapper refactor in
    **`docs/MULTI-COUNTRY.md` §3**. Turns "add a country" from a rewrite into a
    data change, and is worth doing even if no second country ships. Note it
