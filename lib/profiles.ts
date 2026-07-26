@@ -1,4 +1,5 @@
 import type { FireInputs } from "./fire-engine";
+import { sanitisePlanInput } from "./plan-storage";
 
 /**
  * The Supabase table saved profiles live in.
@@ -74,33 +75,107 @@ export function sortProfiles(profiles: Profile[]): Profile[] {
 }
 
 /**
+ * What the failed request was trying to do. A read that fails must not tell
+ * someone "nothing was saved" — they weren't saving, and the wrong sentence
+ * sends them looking for a problem that isn't there.
+ */
+export type ProfileAction = "save" | "read" | "delete";
+
+const ACTION_VERB: Record<ProfileAction, string> = {
+  save: "save",
+  read: "load your saved plans",
+  delete: "delete that",
+};
+
+/**
  * Turn a Supabase/PostgREST failure into something a person can act on.
  *
  * This exists because the previous version ignored write errors entirely and
  * always flashed a success tick — so a save that never landed looked saved,
  * and the plan was gone on reload. Every failure must now say so out loud.
  */
-export function describeProfileError(error: {
-  code?: string | null;
-  message?: string | null;
-} | null): string | null {
+export function describeProfileError(
+  error: {
+    code?: string | null;
+    message?: string | null;
+  } | null,
+  action: ProfileAction = "save",
+): string | null {
   if (!error) return null;
   const code = error.code ?? "";
   // Undefined table — the migration hasn't been run on this project.
   if (code === "42P01") {
-    return "Saved plans aren't set up on this project yet, so nothing was saved.";
+    return action === "read"
+      ? "Saved plans aren't set up on this project yet, so there's nothing to load."
+      : "Saved plans aren't set up on this project yet, so nothing was saved.";
   }
-  // RLS rejection / not authenticated.
+  // RLS rejection / not authenticated. 42501 is a missing table grant — the
+  // migration's `grant … to authenticated` line is the usual culprit.
   if (code === "42501" || code === "PGRST301") {
-    return "You don't have permission to save here — try signing in again.";
+    return `You don't have permission to ${ACTION_VERB[action]} — try signing in again.`;
   }
   // Unique violation on (user_id, name).
   if (code === "23505") {
     return "You already have a plan with that name. Rename it, or load and overwrite it.";
   }
-  return error.message
-    ? `Couldn't save: ${error.message}`
-    : "Couldn't save — please try again.";
+  const prefix =
+    action === "read"
+      ? "Couldn't load your saved plans"
+      : action === "delete"
+        ? "Couldn't delete that"
+        : "Couldn't save";
+  return error.message ? `${prefix}: ${error.message}` : `${prefix} — please try again.`;
+}
+
+/**
+ * Validate rows read back from Supabase before any of them reach the engine.
+ *
+ * A row's `inputs` is a `jsonb` blob, and the app is not the only thing that
+ * can have written it: an older build with a different field set, a plan saved
+ * while a field was mid-edit (`NaN` serialises to `null`), a hand-edited row.
+ * `sanitisePlanInput` is the same validator that guards localStorage and share
+ * links, and it has to guard this path too — without it one bad row renders
+ * `£NaN` across the projection, or worse a quietly wrong figure.
+ *
+ * Rows that can't be salvaged are dropped rather than thrown away silently at
+ * the point of use, and counted so the UI can say so.
+ */
+export function parseProfileRows(rows: unknown): {
+  profiles: Profile[];
+  dropped: number;
+} {
+  if (!Array.isArray(rows)) return { profiles: [], dropped: 0 };
+  const profiles: Profile[] = [];
+  let dropped = 0;
+  for (const row of rows) {
+    if (typeof row !== "object" || row === null) {
+      dropped++;
+      continue;
+    }
+    const r = row as Record<string, unknown>;
+    const inputs = sanitisePlanInput(r.inputs);
+    if (typeof r.id !== "string" || typeof r.name !== "string" || !inputs) {
+      dropped++;
+      continue;
+    }
+    profiles.push({
+      id: r.id,
+      name: r.name,
+      inputs,
+      updated_at: typeof r.updated_at === "string" ? r.updated_at : null,
+    });
+  }
+  return { profiles: sortProfiles(profiles), dropped };
+}
+
+/**
+ * Rows are validated on the way in by `parseProfileRows`, so a `Profile` in
+ * state is already safe to load. This re-validates at the point of use anyway:
+ * it is one cheap call, and it means a future caller that builds a `Profile`
+ * some other way can't route around the validator.
+ */
+export function profileInputsForLoad(profile: Profile): FireInputs | null {
+  return sanitisePlanInput(profile.inputs);
 }
 
 /** Compact "when was this last saved" label for the profile list. */

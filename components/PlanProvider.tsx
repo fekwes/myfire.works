@@ -1,11 +1,16 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { DEFAULT_FIRE_FORM_VALUES } from "@/components/FireForm";
 import type { FireInputs } from "@/lib/fire-engine";
 import { loadPlanLocal, savePlanLocal } from "@/lib/plan-storage";
-import { PROFILES_TABLE } from "@/lib/profiles";
+import { decidePlanSync, FIRST_PROFILE_NAME } from "@/lib/plan-sync";
+import {
+  describeProfileError,
+  parseProfileRows,
+  PROFILES_TABLE,
+} from "@/lib/profiles";
 import { createClient } from "@/lib/supabase/client";
 
 interface PlanState {
@@ -17,6 +22,13 @@ interface PlanState {
   hydrated: boolean;
   /** Whether a plan was found in storage on load (vs. a fresh default). */
   hasStoredPlan: boolean;
+  /**
+   * Set when a signed-in user's saved plan could not be read back. Distinct
+   * from "they have no saved plan": showing someone the blank defaults after a
+   * failed read looks exactly like their data being thrown away, so whoever
+   * renders the plan must be able to say what actually happened.
+   */
+  restoreError: string | null;
 }
 
 const PlanContext = createContext<PlanState | null>(null);
@@ -39,6 +51,9 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   );
   const [hydrated, setHydrated] = useState(false);
   const [hasStoredPlan, setHasStoredPlan] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  /** The user id we've already reconciled against, so the sync runs once. */
+  const syncedForUser = useRef<string | null>(null);
   const { user, configured } = useAuth();
 
   // Read persisted state after mount to avoid an SSR/client hydration mismatch.
@@ -51,33 +66,76 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     setHydrated(true);
   }, []);
 
-  // When a signed-in user has no local plan yet (e.g. a fresh browser), pull
-  // their most recently saved plan from Supabase so logging in restores their
-  // data. We never overwrite an existing local plan (that could be newer,
-  // unsaved work — they can still load others from Your Finances).
+  // Reconcile the local plan with the account, once, whenever a session
+  // appears. `decidePlanSync` holds the policy and the reasoning; this effect
+  // is just the I/O around it.
+  //
+  // Two things it must not do. It must not treat a failed read as "you have no
+  // saved plans" — that shows someone the blank defaults and reads as their
+  // data being gone — so `restoreError` is surfaced. And it must not feed a
+  // row's `jsonb` straight to the engine: `parseProfileRows` runs it through
+  // the same validator as localStorage and share links, because a blob written
+  // by an older build is untrusted input like any other.
   useEffect(() => {
-    if (!hydrated || !configured || !user || hasStoredPlan) return;
+    if (!hydrated || !configured || !user) return;
+    // Once per session, not once per render — an adopt writes a row, and a
+    // re-run would either duplicate work or trip the (user_id, name) unique
+    // constraint and report a name clash the user never caused.
+    if (syncedForUser.current === user.id) return;
+    syncedForUser.current = user.id;
+
     let active = true;
     (async () => {
-      try {
-        const { data } = await createClient()
-          .from(PROFILES_TABLE)
-          .select("inputs")
-          .order("updated_at", { ascending: false })
-          .limit(1);
-        const saved = data?.[0]?.inputs as FireInputs | undefined;
-        if (active && saved) {
-          setInputsState(saved);
-          setHasStoredPlan(true);
-          savePlanLocal(saved);
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from(PROFILES_TABLE)
+        .select("id, name, inputs, updated_at")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false });
+      if (!active) return;
+      if (error) {
+        setRestoreError(
+          describeProfileError(error, "read") ?? "Couldn't load your saved plans.",
+        );
+        // Let a later session retry rather than leaving this account unsynced.
+        syncedForUser.current = null;
+        return;
+      }
+
+      const action = decidePlanSync({
+        hasLocalPlan: hasStoredPlan,
+        saved: parseProfileRows(data).profiles,
+      });
+
+      if (action.kind === "restore") {
+        setInputsState(action.inputs);
+        setHasStoredPlan(true);
+        savePlanLocal(action.inputs);
+        return;
+      }
+
+      if (action.kind === "adopt-local") {
+        const { error: saveError } = await supabase.from(PROFILES_TABLE).insert({
+          user_id: user.id,
+          name: FIRST_PROFILE_NAME,
+          inputs,
+          updated_at: new Date().toISOString(),
+        });
+        if (active && saveError) {
+          setRestoreError(
+            `${
+              describeProfileError(saveError) ?? "Couldn't save your plan."
+            } It's still on this device — try Save on the Edit plan screen.`,
+          );
         }
-      } catch {
-        // Table missing / offline — degrade silently.
       }
     })();
     return () => {
       active = false;
     };
+    // `inputs` is deliberately not a dependency: this reads the plan as it
+    // stands when a session appears, and must not re-run on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, configured, user, hasStoredPlan]);
 
   const setInputs = (next: FireInputs) => {
@@ -87,7 +145,9 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <PlanContext.Provider value={{ inputs, setInputs, hydrated, hasStoredPlan }}>
+    <PlanContext.Provider
+      value={{ inputs, setInputs, hydrated, hasStoredPlan, restoreError }}
+    >
       {children}
     </PlanContext.Provider>
   );

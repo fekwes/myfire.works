@@ -8,10 +8,17 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function AccountPage() {
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ authError?: string }>;
+}) {
+  // `/auth/callback` sends people here with `?authError=link` when a
+  // confirmation or reset link has expired or already been used.
+  const { authError } = await searchParams;
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
-      <AccountPanel />
+      <AccountPanel linkExpired={authError === "link"} />
     </div>
   );
 }

@@ -4,9 +4,7 @@ import { ChevronDown, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { usePlan } from "@/components/PlanProvider";
 import { Button, Menu } from "@/components/ui";
-import { PROFILES_TABLE } from "@/lib/profiles";
 import { createClient } from "@/lib/supabase/client";
 
 const authInputClasses =
@@ -14,7 +12,6 @@ const authInputClasses =
 
 export function AuthButton() {
   const { user, loading, configured } = useAuth();
-  const { inputs } = usePlan();
   const router = useRouter();
   const panelId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -66,25 +63,17 @@ export function AuthButton() {
           options: { emailRedirectTo: `${location.origin}/auth/callback` },
         });
         if (error) throw error;
+        // Saving the plan into the new account is deliberately *not* done here.
+        // It belongs wherever a session appears, not to this one call — see the
+        // note on `decidePlanSync`. `PlanProvider` owns it, which is what makes
+        // it work when the project requires email confirmation (this one does),
+        // because then `signUp` returns no session and nothing here would run.
         if (data.session) {
-          // Confirmation off: they're signed in now. Persist the plan they just
-          // built as their first profile so "sign up" actually saves it, then
-          // land them in the app.
-          try {
-            await supabase.from(PROFILES_TABLE).insert({
-              user_id: data.session.user.id,
-              name: "My plan",
-              inputs,
-              updated_at: new Date().toISOString(),
-            });
-          } catch {
-            // Non-fatal — the plan is still safe locally.
-          }
           setOpen(false);
           router.push("/planner");
         } else {
           setMessage(
-            "Check your email to confirm your account, then sign in — your plan is saved on this device meanwhile.",
+            "Check your email to confirm your account — your plan is saved on this device meanwhile, and lands in your account when you follow the link.",
           );
         }
       }

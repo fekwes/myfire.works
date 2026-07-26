@@ -11,7 +11,13 @@ export async function GET(request: Request) {
 
   if (code && isSupabaseConfigured) {
     const supabase = await createClient();
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    // An expired or already-used link must not drop someone into the app
+    // looking signed out with no explanation — that reads as the app losing
+    // their account. Send them to /account, which can ask them to sign in.
+    if (error) {
+      return NextResponse.redirect(`${origin}/account?authError=link`);
+    }
   }
 
   return NextResponse.redirect(`${origin}${next}`);

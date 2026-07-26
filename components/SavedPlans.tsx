@@ -13,9 +13,11 @@ import {
   MAX_PROFILE_NAME,
   nextCopyName,
   normaliseProfileName,
+  parseProfileRows,
   type Profile,
+  type ProfileAction,
+  profileInputsForLoad,
   PROFILES_TABLE,
-  sortProfiles,
 } from "@/lib/profiles";
 import { createClient } from "@/lib/supabase/client";
 
@@ -48,47 +50,64 @@ export function SavedPlans({
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
-  /** Read every profile for the signed-in user, newest first. */
-  const fetchProfiles = useCallback(async () => {
+  /**
+   * Read every profile for the signed-in user, newest first.
+   *
+   * The `user_id` filter is belt-and-braces: RLS already restricts rows to
+   * their owner, but a select that says which rows it wants doesn't depend on
+   * the policy being right to stay correct. Every row is then run through
+   * `parseProfileRows`, because a `jsonb` blob is untrusted input like any
+   * other — see the note there.
+   */
+  const fetchProfiles = useCallback(async (userId: string) => {
     const supabase = createClient();
     const { data, error: readError } = await supabase
       .from(PROFILES_TABLE)
-      .select("id, name, inputs, updated_at");
-    return {
-      profiles: sortProfiles((data as Profile[]) ?? []),
-      readError,
-    };
+      .select("id, name, inputs, updated_at")
+      .eq("user_id", userId);
+    return { ...parseProfileRows(data), readError };
   }, []);
 
-  const refresh = useCallback(async () => {
-    const { profiles: rows, readError } = await fetchProfiles();
-    if (readError) {
-      setError(describeProfileError(readError));
+  /** Apply a read's outcome to state, reporting a failure rather than hiding it. */
+  const applyRead = useCallback(
+    (result: {
+      profiles: Profile[];
+      dropped: number;
+      readError: { code?: string | null; message?: string | null } | null;
+    }) => {
       setLoaded(true);
-      return;
-    }
-    setProfiles(rows);
-    setLoaded(true);
-  }, [fetchProfiles]);
+      if (result.readError) {
+        setError(describeProfileError(result.readError, "read"));
+        return;
+      }
+      setProfiles(result.profiles);
+      setError(
+        result.dropped === 0
+          ? null
+          : result.dropped === 1
+            ? "One saved plan couldn't be read and was hidden."
+            : `${result.dropped} saved plans couldn't be read and were hidden.`,
+      );
+    },
+    [],
+  );
+
+  const refresh = useCallback(async () => {
+    if (!user) return;
+    applyRead(await fetchProfiles(user.id));
+  }, [applyRead, fetchProfiles, user]);
 
   useEffect(() => {
     if (!user) return;
     let active = true;
     (async () => {
-      const { profiles: rows, readError } = await fetchProfiles();
-      if (!active) return;
-      if (readError) {
-        setError(describeProfileError(readError));
-        setLoaded(true);
-        return;
-      }
-      setProfiles(rows);
-      setLoaded(true);
+      const result = await fetchProfiles(user.id);
+      if (active) applyRead(result);
     })();
     return () => {
       active = false;
     };
-  }, [user, fetchProfiles]);
+  }, [user, fetchProfiles, applyRead]);
 
   if (!configured) return null;
 
@@ -110,10 +129,10 @@ export function SavedPlans({
     setTimeout(() => setStatus(null), 2500);
   }
 
-  function fail(e: unknown) {
+  function fail(e: unknown, action: ProfileAction = "save") {
     setStatus(null);
     setError(
-      describeProfileError(e as { code?: string; message?: string }) ??
+      describeProfileError(e as { code?: string; message?: string }, action) ??
         "Something went wrong.",
     );
   }
@@ -134,7 +153,13 @@ export function SavedPlans({
       .single();
     setBusy(false);
     if (writeError) return fail(writeError);
-    setActiveId((data as Profile).id);
+    const inserted = data as { id?: unknown } | null;
+    if (typeof inserted?.id !== "string") {
+      // No error and no row: the insert didn't land. Say so — never flash a
+      // success tick for a write we can't prove happened.
+      return fail({ message: "the plan didn't come back from the server" });
+    }
+    setActiveId(inserted.id);
     setName("");
     await refresh();
     succeed(`Saved “${newName}”.`);
@@ -175,7 +200,13 @@ export function SavedPlans({
   }
 
   function load(profile: Profile) {
-    onLoad(profile.inputs);
+    const safe = profileInputsForLoad(profile);
+    if (!safe) {
+      return fail({
+        message: `“${profile.name}” couldn't be read — it may have been saved by an older version.`,
+      });
+    }
+    onLoad(safe);
     setActiveId(profile.id);
     succeed(`Loaded “${profile.name}”.`);
   }
@@ -212,7 +243,7 @@ export function SavedPlans({
       .delete()
       .eq("id", profile.id);
     setBusy(false);
-    if (writeError) return fail(writeError);
+    if (writeError) return fail(writeError, "delete");
     if (activeId === profile.id) setActiveId(null);
     await refresh();
     succeed(`Deleted “${profile.name}”.`);
@@ -378,8 +409,9 @@ export function SavedPlans({
                     <button
                       type="button"
                       onClick={() => void remove(profile)}
+                      disabled={busy}
                       aria-label={`Delete ${profile.name}`}
-                      className="rounded-full p-1.5 text-muted-foreground transition-colors hover:text-danger"
+                      className="rounded-full p-1.5 text-muted-foreground transition-colors hover:text-danger disabled:opacity-50"
                     >
                       <Trash2 className="size-3.5" />
                     </button>

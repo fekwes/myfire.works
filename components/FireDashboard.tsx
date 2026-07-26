@@ -145,7 +145,7 @@ function Segmented({
 }
 
 export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
-  const { inputs: ownInputs, setInputs } = usePlan();
+  const { inputs: ownInputs, setInputs, restoreError } = usePlan();
   const router = useRouter();
   // A `?p=` param renders someone else's plan read-only, without touching the
   // viewer's own saved plan.
@@ -277,6 +277,19 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
           </h1>
           <PlanActions />
         </div>
+      )}
+
+      {/* A signed-in user whose saved plan couldn't be read is looking at the
+          defaults, which is indistinguishable from their data having been
+          thrown away. Say which it is, before they read any of the figures. */}
+      {!readOnly && restoreError && (
+        <p
+          role="alert"
+          className="no-print rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
+        >
+          {restoreError} Nothing has been lost — the figures below are the
+          defaults, not your plan.
+        </p>
       )}
 
       {/* The setup guide is for turning a real plan into a complete one, so it
