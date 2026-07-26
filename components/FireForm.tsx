@@ -99,6 +99,56 @@ export function Field({
   );
 }
 
+/**
+ * A correction shown under a field the plan can't use as typed. The engine
+ * clamps rather than crashing, so this says what it clamped to — the figure on
+ * screen and the figure being projected would otherwise disagree silently.
+ */
+function FieldNote({ children }: { children: ReactNode }) {
+  return (
+    <p role="status" className="mt-1.5 text-xs leading-relaxed text-danger">
+      {children}
+    </p>
+  );
+}
+
+/** An on/off switch for a part of the plan that's off by default, so "none"
+ *  is something you say once rather than by zeroing every field it owns. */
+function Switch({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+}) {
+  return (
+    <span className="flex items-center gap-2">
+      <span className="text-xs font-medium text-muted-foreground">
+        {checked ? "On" : "Off"}
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/40 ${
+          checked ? "bg-foreground" : "bg-border"
+        }`}
+      >
+        <span
+          aria-hidden
+          className={`size-4 rounded-full bg-background shadow transition-transform ${
+            checked ? "translate-x-[1.125rem]" : "translate-x-0.5"
+          }`}
+        />
+      </button>
+    </span>
+  );
+}
+
 export function NumberInput({
   value,
   onChange,
@@ -176,15 +226,22 @@ function Block({
   title,
   dotClass,
   tooltip,
+  action,
+  note,
   footer,
   children,
 }: {
   title: string;
   dotClass?: string;
   tooltip?: string;
+  /** Right-aligned control in the header, e.g. the switch that turns the
+   *  whole block on. When it's off the block renders header-only. */
+  action?: ReactNode;
+  /** One line under the header — what the block does while it's switched off. */
+  note?: ReactNode;
   /** Full-width content below the two-column input grid (e.g. the portfolio). */
   footer?: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <div className="rounded-xl border border-border bg-surface-muted p-4">
@@ -192,8 +249,18 @@ function Block({
         {dotClass && <span aria-hidden className={`size-2 rounded-full ${dotClass}`} />}
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         {tooltip && <Tooltip text={tooltip} label={title} />}
+        {action && <span className="ml-auto pl-2">{action}</span>}
       </div>
-      <div className="mt-3 grid grid-cols-1 items-end gap-4 sm:grid-cols-2">{children}</div>
+      {note && (
+        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+          {note}
+        </p>
+      )}
+      {children && (
+        <div className="mt-3 grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
+          {children}
+        </div>
+      )}
       {footer}
     </div>
   );
@@ -291,6 +358,42 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
     )
       .filter((w) => w.id !== self && w.holdings && w.holdings.length > 0)
       .map((w) => ({ id: w.id, label: w.label, holdings: w.holdings ?? [] }));
+
+  // Part-time work is off unless it's earning something. The engine has always
+  // read "0" as "none", so the switch stays derived from the figures rather
+  // than adding a flag that every share link and saved plan would have to
+  // carry. Switching off remembers what was typed, so it comes back intact.
+  const partTimeOn =
+    (value.partTimeAnnualIncome ?? 0) > 0 || (value.partTimeUntilAge ?? 0) > 0;
+  const [partTimeMemo, setPartTimeMemo] = useState<{
+    income: number;
+    untilAge: number;
+  } | null>(null);
+
+  const togglePartTime = (on: boolean) => {
+    if (!on) {
+      setPartTimeMemo({
+        income: value.partTimeAnnualIncome ?? 0,
+        untilAge: value.partTimeUntilAge ?? 0,
+      });
+      onChange({ ...value, partTimeAnnualIncome: 0, partTimeUntilAge: 0 });
+      return;
+    }
+    onChange({
+      ...value,
+      partTimeAnnualIncome: partTimeMemo?.income || 10000,
+      // Default to five years of it — an "until" age before retirement would
+      // mean the work is over before it starts.
+      partTimeUntilAge: partTimeMemo?.untilAge || value.retirementAge + 5,
+    });
+  };
+
+  // The engine floors the plan's end age at `currentAge` rather than projecting
+  // no years at all, so this says so instead of leaving the field and the
+  // projection quietly disagreeing.
+  const planEndsTooEarly =
+    num(value.lifeExpectancyAge, DEFAULT_ASSUMPTIONS.lifeExpectancyAge) <
+    value.currentAge;
 
   // Set a wrapper's holdings and its derived growth in ONE update — two separate
   // set() calls would each read the same stale `value` and clobber each other.
@@ -553,26 +656,41 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
           title="Part-time work — Barista FIRE"
           dotClass="bg-muted-foreground/60"
           tooltip="Taxable part-time earnings in early retirement. They offset your target — so your pots draw down less — until the age you stop."
+          action={
+            <Switch
+              checked={partTimeOn}
+              onChange={togglePartTime}
+              label="Part-time work"
+            />
+          }
+          note={
+            partTimeOn ? undefined : "No part-time earnings in your projection."
+          }
         >
-          <Field label="Annual income">
-            <NumberInput
-              value={num(value.partTimeAnnualIncome, 0)}
-              onChange={(v) => set("partTimeAnnualIncome", v)}
-              prefix="£"
-              suffix="/ yr"
-              step={1000}
-            />
-          </Field>
-          <Field
-            label="Until age"
-            tooltip="The age you stop the part-time work. Leave at 0 for none."
-          >
-            <NumberInput
-              value={num(value.partTimeUntilAge, 0)}
-              onChange={(v) => set("partTimeUntilAge", v)}
-              suffix="0 = none"
-            />
-          </Field>
+          {partTimeOn && (
+            <>
+              <Field label="Annual income">
+                <NumberInput
+                  value={num(value.partTimeAnnualIncome, 0)}
+                  onChange={(v) => set("partTimeAnnualIncome", v)}
+                  prefix="£"
+                  suffix="/ yr"
+                  step={1000}
+                />
+              </Field>
+              <Field
+                label="Until age"
+                tooltip="The age you stop the part-time work — after it, your pots fund the whole target."
+              >
+                <NumberInput
+                  value={num(value.partTimeUntilAge, 0)}
+                  onChange={(v) => set("partTimeUntilAge", v)}
+                  suffix="yrs"
+                  min={value.retirementAge}
+                />
+              </Field>
+            </>
+          )}
         </Block>
 
       </Section>
@@ -606,9 +724,18 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
               )}
               onChange={(v) => set("lifeExpectancyAge", v)}
               suffix="yrs"
+              min={value.currentAge}
             />
           </Field>
         </div>
+        {/* Outside the grid: a note inside a cell would stretch its row and
+            pull the neighbouring field out of line. */}
+        {planEndsTooEarly && (
+          <FieldNote>
+            &ldquo;Plan lasts to&rdquo; can&apos;t be earlier than your current
+            age. Projecting to age {value.currentAge} until you raise it.
+          </FieldNote>
+        )}
 
         <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
           <Field

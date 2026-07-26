@@ -121,6 +121,14 @@ describe("estimateFeeDrag", () => {
     expect(estimateFeeDrag(base)).toBeGreaterThan(0);
   });
 
+  it("survives a plan-lasts-to age below the current age", () => {
+    // A half-typed "Plan lasts to" used to leave the projection with no years
+    // at all, and reading the pot at retirement threw.
+    expect(() =>
+      estimateFeeDrag({ ...base, lifeExpectancyAge: 9 }),
+    ).not.toThrow();
+  });
+
   it("grows when fees are higher", () => {
     // LifeStrategy 100 (0.22% OCF) drags more than the cheapest tracker (VUAG,
     // 0.07% OCF) — same asset-class return, so the gap is purely fees.

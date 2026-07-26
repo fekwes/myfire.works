@@ -374,6 +374,15 @@ describe("simulateFire", () => {
     expect(dsYear?.capitalGainsTaxPaid).toBe(0); // primary residence: tax-free
   });
 
+  it("still produces a timeline when the plan-lasts-to age is below the current age", () => {
+    // Reachable by typing: the "Plan lasts to" field commits every keystroke,
+    // so clearing it to retype 95 passes through 9. An empty timeline used to
+    // crash every consumer that reads a year out of it.
+    const result = simulateFire({ ...baseInputs, lifeExpectancyAge: 9 });
+    expect(result.timeline.length).toBeGreaterThan(0);
+    expect(result.timeline[0].age).toBe(baseInputs.currentAge);
+  });
+
   it("ignores property when none is provided", () => {
     const result = simulateFire(baseInputs);
     expect(
