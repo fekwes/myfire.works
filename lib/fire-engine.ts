@@ -215,8 +215,15 @@ function resolveInputs(inputs: FireInputs): ResolvedFireInputs {
     sippAccessAge: inputs.sippAccessAge ?? DEFAULT_ASSUMPTIONS.sippAccessAge,
     pensionStrategy:
       inputs.pensionStrategy ?? DEFAULT_ASSUMPTIONS.pensionStrategy,
-    lifeExpectancyAge:
+    // Never below `currentAge`: the projection walks `currentAge`..this age, so
+    // a lower value yields an *empty* timeline and every consumer that reads a
+    // year out of it ("the pot at retirement", "the last year") reads
+    // undefined. Reachable just by typing — the "Plan lasts to" field commits
+    // each keystroke, so clearing it to retype 95 passes through 9 first.
+    lifeExpectancyAge: Math.max(
+      inputs.currentAge,
       inputs.lifeExpectancyAge ?? DEFAULT_ASSUMPTIONS.lifeExpectancyAge,
+    ),
   };
 }
 
