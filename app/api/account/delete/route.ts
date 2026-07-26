@@ -1,9 +1,15 @@
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { clientIp, createRateLimiter } from "@/lib/rate-limit";
 import { isSupabaseConfigured, SUPABASE_URL } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
+
+// The one irreversible endpoint in the app. It authenticates its caller, so the
+// exposure is small, but a per-IP cap is a cheap backstop against a script
+// hammering it.
+const perMinute = createRateLimiter({ windowMs: 60_000, max: 8 });
 
 /**
  * Permanently delete the *authenticated caller's own* account. We verify the
@@ -12,7 +18,18 @@ export const runtime = "nodejs";
  * table's `on delete cascade`. The service-role key is read from the server
  * env only and never reaches the browser.
  */
-export async function POST() {
+export async function POST(request: Request) {
+  const gate = perMinute.check(clientIp(request));
+  if (!gate.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests — please wait a moment." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil(gate.retryAfterMs / 1000)) },
+      },
+    );
+  }
+
   if (!isSupabaseConfigured) {
     return NextResponse.json(
       { error: "Supabase is not configured." },

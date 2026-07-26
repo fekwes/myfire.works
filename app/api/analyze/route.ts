@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { NextResponse } from "next/server";
+import { AI_QUOTA_MESSAGE, isQuotaExhausted } from "@/lib/ai-errors";
 import { formatCurrency } from "@/lib/format";
 import { checkInOrder, clientIp, createRateLimiter } from "@/lib/rate-limit";
 
@@ -165,6 +166,11 @@ UK FIRE simulation summary:
     // The upstream message can carry quota details, project identifiers and
     // model internals. It goes to the server log, never to the browser.
     console.error("analyze: Gemini request failed", error);
+    // A spent daily quota is a limit, not an outage — say so, or "try again"
+    // just fails again. Its own status so the client can tell them apart.
+    if (isQuotaExhausted(error)) {
+      return NextResponse.json({ error: AI_QUOTA_MESSAGE }, { status: 429 });
+    }
     return NextResponse.json(
       { error: "The tips service is unavailable right now — please try again." },
       { status: 502 },

@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { NextResponse } from "next/server";
+import { AI_QUOTA_MESSAGE, isQuotaExhausted } from "@/lib/ai-errors";
 import {
   ASSET_CLASSES,
   parseHoldingsResponse,
@@ -105,6 +106,10 @@ export async function POST(request: Request) {
     // The upstream message can carry quota details, project identifiers and
     // model internals. It goes to the server log, never to the browser.
     console.error("estimate-portfolio: Gemini request failed", error);
+    // A spent daily quota is a limit, not an outage — say so distinctly.
+    if (isQuotaExhausted(error)) {
+      return NextResponse.json({ error: AI_QUOTA_MESSAGE }, { status: 429 });
+    }
     return NextResponse.json(
       { error: "The import service is unavailable right now — please try again." },
       { status: 502 },
