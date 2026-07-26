@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "nodejs";
-export const alt = "Fireworks — UK FIRE Planner";
+export const alt = "Fireworks — FIRE & Early Retirement Planner";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -69,8 +69,8 @@ export default function OpengraphImage() {
             <span style={{ color: EMBER }}>Know it&apos;ll hold.</span>
           </div>
           <div style={{ fontSize: 30, color: MUTED, maxWidth: 940, lineHeight: 1.35 }}>
-            UK FIRE modelling across ISA, GIA, SIPP, State Pension and property —
-            with the 2026/27 tax you&apos;ll actually pay.
+            FIRE modelling across ISA, GIA, SIPP, State Pension and property —
+            with the tax you&apos;ll actually pay.
           </div>
         </div>
 

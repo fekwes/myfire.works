@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-// Structured data — a free UK finance web app. Makes the result eligible for
+// Structured data — a free finance web app. Makes the result eligible for
 // richer search presentation. Kept in sync with the layout's description.
 const jsonLd = {
   "@context": "https://schema.org",
@@ -24,13 +24,13 @@ const jsonLd = {
       url: `${siteUrl}/`,
       name: "Fireworks",
       description:
-        "UK FIRE planner: model drawdown across ISA, GIA, SIPP, State Pension and property with correct 2026/27 tax.",
+        "FIRE planner: model drawdown across ISA, GIA, SIPP, State Pension and property with the tax you'll actually pay.",
       inLanguage: "en-GB",
     },
     {
       "@type": "WebApplication",
       "@id": `${siteUrl}/#app`,
-      name: "Fireworks — UK FIRE Planner",
+      name: "Fireworks — FIRE & Early Retirement Planner",
       url: `${siteUrl}/`,
       applicationCategory: "FinanceApplication",
       operatingSystem: "Any (web browser)",
@@ -38,7 +38,7 @@ const jsonLd = {
       isAccessibleForFree: true,
       offers: { "@type": "Offer", price: "0", priceCurrency: "GBP" },
       description:
-        "Model your UK Financial Independence, Retire Early plan across ISA, GIA, SIPP, State Pension and property — with correct 2026/27 tax, Coast FIRE and Monte Carlo confidence.",
+        "Model your Financial Independence, Retire Early plan across ISA, GIA, SIPP, State Pension and property — with the tax you'll actually pay, Coast FIRE and Monte Carlo confidence.",
       inLanguage: "en-GB",
     },
   ],
@@ -163,7 +163,7 @@ export default function Landing() {
         <div className="relative z-10 lg:col-span-7">
           <span className="landing-rise inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-muted-foreground">
             <span className="size-1.5 rounded-full bg-brand" />
-            UK FIRE planner · 2026/27 tax
+            FIRE planner · tax-aware drawdown
           </span>
           <h1 className="landing-rise mt-5 font-display text-4xl font-extrabold leading-[1.02] tracking-tight text-balance [animation-delay:60ms] sm:text-[3.5rem]">
             Know your number. Know when.
@@ -179,7 +179,7 @@ export default function Landing() {
             <Term term="FIRE">FIRE</Term> — financial independence, retire early
             — is having enough invested that work becomes optional. Fireworks
             models the whole drawdown (<Term>ISA</Term>, <Term>GIA</Term>,{" "}
-            <Term>SIPP</Term>, State Pension and property) with the UK tax
+            <Term>SIPP</Term>, State Pension and property) with the tax
             you&apos;ll actually pay. No spreadsheet, no hand-waving.
           </p>
           <div className="landing-rise [animation-delay:180ms]">

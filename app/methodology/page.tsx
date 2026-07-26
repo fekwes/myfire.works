@@ -4,7 +4,7 @@ import { ButtonLink } from "@/components/ui";
 export const metadata: Metadata = {
   title: "Methodology",
   description:
-    "Exactly what Fireworks models: the UK tax rules, statutory ages, GIA/CGT approach, Coast FIRE definition, and every simplifying assumption.",
+    "Exactly what Fireworks models: the tax rules, statutory ages, GIA/CGT approach, Coast FIRE definition, and every simplifying assumption.",
   alternates: { canonical: "/methodology" },
 };
 
