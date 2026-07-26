@@ -5,14 +5,34 @@
 // shared types and the return table live here to avoid an import cycle
 // (vanguard-funds already imports the engine).
 
-export type AssetClass =
-  | "global-equity"
-  | "us-equity"
-  | "multi-asset-100"
-  | "multi-asset-80"
-  | "multi-asset-60"
-  | "global-bonds"
-  | "cash";
+/**
+ * Every asset class, as a runtime value — the single source of truth.
+ *
+ * The type is derived from this array rather than declared alongside it, and
+ * everything that validates untrusted input (`sanitisePlanInput`, the AI import
+ * route) narrows against `isAssetClass`. There used to be three hand-maintained
+ * copies of this list; adding a class to one and not the others doesn't fail to
+ * compile, it silently drops the holdings that use it.
+ */
+export const ASSET_CLASSES = [
+  "global-equity",
+  "us-equity",
+  "multi-asset-100",
+  "multi-asset-80",
+  "multi-asset-60",
+  "global-bonds",
+  "cash",
+] as const;
+
+export type AssetClass = (typeof ASSET_CLASSES)[number];
+
+/** Narrow an untrusted value to a known asset class. */
+export function isAssetClass(value: unknown): value is AssetClass {
+  return (
+    typeof value === "string" &&
+    (ASSET_CLASSES as readonly string[]).includes(value)
+  );
+}
 
 /**
  * Illustrative long-run *nominal* gross returns by asset class, before any

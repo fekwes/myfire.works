@@ -66,11 +66,25 @@ function WithoutAnAccount() {
   );
 }
 
-export function AccountPanel() {
+export function AccountPanel({
+  /** True when the link that brought them here had expired or been used. */
+  linkExpired = false,
+}: { linkExpired?: boolean } = {}) {
   const { user, configured, loading } = useAuth();
 
   return (
     <div className="space-y-5">
+      {linkExpired && !user && (
+        <p
+          role="alert"
+          className="flex items-start gap-2.5 rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
+        >
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+          That link has expired or was already used, so you&apos;re not signed
+          in. Sign in from the header, or request a new link — your account and
+          your saved plans are untouched.
+        </p>
+      )}
       <Card padding="lg">
         <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
           Account

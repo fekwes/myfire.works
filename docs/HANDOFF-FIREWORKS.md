@@ -215,36 +215,79 @@ Worth knowing, because each cost real debugging:
 
 **Green:** 168 tests · `tsc` · `eslint` · production build.
 
+**Branch `harden-profiles-and-import` — the two known gaps, then a review:**
+Full findings in **`docs/REVIEW-2026-07.md`**. The headline: the
+"sign-up saves your plan" feature was **unreachable on this project**. It read
+`data.session` from `signUp()`, which is only populated when Supabase email
+confirmation is off — and this project has it on (`/auth/v1/settings` reports
+`mailer_autoconfirm: false`). So the account was created, the plan wasn't saved,
+and nothing said so. The decision now keys off "a session exists" instead:
+`lib/plan-sync.ts` holds the policy, `PlanProvider` owns the I/O, and it works
+for confirmation-on, confirmation-off and plain sign-in alike.
+
+Also fixed: silent PostgREST failures on every profile write (it *returns*
+errors, it doesn't throw, so the `try/catch` caught nothing); saved `jsonb` rows
+reaching the engine without `sanitisePlanInput`; a crafted `?p=` link building a
+5-million-entry timeline and killing the tab (finite ≠ plausible — ranges now
+live in the shared validator); Monte Carlo scoring the three strategies on
+*different* market paths, which had it reporting ±10% guardrails as worse than
+±5%; a blocked caller still draining the global AI budget; and upstream error
+text reaching the browser. 226 tests.
+
 ### Known gaps
-- 🔴 **Signed-in Profiles and the new "sign-up saves your plan" flow have not
-  been run against a live Supabase** (there's no login in the dev loop). **Do
-  this first:** sign up → confirm the plan auto-saved as a profile →
-  Save/Load/rename/copy/delete → sign out → sign back in on a fresh browser and
-  confirm the plan restores.
-- 🟡 **AI import needs a real `GEMINI_API_KEY` to verify the classification** —
-  only the graceful no-key path was tested locally.
+- 🔴 **The signed-in profile flows still need a human with an account.** Agents
+  can't create accounts or enter passwords. **Do this:** sign up → follow the
+  email link → confirm a "My plan" profile appeared → Save/Load/rename/copy/
+  delete → sign out → sign in on a fresh browser and confirm the plan restores.
+  Verified *without* an account: the `portfolios` table exists and `anon` is
+  correctly denied (`42501`, not a missing-table error).
+- 🟡 **AI import needs a real `GEMINI_API_KEY` to judge classification quality.**
+  Everything else is covered by tests now — malformed replies, invented asset
+  classes, absurd fees, weights that don't sum to 1, prompt injection in the
+  pasted document. Run `npm run smoke:ai-import` against a dev server with a key.
+- 🟡 **Rate limiting is per-instance, so the global cap isn't global.** On Vercel
+  each instance has its own `Map`, making the "500/day" backstop *500 × instances*
+  and resetting on cold start. **No bill attached — the Gemini key has no billing
+  enabled, so it's the free tier.** The risk is quota exhaustion silently turning
+  both AI features off for everyone until it resets. See `docs/REVIEW-2026-07.md`
+  R1 for the two fixes, in order.
+- 🟡 Recharts is ~124 KB gz of /planner's 359 KB. Lazy-loading was tried,
+  measured and reverted (it duplicates the library); replacing it with plain SVG
+  is the real lever. R2.
+- 🟡 No error reporting, and no end-to-end regression net. R3, R5.
 - 🟡 `docs/ARCHITECTURE.md` still has pre-property/pre-2026 phrasings.
-- 🟡 Rate limiting is in-memory per instance; multi-instance prod needs
-  Upstash/Vercel KV behind the `RateLimiter` interface.
 - 🟡 Single-person plans only; rest-of-UK tax only; property has no mortgage.
 
 ## 10. Backlog — candidate next moves
 
 Roughly highest value first. Nothing here is started.
 
-1. **Verify Profiles + the sign-up-saves-plan flow end-to-end** against live
-   Supabase (see gaps), then decide whether plans should sync automatically vs.
-   an explicit Save.
-2. **Verify AI import** with a real Gemini key; then consider Excel (.xlsx), a
-   Google-Sheets link, and a review step before imported holdings are applied.
+1. **Shared-store rate limiting** (Upstash/Vercel KV behind the existing
+   `RateLimiter` interface). The only item with a real cost attached — see the
+   gaps and `docs/REVIEW-2026-07.md` R1.
+2. **Human verification of the signed-in flows** (see gaps), then decide whether
+   plans should sync automatically vs. an explicit Save.
 3. **Custom domain** `myfire.works` → Vercel domains + `NEXT_PUBLIC_SITE_URL` +
    Supabase redirect URLs; then Search Console + submit the sitemap.
-4. **Partner / joint plans** — the most-requested UK FIRE gap; a real engine
-   change (two allowances, two pensions, two State Pensions).
-5. **Scottish tax bands** — rest-of-UK only today; verify every 2026/27 figure.
-6. **Mortgages** on the property model (value + growth only today).
-7. **Automated regression:** Playwright a11y + visual snapshots in CI.
-8. **Analytics** — cookieless and privacy-friendly only, to keep `/privacy` honest.
+4. **Multi-country groundwork** — the wrapper refactor in
+   **`docs/MULTI-COUNTRY.md` §3**. Turns "add a country" from a rewrite into a
+   data change, and is worth doing even if no second country ships. Note it
+   changes the persisted plan shape, so it needs a `schemaVersion` + v1→v2
+   migration (§3 of this handoff explains why that isn't optional). Recommended
+   country order after it: **Canada → joint plans → US → Spain**.
+5. **Partner / joint plans** — the most-requested UK FIRE gap, and a hard
+   prerequisite for the US (filing status changes every bracket).
+6. **Replace Recharts with plain SVG** — ~124 KB gz of /planner's 359 KB.
+   `LandingHeroPreview` already shows it can be done well. R2.
+7. **Automated regression:** Playwright a11y + visual snapshots in CI. Every bug
+   in §8 was invisible until measured. R5.
+8. **Error reporting** (cookieless, to keep `/privacy` honest). R3.
+9. **Scottish tax bands** — rest-of-UK only today; verify every 2026/27 figure.
+   Cheap once the country pack exists: Scotland is a `region`, not a pack.
+10. **Mortgages** on the property model (value + growth only today).
+11. **AI import extras** — Excel (.xlsx), a Google-Sheets link, and a review step
+    before imported holdings are applied (the component's docstring currently
+    overstates this: `onImport` applies immediately).
 
 ---
 

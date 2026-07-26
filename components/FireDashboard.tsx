@@ -4,6 +4,11 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useMemo, useState } from "react";
 import { AiInsights } from "@/components/AiInsights";
+// Statically imported on purpose. Splitting these behind `next/dynamic` was
+// tried and measured: it costs ~8 KB of extra chunk overhead on first load,
+// and deferring all three duplicates Recharts into a second chunk, taking the
+// all-tabs total from 359 KB to 477 KB. One shared chunk is the smaller answer;
+// the real lever on this payload is Recharts itself, not how it's split.
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { ConfidencePanel } from "@/components/ConfidencePanel";
 import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
@@ -145,7 +150,7 @@ function Segmented({
 }
 
 export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
-  const { inputs: ownInputs, setInputs } = usePlan();
+  const { inputs: ownInputs, setInputs, restoreError } = usePlan();
   const router = useRouter();
   // A `?p=` param renders someone else's plan read-only, without touching the
   // viewer's own saved plan.
@@ -277,6 +282,19 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
           </h1>
           <PlanActions />
         </div>
+      )}
+
+      {/* A signed-in user whose saved plan couldn't be read is looking at the
+          defaults, which is indistinguishable from their data having been
+          thrown away. Say which it is, before they read any of the figures. */}
+      {!readOnly && restoreError && (
+        <p
+          role="alert"
+          className="no-print rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
+        >
+          {restoreError} Nothing has been lost — the figures below are the
+          defaults, not your plan.
+        </p>
       )}
 
       {/* The setup guide is for turning a real plan into a complete one, so it

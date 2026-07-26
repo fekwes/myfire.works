@@ -133,8 +133,27 @@ export function runMonteCarlo(
   const effTax = grossIncome > 0 ? clamp(totalTax / grossIncome, 0, 0.45) : 0;
 
   const baseRate = startPot > 0 ? target / startPot : 0;
-  const normal = makeNormal(mulberry32(seed));
   const ages = Array.from({ length: endAge - startAge + 1 }, (_, i) => startAge + i);
+
+  /**
+   * Draw every market path once, up front, and run all three strategies over
+   * the same ones — "common random numbers".
+   *
+   * This matters for the answer, not just the speed. The strategies used to
+   * share a single generator and consume it in turn, so each one was scored on
+   * a *different* set of market paths: part of any gap between them was which
+   * returns each happened to be dealt, not the strategy. Guardrails can only
+   * ever spend less than flat does (spending is cut when the pot is stretched
+   * and capped at the target when it recovers), so on identical paths a
+   * guardrail strategy cannot fail where flat survived — an ordering that must
+   * hold exactly, and only held on average before. Drawing once also does a
+   * third of the random-number work.
+   */
+  const normal = makeNormal(mulberry32(seed));
+  const returns = new Float64Array(sims * ages.length);
+  for (let i = 0; i < returns.length; i++) {
+    returns[i] = clamp(mean + vol * normal(), -0.9, 2);
+  }
 
   const strategies: StrategyResult[] = STRATEGIES.map(({ key, label, band }) => {
     let successes = 0;
@@ -148,7 +167,7 @@ export function runMonteCarlo(
 
       for (let i = 0; i < ages.length; i++) {
         const age = ages[i];
-        const r = clamp(mean + vol * normal(), -0.9, 2);
+        const r = returns[s * ages.length + i];
         pot *= 1 + r;
 
         // Guardrails: cut spending when the pot is stretched, recover toward

@@ -186,3 +186,126 @@ describe("sanitisePlanInput", () => {
     expect(out?.pensionStrategy).toBe("lumpSum");
   });
 });
+
+/**
+ * Plans travel in `?p=` links, so a plan is something one person can hand
+ * another. Finiteness alone doesn't bound the work the engine then does: it
+ * builds an object per year from `currentAge` to `lifeExpectancyAge`, so
+ * "live to 5,000,000" is a finite, valid-looking number that allocated five
+ * million objects and took the recipient's tab down with it.
+ */
+describe("sanitisePlanInput — bounds, not just finiteness", () => {
+  const valid = {
+    currentAge: 40,
+    retirementAge: 55,
+    targetAnnualIncome: 30000,
+  };
+
+  it("clamps an absurd life expectancy so the projection stays bounded", () => {
+    const out = sanitisePlanInput({ ...valid, lifeExpectancyAge: 5_000_000 });
+    expect(out?.lifeExpectancyAge).toBe(120);
+  });
+
+  it("bounds every age field", () => {
+    const out = sanitisePlanInput({
+      ...valid,
+      currentAge: -50,
+      retirementAge: 1e9,
+      statePensionAge: 500,
+      sippAccessAge: -1,
+      rentalSaleAge: 99999,
+      partTimeUntilAge: 1e12,
+      downsizeAge: -7,
+    });
+    for (const key of [
+      "currentAge",
+      "retirementAge",
+      "statePensionAge",
+      "sippAccessAge",
+      "rentalSaleAge",
+      "partTimeUntilAge",
+      "downsizeAge",
+    ] as const) {
+      expect(out?.[key], key).toBeGreaterThanOrEqual(0);
+      expect(out?.[key], key).toBeLessThanOrEqual(120);
+    }
+  });
+
+  it("rounds ages to whole years", () => {
+    const out = sanitisePlanInput({ ...valid, retirementAge: 55.7 });
+    expect(out?.retirementAge).toBe(56);
+  });
+
+  it("bounds money fields and rejects negative balances", () => {
+    const out = sanitisePlanInput({
+      ...valid,
+      isaBalance: -5000,
+      sippBalance: 1e30,
+      targetAnnualIncome: 1e40,
+    });
+    expect(out?.isaBalance).toBe(0);
+    expect(out?.sippBalance).toBe(1e12);
+    expect(out?.targetAnnualIncome).toBe(1e12);
+  });
+
+  it("bounds growth and inflation rates", () => {
+    const out = sanitisePlanInput({
+      ...valid,
+      growthRate: 500,
+      inflationRate: -3,
+      isaGrowth: 1e9,
+    });
+    expect(out?.growthRate).toBe(1);
+    expect(out?.inflationRate).toBe(-0.9);
+    expect(out?.isaGrowth).toBe(1);
+  });
+
+  it("bounds the downsize release fraction to 0–1", () => {
+    expect(
+      sanitisePlanInput({ ...valid, downsizeReleaseFraction: 12 })
+        ?.downsizeReleaseFraction,
+    ).toBe(1);
+  });
+
+  it("leaves ordinary figures untouched", () => {
+    const out = sanitisePlanInput({
+      ...valid,
+      isaBalance: 52_431.19,
+      growthRate: 0.0512,
+      lifeExpectancyAge: 95,
+    });
+    expect(out?.isaBalance).toBe(52_431.19);
+    expect(out?.growthRate).toBe(0.0512);
+    expect(out?.lifeExpectancyAge).toBe(95);
+  });
+
+  it("bounds a holding's fee, weight and label", () => {
+    const out = sanitisePlanInput({
+      ...valid,
+      isaHoldings: [
+        {
+          assetClass: "global-equity",
+          ocf: 5,
+          weight: 1e308,
+          label: "x".repeat(400),
+        },
+      ],
+    });
+    const holding = out?.isaHoldings?.[0];
+    expect(holding?.ocf).toBe(0.1);
+    expect(holding?.weight).toBe(1e6);
+    expect(holding?.label).toHaveLength(120);
+  });
+
+  it("caps how many holdings one wrapper can carry", () => {
+    const out = sanitisePlanInput({
+      ...valid,
+      isaHoldings: Array.from({ length: 5000 }, () => ({
+        assetClass: "cash",
+        ocf: 0.001,
+        weight: 1,
+      })),
+    });
+    expect(out?.isaHoldings).toHaveLength(100);
+  });
+});

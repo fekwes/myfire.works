@@ -4,7 +4,7 @@ import { ButtonLink } from "@/components/ui";
 export const metadata: Metadata = {
   title: "Methodology",
   description:
-    "Exactly what Fireworks models: the UK tax rules, statutory ages, GIA/CGT approach, Coast FIRE definition, and every simplifying assumption.",
+    "Exactly what Fireworks models: the tax rules, statutory ages, GIA/CGT approach, Coast FIRE definition, and every simplifying assumption.",
   alternates: { canonical: "/methodology" },
 };
 
@@ -240,9 +240,13 @@ export default function MethodologyPage() {
             </li>
           </ul>
           <p>
-            Two deliberate simplifications: the starting GIA balance is assumed
-            to carry <Term>no embedded gain</Term> (so early CGT is
-            understated), and <Term>dividend tax is not modelled</Term>.
+            Three deliberate simplifications: the starting GIA balance is
+            assumed to carry <Term>no embedded gain</Term> (so early CGT is
+            understated); <Term>dividend tax is not modelled</Term>; and the CGT
+            rate is set from the income known when the GIA is drawn — which is{" "}
+            <Term>before the same year&apos;s SIPP withdrawal</Term>, drawn last
+            in the waterfall. So in a year that leans on both pots, a gain can be
+            taxed at 18% when part of it would in reality fall into the 24% band.
           </p>
         </Section>
 

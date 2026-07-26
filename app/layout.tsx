@@ -29,19 +29,20 @@ const bricolage = Bricolage_Grotesque({
 });
 
 const description =
-  "Fireworks models your UK Financial Independence, Retire Early plan across ISA, GIA, SIPP, State Pension and property — with correct 2026/27 tax, Coast FIRE and Monte Carlo confidence.";
+  "Model your Financial Independence, Retire Early plan across ISA, GIA, SIPP, State Pension and property — with the tax you'll actually pay, Coast FIRE and Monte Carlo confidence.";
+
+const title = "Fireworks — FIRE & Early Retirement Planner";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Fireworks — UK FIRE Planner",
+    default: title,
     template: "%s · Fireworks",
   },
   description,
   applicationName: "Fireworks",
   keywords: [
     "FIRE",
-    "UK FIRE",
     "financial independence",
     "retire early",
     "ISA",
@@ -55,14 +56,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Fireworks",
-    title: "Fireworks — UK FIRE Planner",
+    title,
     description,
     url: siteUrl,
     locale: "en_GB",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Fireworks — UK FIRE Planner",
+    title,
     description,
   },
 };
@@ -101,7 +102,7 @@ export default function RootLayout({
               <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-xs text-muted-foreground sm:px-6">
                 <p>
                   <span className="font-medium text-foreground">Fireworks</span>{" "}
-                  — UK financial independence modelling across ISA, GIA, SIPP and
+                  — financial independence modelling across ISA, GIA, SIPP and
                   State Pension.
                 </p>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
