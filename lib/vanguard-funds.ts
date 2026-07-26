@@ -1,76 +1,37 @@
+import {
+  type AssetClass,
+  ASSET_CLASS_CATEGORY,
+  ASSET_CLASS_MIX,
+  ASSET_CLASS_RETURN,
+  DEFAULT_MIX,
+  type FundCategory,
+  type Holding,
+  holdingsAllocation,
+  PLATFORM_FEE_RATE,
+} from "./assets";
 import { type FireInputs, simulateFire } from "./fire-engine";
 
-/**
- * Vanguard UK Personal Investor platform (account) fee, 2026.
- * 0.15%/yr on the first £250,000, capped at £375/yr, with a £4/month
- * (£48/yr) minimum for total holdings under ~£32,000 (0.15% of £32k = £48).
- * Junior/Managed ISAs are exempt — not modelled here.
- * Verified: vanguardinvestor.co.uk/what-we-offer/fees-explained (2026).
- */
-export const PLATFORM_FEE_RATE = 0.0015;
-export const PLATFORM_FEE_CAP = 375;
-export const PLATFORM_FEE_FLOOR = 48; // £4/month
+// Re-export the shared asset-class/fee model so existing importers of this
+// module keep working after the move to `./assets`.
+export type { AssetClass, FundCategory, Holding };
+export {
+  ASSET_CLASS_LABEL,
+  ASSET_CLASS_MIX,
+  ASSET_CLASS_RETURN,
+  FUND_CATEGORY_LABEL,
+  holdingNetGrowth,
+  holdingsAllocation,
+  holdingsNetGrowth,
+  PLATFORM_FEE_CAP,
+  PLATFORM_FEE_FLOOR,
+  PLATFORM_FEE_RATE,
+  platformFeeForBalance,
+} from "./assets";
 
-/** The actual £ platform fee for a given total balance (floor + cap applied). */
-export function platformFeeForBalance(totalBalance: number): number {
-  if (totalBalance <= 0) return 0;
-  return Math.min(PLATFORM_FEE_CAP, Math.max(PLATFORM_FEE_FLOOR, totalBalance * PLATFORM_FEE_RATE));
-}
-
-export type AssetClass =
-  | "global-equity"
-  | "us-equity"
-  | "multi-asset-100"
-  | "multi-asset-80"
-  | "multi-asset-60"
-  | "global-bonds"
-  | "cash";
-
-/**
- * Illustrative long-run *nominal* gross returns by asset class, before any
- * fees. These are planning assumptions for the projection — not Vanguard
- * forecasts — chosen to be sober rather than optimistic.
- */
-export const ASSET_CLASS_RETURN: Record<AssetClass, number> = {
-  "global-equity": 0.07,
-  "us-equity": 0.07,
-  "multi-asset-100": 0.07,
-  "multi-asset-80": 0.062,
-  "multi-asset-60": 0.054,
-  "global-bonds": 0.04,
-  cash: 0.035,
-};
-
-/** How each asset class splits across equity / bonds / cash (sums to 1). */
-export const ASSET_CLASS_MIX: Record<
-  AssetClass,
-  { equity: number; bonds: number; cash: number }
-> = {
-  "global-equity": { equity: 1, bonds: 0, cash: 0 },
-  "us-equity": { equity: 1, bonds: 0, cash: 0 },
-  "multi-asset-100": { equity: 1, bonds: 0, cash: 0 },
-  "multi-asset-80": { equity: 0.8, bonds: 0.2, cash: 0 },
-  "multi-asset-60": { equity: 0.6, bonds: 0.4, cash: 0 },
-  "global-bonds": { equity: 0, bonds: 1, cash: 0 },
-  cash: { equity: 0, bonds: 0, cash: 1 },
-};
-
-/** Neutral fallback for a wrapper on a custom (unmatched) growth rate. */
-const DEFAULT_MIX = { equity: 0.8, bonds: 0.2, cash: 0 };
-
-export const ASSET_CLASS_LABEL: Record<AssetClass, string> = {
-  "global-equity": "Global equity",
-  "us-equity": "US equity",
-  "multi-asset-100": "Multi-asset · 100% equity",
-  "multi-asset-80": "Multi-asset · 80% equity",
-  "multi-asset-60": "Multi-asset · 60% equity",
-  "global-bonds": "Global bonds",
-  cash: "Cash / money market",
-};
-
-export interface VanguardFund {
+export interface Fund {
   id: string;
   name: string;
+  provider: string;
   /** Exchange ticker for ETFs. */
   ticker?: string;
   type: "OEIC" | "ETF";
@@ -80,49 +41,225 @@ export interface VanguardFund {
   blurb: string;
 }
 
+/** Back-compat alias — the catalogue is no longer Vanguard-only. */
+export type VanguardFund = Fund;
+
 /**
- * A curated set of popular Vanguard UK funds. OCFs are the published figures
- * as of July 2026 (verified against Vanguard's fund pages) and are indicative
- * — always confirm the current OCF on Vanguard's site before investing.
+ * A curated set of ~40 funds popular with UK FIRE investors, across the main
+ * platforms. OCFs are indicative figures as of mid-2026 — always confirm the
+ * current OCF on the provider's site before investing. Expected returns are NOT
+ * per-fund data; they come from each fund's `assetClass` (see ASSET_CLASS_RETURN
+ * in ./assets), so this list only needs the class + fee to be roughly right.
  */
-export const VANGUARD_FUNDS: VanguardFund[] = [
+export const FUNDS: Fund[] = [
+  // ── Global equity ────────────────────────────────────────────────────────
   {
     id: "global-all-cap",
     name: "FTSE Global All Cap Index Fund (Acc)",
+    provider: "Vanguard",
     type: "OEIC",
     ocf: 0.0023,
     assetClass: "global-equity",
-    blurb: "~7,000 companies across developed and emerging markets, including small caps.",
+    blurb: "~7,000 companies across developed and emerging markets, inc. small caps.",
   },
   {
     id: "vwrp",
     name: "FTSE All-World UCITS ETF (Acc)",
+    provider: "Vanguard",
     ticker: "VWRP",
     type: "ETF",
     ocf: 0.0014,
     assetClass: "global-equity",
-    blurb: "The all-in-one global tracker — fee cut to 0.14% from 28 Jul 2026.",
+    blurb: "The all-in-one global tracker in ETF form.",
   },
+  {
+    id: "vwrl",
+    name: "FTSE All-World UCITS ETF (Dist)",
+    provider: "Vanguard",
+    ticker: "VWRL",
+    type: "ETF",
+    ocf: 0.0022,
+    assetClass: "global-equity",
+    blurb: "Distributing version of the all-world tracker — pays dividends out.",
+  },
+  {
+    id: "vhvg",
+    name: "FTSE Developed World UCITS ETF (Acc)",
+    provider: "Vanguard",
+    ticker: "VHVG",
+    type: "ETF",
+    ocf: 0.0012,
+    assetClass: "global-equity",
+    blurb: "Developed markets only (no emerging), at a lower fee.",
+  },
+  {
+    id: "veve",
+    name: "FTSE Developed World UCITS ETF (Dist)",
+    provider: "Vanguard",
+    ticker: "VEVE",
+    type: "ETF",
+    ocf: 0.0012,
+    assetClass: "global-equity",
+    blurb: "Distributing developed-world tracker.",
+  },
+  {
+    id: "hsbc-ftse-all-world",
+    name: "FTSE All-World Index Fund (Acc)",
+    provider: "HSBC",
+    type: "OEIC",
+    ocf: 0.0013,
+    assetClass: "global-equity",
+    blurb: "One of the cheapest all-world index funds on the market.",
+  },
+  {
+    id: "fidelity-index-world",
+    name: "Index World Fund (Acc)",
+    provider: "Fidelity",
+    type: "OEIC",
+    ocf: 0.0012,
+    assetClass: "global-equity",
+    blurb: "Developed-world tracker, a common low-cost core.",
+  },
+  {
+    id: "lgim-international",
+    name: "International Index Trust (Acc)",
+    provider: "L&G",
+    type: "OEIC",
+    ocf: 0.0013,
+    assetClass: "global-equity",
+    blurb: "Developed markets excluding the UK.",
+  },
+  {
+    id: "lgim-global-100",
+    name: "Global 100 Index Trust (Acc)",
+    provider: "L&G",
+    type: "OEIC",
+    ocf: 0.0014,
+    assetClass: "global-equity",
+    blurb: "The 100 largest global companies — concentrated mega-caps.",
+  },
+  {
+    id: "swda",
+    name: "Core MSCI World UCITS ETF (Acc)",
+    provider: "iShares",
+    ticker: "SWDA",
+    type: "ETF",
+    ocf: 0.002,
+    assetClass: "global-equity",
+    blurb: "The default developed-world ETF for many UK investors.",
+  },
+  {
+    id: "swld",
+    name: "MSCI World UCITS ETF (Acc)",
+    provider: "SPDR",
+    ticker: "SWLD",
+    type: "ETF",
+    ocf: 0.0012,
+    assetClass: "global-equity",
+    blurb: "A cheaper developed-world alternative to SWDA.",
+  },
+  {
+    id: "vanguard-esg-global",
+    name: "ESG Global All Cap UCITS ETF (Acc)",
+    provider: "Vanguard",
+    ticker: "V3AB",
+    type: "ETF",
+    ocf: 0.0024,
+    assetClass: "global-equity",
+    blurb: "All-world with ESG screens applied.",
+  },
+  {
+    id: "vanguard-emerging",
+    name: "FTSE Emerging Markets UCITS ETF (Acc)",
+    provider: "Vanguard",
+    ticker: "VFEG",
+    type: "ETF",
+    ocf: 0.0022,
+    assetClass: "global-equity",
+    blurb: "Emerging markets only — a satellite, not a core holding.",
+  },
+  {
+    id: "vanguard-global-smallcap",
+    name: "Global Small-Cap Index Fund (Acc)",
+    provider: "Vanguard",
+    type: "OEIC",
+    ocf: 0.0029,
+    assetClass: "global-equity",
+    blurb: "Smaller companies worldwide — a higher-volatility tilt.",
+  },
+  // ── US equity ────────────────────────────────────────────────────────────
   {
     id: "vuag",
     name: "S&P 500 UCITS ETF (Acc)",
+    provider: "Vanguard",
     ticker: "VUAG",
     type: "ETF",
     ocf: 0.0007,
     assetClass: "us-equity",
-    blurb: "The 500 largest US companies — one of the cheapest trackers anywhere.",
+    blurb: "The 500 largest US companies — one of the cheapest anywhere.",
+  },
+  {
+    id: "vusa",
+    name: "S&P 500 UCITS ETF (Dist)",
+    provider: "Vanguard",
+    ticker: "VUSA",
+    type: "ETF",
+    ocf: 0.0007,
+    assetClass: "us-equity",
+    blurb: "Distributing S&P 500 tracker.",
   },
   {
     id: "us-equity-index",
     name: "U.S. Equity Index Fund (Acc)",
+    provider: "Vanguard",
     type: "OEIC",
     ocf: 0.001,
     assetClass: "us-equity",
-    blurb: "Broad US market as a fund rather than an ETF (no live pricing needed).",
+    blurb: "Broad US market as a fund rather than an ETF.",
   },
+  {
+    id: "cspx",
+    name: "Core S&P 500 UCITS ETF (Acc)",
+    provider: "iShares",
+    ticker: "CSPX",
+    type: "ETF",
+    ocf: 0.0007,
+    assetClass: "us-equity",
+    blurb: "The most-traded S&P 500 ETF in the UK.",
+  },
+  {
+    id: "spxp",
+    name: "S&P 500 UCITS ETF (Acc)",
+    provider: "Invesco",
+    ticker: "SPXP",
+    type: "ETF",
+    ocf: 0.0005,
+    assetClass: "us-equity",
+    blurb: "A synthetic S&P 500 tracker — the lowest headline fee.",
+  },
+  {
+    id: "fidelity-index-us",
+    name: "Index US Fund (Acc)",
+    provider: "Fidelity",
+    type: "OEIC",
+    ocf: 0.0006,
+    assetClass: "us-equity",
+    blurb: "Cheap US tracker in OEIC form.",
+  },
+  {
+    id: "hsbc-american",
+    name: "American Index Fund (Acc)",
+    provider: "HSBC",
+    type: "OEIC",
+    ocf: 0.0006,
+    assetClass: "us-equity",
+    blurb: "Long-standing low-cost US index fund.",
+  },
+  // ── Hybrid / multi-asset ─────────────────────────────────────────────────
   {
     id: "lifestrategy-100",
     name: "LifeStrategy 100% Equity Fund (Acc)",
+    provider: "Vanguard",
     type: "OEIC",
     ocf: 0.0022,
     assetClass: "multi-asset-100",
@@ -131,6 +268,7 @@ export const VANGUARD_FUNDS: VanguardFund[] = [
   {
     id: "lifestrategy-80",
     name: "LifeStrategy 80% Equity Fund (Acc)",
+    provider: "Vanguard",
     type: "OEIC",
     ocf: 0.0022,
     assetClass: "multi-asset-80",
@@ -139,78 +277,219 @@ export const VANGUARD_FUNDS: VanguardFund[] = [
   {
     id: "lifestrategy-60",
     name: "LifeStrategy 60% Equity Fund (Acc)",
+    provider: "Vanguard",
     type: "OEIC",
     ocf: 0.0022,
     assetClass: "multi-asset-60",
     blurb: "60% shares / 40% bonds — a common pick nearer to drawdown.",
   },
   {
+    id: "hsbc-global-dynamic",
+    name: "Global Strategy Dynamic Portfolio (Acc)",
+    provider: "HSBC",
+    type: "OEIC",
+    ocf: 0.0019,
+    assetClass: "multi-asset-80",
+    blurb: "~80% equity multi-asset, all-in-one and rebalanced.",
+  },
+  {
+    id: "hsbc-global-balanced",
+    name: "Global Strategy Balanced Portfolio (Acc)",
+    provider: "HSBC",
+    type: "OEIC",
+    ocf: 0.0018,
+    assetClass: "multi-asset-60",
+    blurb: "~60% equity multi-asset — a lower-cost LifeStrategy rival.",
+  },
+  {
+    id: "vanguard-target-2045",
+    name: "Target Retirement 2045 Fund (Acc)",
+    provider: "Vanguard",
+    type: "OEIC",
+    ocf: 0.0024,
+    assetClass: "multi-asset-80",
+    blurb: "Glide-path fund that de-risks automatically towards a 2045 retirement.",
+  },
+  {
+    id: "vanguard-target-2035",
+    name: "Target Retirement 2035 Fund (Acc)",
+    provider: "Vanguard",
+    type: "OEIC",
+    ocf: 0.0024,
+    assetClass: "multi-asset-60",
+    blurb: "Glide-path fund aimed at a 2035 retirement — more bonds already.",
+  },
+  {
+    id: "blackrock-mymap-6",
+    name: "MyMap 6 Fund (Acc)",
+    provider: "BlackRock",
+    type: "OEIC",
+    ocf: 0.0017,
+    assetClass: "multi-asset-80",
+    blurb: "Low-cost higher-risk multi-asset, risk-targeted and rebalanced.",
+  },
+  // ── Bonds ────────────────────────────────────────────────────────────────
+  {
     id: "global-bond-hedged",
     name: "Global Aggregate Bond UCITS ETF (£-Hedged, Acc)",
+    provider: "Vanguard",
     ticker: "VAGP",
     type: "ETF",
     ocf: 0.001,
     assetClass: "global-bonds",
-    blurb: "Investment-grade global bonds, hedged to sterling to damp currency swings.",
+    blurb: "Investment-grade global bonds, hedged to sterling.",
   },
+  {
+    id: "vanguard-global-bond-index",
+    name: "Global Bond Index Fund (£-Hedged, Acc)",
+    provider: "Vanguard",
+    type: "OEIC",
+    ocf: 0.0015,
+    assetClass: "global-bonds",
+    blurb: "The fund version of the global aggregate bond tracker.",
+  },
+  {
+    id: "aggg",
+    name: "Core Global Aggregate Bond UCITS ETF (£-Hedged)",
+    provider: "iShares",
+    ticker: "AGGG",
+    type: "ETF",
+    ocf: 0.001,
+    assetClass: "global-bonds",
+    blurb: "Broad global investment-grade bonds.",
+  },
+  {
+    id: "vgov",
+    name: "U.K. Gilt UCITS ETF (Dist)",
+    provider: "Vanguard",
+    ticker: "VGOV",
+    type: "ETF",
+    ocf: 0.0007,
+    assetClass: "global-bonds",
+    blurb: "UK government bonds (gilts) — the domestic safe-haven leg.",
+  },
+  {
+    id: "vanguard-uk-ig",
+    name: "U.K. Investment Grade Bond Index Fund (Acc)",
+    provider: "Vanguard",
+    type: "OEIC",
+    ocf: 0.0012,
+    assetClass: "global-bonds",
+    blurb: "Sterling investment-grade corporate + government bonds.",
+  },
+  // ── Cash / money market ──────────────────────────────────────────────────
   {
     id: "sterling-mmf",
     name: "Sterling Short-Term Money Market Fund (Acc)",
+    provider: "Vanguard",
     type: "OEIC",
     ocf: 0.0012,
     assetClass: "cash",
-    blurb: "A cash-like holding — useful as a drawdown buffer against bad markets.",
+    blurb: "A cash-like holding — useful as a drawdown buffer.",
+  },
+  {
+    id: "royal-london-stmm",
+    name: "Short Term Money Market Fund (Acc)",
+    provider: "Royal London",
+    type: "OEIC",
+    ocf: 0.001,
+    assetClass: "cash",
+    blurb: "Popular sterling money-market fund tracking short-term rates.",
+  },
+  {
+    id: "blackrock-icash",
+    name: "ICS Sterling Liquidity Fund",
+    provider: "BlackRock",
+    type: "OEIC",
+    ocf: 0.0012,
+    assetClass: "cash",
+    blurb: "Institutional-style sterling liquidity — cash management.",
   },
 ];
 
-export const FUND_BY_ID: Record<string, VanguardFund> = Object.fromEntries(
-  VANGUARD_FUNDS.map((f) => [f.id, f]),
+/** Back-compat alias for the pre-expansion export name. */
+export const VANGUARD_FUNDS = FUNDS;
+
+export const FUND_BY_ID: Record<string, Fund> = Object.fromEntries(
+  FUNDS.map((f) => [f.id, f]),
 );
 
+/** The picker category for a fund, from its asset class. */
+export function fundCategory(fund: Fund): FundCategory {
+  return ASSET_CLASS_CATEGORY[fund.assetClass];
+}
+
 /** Gross expected return for a fund, from its asset class. */
-export function grossReturn(fund: VanguardFund): number {
+export function grossReturn(fund: Fund): number {
   return ASSET_CLASS_RETURN[fund.assetClass];
 }
 
 /**
- * The net growth rate a wrapper earns holding this fund: gross expected
- * return minus the fund's OCF and the platform fee. The platform fee is
- * modelled at its 0.15% headline rate (it's actually capped at £375/yr, so
- * large pots pay a lower effective rate — a conservative simplification).
+ * The net growth rate a wrapper earns holding this fund alone: gross expected
+ * return minus the fund's OCF and the platform fee.
  */
-export function netGrowth(fund: VanguardFund): number {
+export function netGrowth(fund: Fund): number {
   return grossReturn(fund) - fund.ocf - PLATFORM_FEE_RATE;
 }
 
-/**
- * Best-effort reverse lookup: which preset fund produces this net growth rate.
- * Lets the picker re-highlight a saved choice without persisting the fund id.
- * Returns null when the growth was set manually (no preset matches).
- */
-export function fundForGrowth(growth: number | undefined): VanguardFund | null {
-  if (growth === undefined) return null;
-  return (
-    VANGUARD_FUNDS.find((f) => Math.abs(netGrowth(f) - growth) < 1e-6) ?? null
-  );
+/** Turn a catalogue fund into a portfolio holding at the given weight. */
+export function fundToHolding(fund: Fund, weight: number): Holding {
+  return {
+    fundId: fund.id,
+    assetClass: fund.assetClass,
+    ocf: fund.ocf,
+    weight,
+  };
 }
 
 /**
- * Balance-weighted equity / bonds / cash split of the invested pots (ISA +
- * GIA + SIPP), inferred from each wrapper's chosen fund. Wrappers on a custom
- * growth rate use a neutral 80/20 default. Falls back to that default when
- * nothing is invested yet. This is what lets the risk analysis reflect the
- * portfolio you actually built rather than a fixed guess.
+ * Best-effort reverse lookup: which single preset fund produces this net growth
+ * rate. Lets the legacy single-fund path re-highlight a saved choice without a
+ * stored fund id. Returns null when the growth was set manually or comes from a
+ * multi-fund portfolio.
+ */
+export function fundForGrowth(growth: number | undefined): Fund | null {
+  if (growth === undefined) return null;
+  return FUNDS.find((f) => Math.abs(netGrowth(f) - growth) < 1e-6) ?? null;
+}
+
+type WrapperView = {
+  balance: number;
+  growth: number | undefined;
+  holdings?: Holding[];
+};
+
+function wrapperViews(inputs: FireInputs): WrapperView[] {
+  return [
+    {
+      balance: inputs.isaBalance,
+      growth: inputs.isaGrowth,
+      holdings: inputs.isaHoldings,
+    },
+    {
+      balance: inputs.giaBalance ?? 0,
+      growth: inputs.giaGrowth,
+      holdings: inputs.giaHoldings,
+    },
+    {
+      balance: inputs.sippBalance,
+      growth: inputs.sippGrowth,
+      holdings: inputs.sippHoldings,
+    },
+  ];
+}
+
+/**
+ * Balance-weighted equity / bonds / cash split of the invested pots (ISA + GIA
+ * + SIPP). Prefers each wrapper's explicit holdings; falls back to inferring the
+ * mix from a single matched fund (legacy plans), then to a neutral 80/20.
  */
 export function portfolioAllocation(inputs: FireInputs): {
   equity: number;
   bonds: number;
   cash: number;
 } {
-  const wrappers: { balance: number; growth: number | undefined }[] = [
-    { balance: inputs.isaBalance, growth: inputs.isaGrowth },
-    { balance: inputs.giaBalance ?? 0, growth: inputs.giaGrowth },
-    { balance: inputs.sippBalance, growth: inputs.sippGrowth },
-  ];
+  const wrappers = wrapperViews(inputs);
   const total = wrappers.reduce((sum, w) => sum + Math.max(0, w.balance), 0);
   if (total <= 0) return { ...DEFAULT_MIX };
 
@@ -218,8 +497,13 @@ export function portfolioAllocation(inputs: FireInputs): {
   for (const w of wrappers) {
     const weight = Math.max(0, w.balance) / total;
     if (weight === 0) continue;
-    const fund = fundForGrowth(w.growth);
-    const mix = fund ? ASSET_CLASS_MIX[fund.assetClass] : DEFAULT_MIX;
+    let mix: { equity: number; bonds: number; cash: number };
+    if (w.holdings && w.holdings.length > 0) {
+      mix = holdingsAllocation(w.holdings);
+    } else {
+      const fund = fundForGrowth(w.growth);
+      mix = fund ? ASSET_CLASS_MIX[fund.assetClass] : DEFAULT_MIX;
+    }
     acc.equity += mix.equity * weight;
     acc.bonds += mix.bonds * weight;
     acc.cash += mix.cash * weight;
@@ -232,29 +516,45 @@ export function portfolioEquityFraction(inputs: FireInputs): number {
   return portfolioAllocation(inputs).equity;
 }
 
+/** The OCF a wrapper effectively pays: its holdings' weighted OCF, else a
+ *  matched fund's OCF, else 0 (manual growth already nets fees out). */
+function wrapperOcf(w: WrapperView): number {
+  if (w.holdings && w.holdings.length > 0) {
+    const total = w.holdings.reduce((s, h) => s + Math.max(0, h.weight), 0);
+    if (total <= 0) return 0;
+    return w.holdings.reduce(
+      (s, h) => s + (Math.max(0, h.weight) / total) * h.ocf,
+      0,
+    );
+  }
+  const fund = fundForGrowth(w.growth);
+  return fund ? fund.ocf : 0;
+}
+
 /**
  * Estimated total £ lost to fund OCFs + platform fees over the whole plan.
  * Re-runs the projection with fees added back (a zero-fee counterfactual) and
  * reports the shortfall in the pot at retirement — the clearest single number
- * for "what fees cost you". Uses each wrapper's matched fund OCF where known,
- * or the platform fee alone for manually-set growth.
+ * for "what fees cost you".
  */
 export function estimateFeeDrag(inputs: FireInputs): number {
-  const feeFor = (growth: number | undefined) => {
-    const fund = fundForGrowth(growth);
-    return (fund ? fund.ocf : 0) + PLATFORM_FEE_RATE;
-  };
+  const wrappers = wrapperViews(inputs);
+  const [isa, gia, sipp] = wrappers.map((w) => wrapperOcf(w) + PLATFORM_FEE_RATE);
 
   const gross: FireInputs = {
     ...inputs,
-    isaGrowth: (inputs.isaGrowth ?? 0) + feeFor(inputs.isaGrowth),
-    giaGrowth: (inputs.giaGrowth ?? 0) + feeFor(inputs.giaGrowth),
-    sippGrowth: (inputs.sippGrowth ?? 0) + feeFor(inputs.sippGrowth),
+    isaGrowth: (inputs.isaGrowth ?? 0) + isa,
+    giaGrowth: (inputs.giaGrowth ?? 0) + gia,
+    sippGrowth: (inputs.sippGrowth ?? 0) + sipp,
+    // Compare like-for-like: drop holdings so the counterfactual uses the
+    // fee-inflated scalar growth above rather than re-deriving from holdings.
+    isaHoldings: undefined,
+    giaHoldings: undefined,
+    sippHoldings: undefined,
   };
 
   const potAtRetirement = (result: ReturnType<typeof simulateFire>) => {
     const r = result.inputs.retirementAge;
-    // Last accumulation snapshot is the peak investable pot.
     const snap =
       [...result.timeline].reverse().find((y) => y.age < r) ??
       result.timeline[result.timeline.length - 1];
