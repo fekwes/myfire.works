@@ -44,6 +44,89 @@ const ZERO_FILLED_FIELDS = [
 const HOLDINGS_FIELDS = ["isaHoldings", "sippHoldings", "giaHoldings"] as const;
 
 /**
+ * Plausible ranges for every numeric field, by kind.
+ *
+ * Finiteness alone is not enough. The engine walks one year at a time from
+ * `currentAge` to `lifeExpectancyAge`, building an object per year, so a plan
+ * saying "live to 5,000,000" is a finite, valid-looking number that allocates
+ * five million objects and takes the tab down with it. Since plans arrive in
+ * shareable `?p=` links, that is a link someone can craft and send to another
+ * person — so the range check belongs here, next to the finiteness check, in
+ * the one validator that guards links, localStorage and saved rows alike.
+ *
+ * These are deliberately generous. The point is to bound the work, not to
+ * second-guess someone's figures.
+ */
+const AGE_MAX = 120;
+/** £1 trillion. Absurd as a balance, but the projection stays bounded. */
+const MONEY_MAX = 1e12;
+/** Growth and inflation as decimal fractions: -90% to +100% a year. */
+const RATE_MIN = -0.9;
+const RATE_MAX = 1;
+
+const AGE_FIELDS = [
+  "currentAge",
+  "retirementAge",
+  "statePensionAge",
+  "sippAccessAge",
+  "lifeExpectancyAge",
+  "rentalSaleAge",
+  "partTimeUntilAge",
+  "downsizeAge",
+] as const;
+
+const MONEY_FIELDS = [
+  "targetAnnualIncome",
+  "isaBalance",
+  "isaMonthlyContribution",
+  "sippBalance",
+  "sippMonthlyContribution",
+  "giaBalance",
+  "giaMonthlyContribution",
+  "rentalValue",
+  "rentalMonthlyIncome",
+  "homeValue",
+  "partTimeAnnualIncome",
+  "statePensionAnnual",
+] as const;
+
+const RATE_FIELDS = [
+  "inflationRate",
+  "growthRate",
+  "isaGrowth",
+  "giaGrowth",
+  "sippGrowth",
+  "rentalGrowth",
+  "homeGrowth",
+] as const;
+
+const FRACTION_FIELDS = ["downsizeReleaseFraction"] as const;
+
+const clamp = (value: number, lo: number, hi: number) =>
+  Math.min(hi, Math.max(lo, value));
+
+/** Clamp every numeric field to its kind's range, in place on `clean`. */
+function clampRanges(clean: Record<string, unknown>): void {
+  const apply = (
+    keys: readonly string[],
+    lo: number,
+    hi: number,
+    round = false,
+  ) => {
+    for (const key of keys) {
+      const value = clean[key];
+      if (typeof value !== "number") continue;
+      const bounded = clamp(value, lo, hi);
+      clean[key] = round ? Math.round(bounded) : bounded;
+    }
+  };
+  apply(AGE_FIELDS, 0, AGE_MAX, true);
+  apply(MONEY_FIELDS, 0, MONEY_MAX);
+  apply(RATE_FIELDS, RATE_MIN, RATE_MAX);
+  apply(FRACTION_FIELDS, 0, 1);
+}
+
+/**
  * Validate a wrapper's holdings array from untrusted JSON: each holding needs a
  * known asset class and finite ocf/weight/return, or it's dropped. Returns
  * `undefined` (no portfolio) when nothing usable survives, so a malformed blob
@@ -58,18 +141,27 @@ function sanitiseHoldings(value: unknown): Holding[] | undefined {
     if (!isAssetClass(h.assetClass)) continue;
     const holding: Holding = {
       assetClass: h.assetClass,
-      ocf: typeof h.ocf === "number" && Number.isFinite(h.ocf) ? h.ocf : 0,
+      // Bounded, not just finite: a holding claiming a 500% fee would drive the
+      // wrapper's derived growth deeply negative, and a weight of 1e308
+      // dominates every other holding to the point of erasing them.
+      ocf:
+        typeof h.ocf === "number" && Number.isFinite(h.ocf)
+          ? clamp(h.ocf, 0, 0.1)
+          : 0,
       weight:
         typeof h.weight === "number" && Number.isFinite(h.weight) && h.weight >= 0
-          ? h.weight
+          ? Math.min(h.weight, 1e6)
           : 0,
     };
-    if (typeof h.fundId === "string") holding.fundId = h.fundId;
-    if (typeof h.label === "string") holding.label = h.label;
+    if (typeof h.fundId === "string") holding.fundId = h.fundId.slice(0, 100);
+    if (typeof h.label === "string") holding.label = h.label.slice(0, 120);
     if (typeof h.expectedReturn === "number" && Number.isFinite(h.expectedReturn)) {
-      holding.expectedReturn = h.expectedReturn;
+      holding.expectedReturn = clamp(h.expectedReturn, RATE_MIN, RATE_MAX);
     }
     clean.push(holding);
+    // A statement has tens of holdings, not thousands; the cap keeps a crafted
+    // link from making the wrapper's growth calculation the slow part.
+    if (clean.length >= 100) break;
   }
   return clean.length > 0 ? clean : undefined;
 }
@@ -119,6 +211,7 @@ export function sanitisePlanInput(parsed: unknown): FireInputs | null {
     if (holdings) clean[key] = holdings;
     else delete clean[key];
   }
+  clampRanges(clean);
   return clean as unknown as FireInputs;
 }
 

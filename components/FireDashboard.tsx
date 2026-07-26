@@ -4,6 +4,11 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useMemo, useState } from "react";
 import { AiInsights } from "@/components/AiInsights";
+// Statically imported on purpose. Splitting these behind `next/dynamic` was
+// tried and measured: it costs ~8 KB of extra chunk overhead on first load,
+// and deferring all three duplicates Recharts into a second chunk, taking the
+// all-tabs total from 359 KB to 477 KB. One shared chunk is the smaller answer;
+// the real lever on this payload is Recharts itself, not how it's split.
 import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { ConfidencePanel } from "@/components/ConfidencePanel";
 import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
