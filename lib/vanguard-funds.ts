@@ -1,15 +1,19 @@
 import {
   type AssetClass,
   ASSET_CLASS_CATEGORY,
-  ASSET_CLASS_MIX,
   ASSET_CLASS_RETURN,
   DEFAULT_MIX,
   type FundCategory,
   type Holding,
   holdingsAllocation,
+  holdingsNetGrowth,
   PLATFORM_FEE_RATE,
 } from "./assets";
-import { type FireInputs, simulateFire } from "./fire-engine";
+import {
+  DEFAULT_ASSUMPTIONS,
+  type FireInputs,
+  simulateFire,
+} from "./fire-engine";
 
 // Re-export the shared asset-class/fee model so existing importers of this
 // module keep working after the move to `./assets`.
@@ -40,9 +44,6 @@ export interface Fund {
   assetClass: AssetClass;
   blurb: string;
 }
-
-/** Back-compat alias — the catalogue is no longer Vanguard-only. */
-export type VanguardFund = Fund;
 
 /**
  * A curated set of ~40 funds popular with UK FIRE investors, across the main
@@ -407,9 +408,6 @@ export const FUNDS: Fund[] = [
   },
 ];
 
-/** Back-compat alias for the pre-expansion export name. */
-export const VANGUARD_FUNDS = FUNDS;
-
 export const FUND_BY_ID: Record<string, Fund> = Object.fromEntries(
   FUNDS.map((f) => [f.id, f]),
 );
@@ -442,47 +440,23 @@ export function fundToHolding(fund: Fund, weight: number): Holding {
   };
 }
 
-/**
- * Best-effort reverse lookup: which single preset fund produces this net growth
- * rate. Lets the legacy single-fund path re-highlight a saved choice without a
- * stored fund id. Returns null when the growth was set manually or comes from a
- * multi-fund portfolio.
- */
-export function fundForGrowth(growth: number | undefined): Fund | null {
-  if (growth === undefined) return null;
-  return FUNDS.find((f) => Math.abs(netGrowth(f) - growth) < 1e-6) ?? null;
-}
-
 type WrapperView = {
   balance: number;
-  growth: number | undefined;
   holdings?: Holding[];
 };
 
 function wrapperViews(inputs: FireInputs): WrapperView[] {
   return [
-    {
-      balance: inputs.isaBalance,
-      growth: inputs.isaGrowth,
-      holdings: inputs.isaHoldings,
-    },
-    {
-      balance: inputs.giaBalance ?? 0,
-      growth: inputs.giaGrowth,
-      holdings: inputs.giaHoldings,
-    },
-    {
-      balance: inputs.sippBalance,
-      growth: inputs.sippGrowth,
-      holdings: inputs.sippHoldings,
-    },
+    { balance: inputs.isaBalance, holdings: inputs.isaHoldings },
+    { balance: inputs.giaBalance ?? 0, holdings: inputs.giaHoldings },
+    { balance: inputs.sippBalance, holdings: inputs.sippHoldings },
   ];
 }
 
 /**
  * Balance-weighted equity / bonds / cash split of the invested pots (ISA + GIA
- * + SIPP). Prefers each wrapper's explicit holdings; falls back to inferring the
- * mix from a single matched fund (legacy plans), then to a neutral 80/20.
+ * + SIPP), from each wrapper's holdings. A wrapper with no portfolio (a plain
+ * growth rate) uses a neutral 80/20; nothing invested falls back to the same.
  */
 export function portfolioAllocation(inputs: FireInputs): {
   equity: number;
@@ -497,13 +471,10 @@ export function portfolioAllocation(inputs: FireInputs): {
   for (const w of wrappers) {
     const weight = Math.max(0, w.balance) / total;
     if (weight === 0) continue;
-    let mix: { equity: number; bonds: number; cash: number };
-    if (w.holdings && w.holdings.length > 0) {
-      mix = holdingsAllocation(w.holdings);
-    } else {
-      const fund = fundForGrowth(w.growth);
-      mix = fund ? ASSET_CLASS_MIX[fund.assetClass] : DEFAULT_MIX;
-    }
+    const mix =
+      w.holdings && w.holdings.length > 0
+        ? holdingsAllocation(w.holdings)
+        : DEFAULT_MIX;
     acc.equity += mix.equity * weight;
     acc.bonds += mix.bonds * weight;
     acc.cash += mix.cash * weight;
@@ -516,19 +487,16 @@ export function portfolioEquityFraction(inputs: FireInputs): number {
   return portfolioAllocation(inputs).equity;
 }
 
-/** The OCF a wrapper effectively pays: its holdings' weighted OCF, else a
- *  matched fund's OCF, else 0 (manual growth already nets fees out). */
+/** The weighted OCF a wrapper's holdings pay, or 0 for a plain-growth wrapper
+ *  (whose figure already nets fees out). */
 function wrapperOcf(w: WrapperView): number {
-  if (w.holdings && w.holdings.length > 0) {
-    const total = w.holdings.reduce((s, h) => s + Math.max(0, h.weight), 0);
-    if (total <= 0) return 0;
-    return w.holdings.reduce(
-      (s, h) => s + (Math.max(0, h.weight) / total) * h.ocf,
-      0,
-    );
-  }
-  const fund = fundForGrowth(w.growth);
-  return fund ? fund.ocf : 0;
+  if (!w.holdings || w.holdings.length === 0) return 0;
+  const total = w.holdings.reduce((s, h) => s + Math.max(0, h.weight), 0);
+  if (total <= 0) return 0;
+  return w.holdings.reduce(
+    (s, h) => s + (Math.max(0, h.weight) / total) * h.ocf,
+    0,
+  );
 }
 
 /**
@@ -538,16 +506,26 @@ function wrapperOcf(w: WrapperView): number {
  * for "what fees cost you".
  */
 export function estimateFeeDrag(inputs: FireInputs): number {
+  const fallback = inputs.growthRate ?? DEFAULT_ASSUMPTIONS.growthRate;
   const wrappers = wrapperViews(inputs);
-  const [isa, gia, sipp] = wrappers.map((w) => wrapperOcf(w) + PLATFORM_FEE_RATE);
+
+  // A wrapper's fee-free (gross) growth = the net growth the engine actually
+  // uses, plus the fees that were netted out of it. Starting from the derived
+  // net (holdingsNetGrowth) is what makes the counterfactual meaningful.
+  const grossGrowth = (w: WrapperView, manual: number | undefined) => {
+    const net =
+      w.holdings && w.holdings.length > 0
+        ? holdingsNetGrowth(w.holdings)
+        : (manual ?? fallback);
+    return net + wrapperOcf(w) + PLATFORM_FEE_RATE;
+  };
 
   const gross: FireInputs = {
     ...inputs,
-    isaGrowth: (inputs.isaGrowth ?? 0) + isa,
-    giaGrowth: (inputs.giaGrowth ?? 0) + gia,
-    sippGrowth: (inputs.sippGrowth ?? 0) + sipp,
-    // Compare like-for-like: drop holdings so the counterfactual uses the
-    // fee-inflated scalar growth above rather than re-deriving from holdings.
+    isaGrowth: grossGrowth(wrappers[0], inputs.isaGrowth),
+    giaGrowth: grossGrowth(wrappers[1], inputs.giaGrowth),
+    sippGrowth: grossGrowth(wrappers[2], inputs.sippGrowth),
+    // Drop holdings so the counterfactual runs on the fee-free scalar above.
     isaHoldings: undefined,
     giaHoldings: undefined,
     sippHoldings: undefined,

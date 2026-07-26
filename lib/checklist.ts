@@ -1,5 +1,4 @@
 import type { FireInputs } from "./fire-engine";
-import { fundForGrowth } from "./vanguard-funds";
 
 /**
  * The "Complete your plan" checklist: a handful of small steps that turn a
@@ -42,15 +41,10 @@ export function buildChecklist(
     inputs.isaBalance > 0 ||
     inputs.sippBalance > 0 ||
     (inputs.giaBalance ?? 0) > 0;
-  const hasHoldings =
+  const hasFund =
     (inputs.isaHoldings?.length ?? 0) > 0 ||
     (inputs.sippHoldings?.length ?? 0) > 0 ||
     (inputs.giaHoldings?.length ?? 0) > 0;
-  const hasFund =
-    hasHoldings ||
-    !!fundForGrowth(inputs.isaGrowth) ||
-    !!fundForGrowth(inputs.sippGrowth) ||
-    !!fundForGrowth(inputs.giaGrowth);
 
   return [
     {

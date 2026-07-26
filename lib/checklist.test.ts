@@ -6,7 +6,7 @@ import {
   nextChecklistStep,
 } from "./checklist";
 import type { FireInputs } from "./fire-engine";
-import { FUND_BY_ID, netGrowth } from "./vanguard-funds";
+import { FUND_BY_ID, fundToHolding } from "./vanguard-funds";
 
 const noFlags: ChecklistFlags = { ranConfidence: false, viewedWithdrawals: false };
 
@@ -36,9 +36,9 @@ describe("buildChecklist", () => {
     expect(steps.find((s) => s.id === "balances")?.done).toBe(true);
   });
 
-  it("completes 'funds' once a wrapper matches a preset fund", () => {
+  it("completes 'funds' once a wrapper has a portfolio", () => {
     const steps = buildChecklist(
-      { ...fresh, isaGrowth: netGrowth(FUND_BY_ID.vwrp) },
+      { ...fresh, isaHoldings: [fundToHolding(FUND_BY_ID.vwrp, 1)] },
       noFlags,
       false,
     );
@@ -70,7 +70,11 @@ describe("progress + next step", () => {
 
   it("is complete when everything is done", () => {
     const done = buildChecklist(
-      { ...fresh, isaBalance: 1, isaGrowth: netGrowth(FUND_BY_ID.vwrp) },
+      {
+        ...fresh,
+        isaBalance: 1,
+        isaHoldings: [fundToHolding(FUND_BY_ID.vwrp, 1)],
+      },
       { ranConfidence: true, viewedWithdrawals: true },
       true,
     );
