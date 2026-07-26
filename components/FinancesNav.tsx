@@ -2,8 +2,7 @@
 
 export const FINANCE_SECTIONS = [
   { id: "basics", label: "Basics" },
-  { id: "balances", label: "Balances" },
-  { id: "funds", label: "Funds & fees" },
+  { id: "balances", label: "Balances & funds" },
   { id: "property", label: "Property" },
   { id: "scenario", label: "Withdrawals" },
   { id: "assumptions", label: "Assumptions" },
