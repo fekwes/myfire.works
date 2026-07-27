@@ -28,6 +28,7 @@ export function executeDrawdownSequence(
   taxSystem: TaxSystem,
   wrappers: WrapperSpec[],
   taxFreeLumpSumAvailable: number,
+  taxInflationFactor: number = 1
 ): DrawdownResult {
   const steps = sequence.split(/->|,/).map(s => s.trim());
   let currentTarget = targetNet;
@@ -86,17 +87,18 @@ export function executeDrawdownSequence(
         currentIncomes,
         wrapper.withdrawalBucket,
         gainFraction,
-        taxSystem
+        taxSystem,
+        taxInflationFactor
       );
       
       const gross = Math.min(desiredGross, balance);
       const realisedGain = gross * gainFraction;
       
       // Calculate marginal CGT caused by this withdrawal
-      const taxBefore = calculateTax(currentIncomes, taxSystem);
+      const taxBefore = calculateTax(currentIncomes, taxSystem, taxInflationFactor);
       const nextIncomes = { ...currentIncomes };
       nextIncomes[wrapper.withdrawalBucket] = (nextIncomes[wrapper.withdrawalBucket] || 0) + realisedGain;
-      const taxAfter = calculateTax(nextIncomes, taxSystem);
+      const taxAfter = calculateTax(nextIncomes, taxSystem, taxInflationFactor);
       
       const cgtPaid = (taxAfter.taxByBase["cgt"] || 0) - (taxBefore.taxByBase["cgt"] || 0);
       const net = gross - cgtPaid;
@@ -125,7 +127,8 @@ export function executeDrawdownSequence(
           wrapper.withdrawalBucket,
           taxFreeFraction,
           taxFreeLumpSumAvailable,
-          taxSystem
+          taxSystem,
+          taxInflationFactor
         );
         gross = Math.min(desiredGross, balance);
         taxFree = Math.min(taxFreeFraction * gross, taxFreeLumpSumAvailable);
@@ -134,16 +137,17 @@ export function executeDrawdownSequence(
           currentTarget,
           currentIncomes,
           wrapper.withdrawalBucket,
-          taxSystem
+          taxSystem,
+          taxInflationFactor
         );
         gross = Math.min(desiredGross, balance);
       }
       
       const taxablePortion = gross - taxFree;
-      const taxBefore = calculateTax(currentIncomes, taxSystem);
+      const taxBefore = calculateTax(currentIncomes, taxSystem, taxInflationFactor);
       const nextIncomes = { ...currentIncomes };
       nextIncomes[wrapper.withdrawalBucket] = (nextIncomes[wrapper.withdrawalBucket] || 0) + taxablePortion;
-      const taxAfter = calculateTax(nextIncomes, taxSystem);
+      const taxAfter = calculateTax(nextIncomes, taxSystem, taxInflationFactor);
       
       // Usually "income" or "ordinary" base
       const taxBaseId = taxSystem.routing[wrapper.withdrawalBucket]?.base || "income";

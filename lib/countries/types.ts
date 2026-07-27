@@ -36,7 +36,7 @@ export interface TaxBase {
 
 export interface Surtax {
   id: string;
-  apply: (income: number, routing: Record<IncomeBucket, number>) => number;
+  apply: (income: number, routing: Record<string, number>, age: number) => number;
 }
 
 export interface TaxSystem {

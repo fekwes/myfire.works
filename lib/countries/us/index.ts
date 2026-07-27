@@ -1,10 +1,17 @@
-import { CountryPack, Region, WrapperSpec, TaxBase } from "../types";
-import { US_TAX_BANDS_2024, SS_BEND_POINTS_2024 } from "./constants";
+import { CountryPack, Region, WrapperSpec, TaxBase, Surtax } from "../types";
+import { US_TAX_BANDS_2026, SS_BEND_POINTS_2026, US_STATE_TAXES, ACA_FPL_2025 } from "./constants";
 
-export const usRegion: Region = {
-  id: "us",
-  label: "United States (Federal Only)",
-};
+const RMD_DIVISORS = [
+  26.5, 25.5, 24.6, 23.7, 22.9, 22.0, 21.1, 20.2, 19.4, 18.5, // 73-82
+  17.7, 16.8, 16.0, 15.2, 14.4, 13.7, 12.9, 12.2, 11.5, 10.8, // 83-92
+  10.1, 9.5, 8.9 // 93-95
+];
+
+export const usRegions: Region[] = [
+  { id: "zero-tax", label: "Zero Income Tax State (e.g. TX, FL, NV)" },
+  { id: "ca", label: "California" },
+  { id: "ny", label: "New York" },
+];
 
 const WRAPPERS: WrapperSpec[] = [
   {
@@ -12,18 +19,20 @@ const WRAPPERS: WrapperSpec[] = [
     label: "401(k) / Traditional IRA",
     treatment: "tax-deferred",
     accessAge: 59.5,
-    annualContributionLimit: 23000,
+    annualContributionLimit: 24500, // Updated 2026
     withdrawalBucket: "pension-withdrawal",
-    // RMDs begin at age 73 for those born 1951-1959, 75 for born 1960 or later.
-    // Simplifying to starting at 73.
-    forcedMinimumFraction: (age) => (age >= 73 ? 1 / (120 - age) : 0),
+    forcedMinimumFraction: (age) => {
+      if (age < 73) return 0;
+      const index = Math.min(age - 73, RMD_DIVISORS.length - 1);
+      return 1 / RMD_DIVISORS[index];
+    },
   },
   {
     id: "roth",
     label: "Roth IRA / Roth 401(k)",
     treatment: "tax-free",
     accessAge: 59.5,
-    annualContributionLimit: 7000,
+    annualContributionLimit: 7500, // Updated 2026
     withdrawalBucket: "other", // withdrawals are tax-free
   },
   {
@@ -37,7 +46,7 @@ const WRAPPERS: WrapperSpec[] = [
 export const usPack: CountryPack = {
   id: "us",
   currency: { code: "USD", locale: "en-US", symbol: "$" },
-  regions: [usRegion],
+  regions: usRegions,
   wrappers: WRAPPERS,
   disposalPolicy: "specific-id",
   drawdownCandidates: [
@@ -45,29 +54,34 @@ export const usPack: CountryPack = {
     "brokerage->roth->401k",
     "401k-to-standard-deduction->brokerage->roth",
   ],
-  constraints: [], // e.g. IRMAA could go here
+  constraints: [], // Now implemented as Surtaxes for engine compatibility
   statePension: (history, claimAge) => {
-    // Highly simplified Social Security AIME/PIA calculator.
-    // Assume the user has worked for 35 years at their current inflation-adjusted salary.
-    // For a real implementation, we would need actual historical earnings.
-    if (!history.yearsContributed || history.yearsContributed < 10) return 0;
+    // 2026 exact Social Security PIA Formula
+    // 1. Calculate AIME based on 35 years
+    const yearsWorked = history.yearsContributed || 0;
+    const assumedAnnualSalary = 60000; // Simplified assumption for the years worked
     
-    // Default to a median AIME if no salary is provided, or we can assume a simplified formula.
-    // For now, we'll return a placeholder that calculates PIA based on a dummy AIME of 6000.
-    const aime = 6000; 
+    // Total lifetime indexed earnings (simplified by assuming constant salary)
+    const totalEarnings = assumedAnnualSalary * Math.min(yearsWorked, 35);
+    
+    // Divide by 420 months (35 years) to get AIME. 
+    // Missing years count as $0 and directly reduce AIME.
+    const aime = totalEarnings / 420;
+    
     let pia = 0;
-    if (aime <= SS_BEND_POINTS_2024.first) {
-      pia = aime * SS_BEND_POINTS_2024.rates[0];
-    } else if (aime <= SS_BEND_POINTS_2024.second) {
-      pia = SS_BEND_POINTS_2024.first * SS_BEND_POINTS_2024.rates[0] + 
-            (aime - SS_BEND_POINTS_2024.first) * SS_BEND_POINTS_2024.rates[1];
+    const bp1 = SS_BEND_POINTS_2026.first;
+    const bp2 = SS_BEND_POINTS_2026.second;
+    const [r1, r2, r3] = SS_BEND_POINTS_2026.rates;
+
+    if (aime <= bp1) {
+      pia = aime * r1;
+    } else if (aime <= bp2) {
+      pia = (bp1 * r1) + ((aime - bp1) * r2);
     } else {
-      pia = SS_BEND_POINTS_2024.first * SS_BEND_POINTS_2024.rates[0] + 
-            (SS_BEND_POINTS_2024.second - SS_BEND_POINTS_2024.first) * SS_BEND_POINTS_2024.rates[1] +
-            (aime - SS_BEND_POINTS_2024.second) * SS_BEND_POINTS_2024.rates[2];
+      pia = (bp1 * r1) + ((bp2 - bp1) * r2) + ((aime - bp2) * r3);
     }
     
-    // Claiming at 62 reduces it, claiming at 70 increases it. (Simplification)
+    // Claiming age modifiers (simplified FRA = 67)
     const fra = 67;
     if (claimAge < fra) {
       pia *= 1 - ((fra - claimAge) * 0.0667); // roughly 6.67% reduction per year
@@ -75,11 +89,11 @@ export const usPack: CountryPack = {
       pia *= 1 + ((Math.min(claimAge, 70) - fra) * 0.08); // 8% increase per year up to 70
     }
     
-    return pia * 12; // Annualized
+    return Math.floor(pia * 12); // Annualized and floored
   },
   taxSystem: (region, filing = "single") => {
     const isJoint = filing === "married-joint";
-    const bands = isJoint ? US_TAX_BANDS_2024.joint : US_TAX_BANDS_2024.single;
+    const bands = isJoint ? US_TAX_BANDS_2026["married-joint"] : US_TAX_BANDS_2026.single;
 
     const ordinaryBase: TaxBase = {
       id: "ordinary",
@@ -92,6 +106,107 @@ export const usPack: CountryPack = {
       stacksOn: "ordinary",
       schedule: bands.ltcg,
     };
+    
+    const surtaxes: Surtax[] = [];
+
+    // 1. NIIT (Net Investment Income Tax)
+    surtaxes.push({
+      id: "niit",
+      apply: (income: number, routing: Record<string, number>) => {
+        const investmentIncome = (routing["dividends"] || 0) + (routing["interest"] || 0) + (routing["realised-gains"] || 0) + (routing["rental"] || 0);
+        if (income > bands.niitThreshold && investmentIncome > 0) {
+          const excess = income - bands.niitThreshold;
+          return Math.min(investmentIncome, excess) * 0.038;
+        }
+        return 0;
+      }
+    });
+
+    // 2. Early Withdrawal 10% Penalty (Pre-59.5)
+    surtaxes.push({
+      id: "early-withdrawal-penalty",
+      apply: (income: number, routing: Record<string, number>, age: number) => {
+        if (age < 59.5) {
+          const pensionWithdrawal = routing["pension-withdrawal"] || 0;
+          return pensionWithdrawal * 0.10;
+        }
+        return 0;
+      }
+    });
+
+    // 3. ACA Premium Tax Credit Slope (Ages < 65)
+    surtaxes.push({
+      id: "aca-premiums",
+      apply: (income: number, routing: Record<string, number>, age: number) => {
+        if (age >= 65) return 0; // On Medicare
+        const fpl = isJoint ? ACA_FPL_2025["married-joint"] : ACA_FPL_2025.single;
+        const pctFpl = (income / fpl) * 100;
+        
+        let costPct = 0;
+        if (pctFpl <= 150) costPct = 0;
+        else if (pctFpl <= 200) costPct = 0.02; // simplified average of 0-2%
+        else if (pctFpl <= 250) costPct = 0.04; // simplified average of 2-4%
+        else if (pctFpl <= 300) costPct = 0.06;
+        else if (pctFpl <= 400) costPct = 0.085;
+        else costPct = 0.085; // 8.5% cap over 400% FPL
+
+        // Assume benchmark silver plan costs $8,000/yr single, $16,000/yr joint
+        const benchmarkCost = isJoint ? 16000 : 8000;
+        const requiredContribution = income * costPct;
+        return Math.min(requiredContribution, benchmarkCost); // Subsidy pays the rest
+      }
+    });
+
+    // 4. Medicare IRMAA Surcharges (Ages 65+)
+    surtaxes.push({
+      id: "medicare-irmaa",
+      apply: (income: number, routing: Record<string, number>, age: number) => {
+        if (age < 65) return 0;
+        // Simplified mapping using 2025 tiers based on MAGI
+        // (In reality there's a 2 year lookback, we assume current income)
+        const t1 = isJoint ? 212000 : 106000;
+        const t2 = isJoint ? 266000 : 133000;
+        const t3 = isJoint ? 334000 : 167000;
+        const t4 = isJoint ? 400000 : 200000;
+        const t5 = isJoint ? 750000 : 500000;
+
+        let surcharge = 0;
+        const annualBase = isJoint ? (2097 * 2) : 2097; // 2025 Base Part B is ~$174.70/mo
+
+        if (income > t5) surcharge = annualBase * 2.4; // Tier 6 max
+        else if (income > t4) surcharge = annualBase * 1.8; 
+        else if (income > t3) surcharge = annualBase * 1.3;
+        else if (income > t2) surcharge = annualBase * 0.8;
+        else if (income > t1) surcharge = annualBase * 0.4;
+        
+        return surcharge;
+      }
+    });
+
+    // 5. State Income Tax
+    if (region && region.id !== "zero-tax") {
+      const stateBrackets = US_STATE_TAXES[region.id as keyof typeof US_STATE_TAXES]?.brackets;
+      if (stateBrackets) {
+        surtaxes.push({
+          id: `state-tax-${region.id}`,
+          apply: (income: number) => {
+            let tax = 0;
+            let remaining = income;
+            let prevUpTo = 0;
+            for (const b of stateBrackets) {
+              const width = b.upTo - prevUpTo;
+              if (remaining > 0) {
+                const portion = Math.min(remaining, width);
+                tax += portion * b.rate;
+                remaining -= portion;
+              }
+              prevUpTo = b.upTo;
+            }
+            return tax;
+          }
+        });
+      }
+    }
 
     return {
       bases: [ordinaryBase, ltcgBase],
@@ -104,6 +219,7 @@ export const usPack: CountryPack = {
         "realised-gains": { base: "ltcg" },
         "state-pension": { base: "ordinary", inclusion: 0.85 }, // Up to 85% is taxable
       },
+      surtaxes
     };
   }
 };

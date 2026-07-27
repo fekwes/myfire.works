@@ -470,10 +470,39 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
               className="w-full min-w-0 bg-transparent px-2 py-1 text-sm outline-none font-medium"
             >
               <option value="uk">United Kingdom</option>
-              <option value="us">United States (Federal)</option>
+              <option value="us">United States</option>
             </select>
           </div>
         </Field>
+        {country === "us" && (
+          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 mb-4">
+            <Field label="Filing Status" tooltip="Married Filing Jointly models pooled inputs using MFJ brackets.">
+              <div className="flex items-center rounded-lg border border-border bg-background transition-colors hover:border-muted-foreground/40 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30 p-1">
+                <select
+                  value={value.filingStatus ?? "single"}
+                  onChange={(e) => set("filingStatus", e.target.value as "single" | "married-joint")}
+                  className="w-full min-w-0 bg-transparent px-2 py-1 text-sm outline-none font-medium"
+                >
+                  <option value="single">Single</option>
+                  <option value="married-joint">Married Filing Jointly</option>
+                </select>
+              </div>
+            </Field>
+            <Field label="State" tooltip="State income tax modeling.">
+              <div className="flex items-center rounded-lg border border-border bg-background transition-colors hover:border-muted-foreground/40 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30 p-1">
+                <select
+                  value={value.region ?? "zero-tax"}
+                  onChange={(e) => set("region", e.target.value)}
+                  className="w-full min-w-0 bg-transparent px-2 py-1 text-sm outline-none font-medium"
+                >
+                  {usPack.regions.map(r => (
+                    <option key={r.id} value={r.id}>{r.label}</option>
+                  ))}
+                </select>
+              </div>
+            </Field>
+          </div>
+        )}
         <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
           <Field label="Current age">
             <NumberInput

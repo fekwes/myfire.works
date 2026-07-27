@@ -57,6 +57,7 @@ export interface WrapperInput {
 export interface FireInputs {
   schemaVersion?: number;
   country?: "uk" | "us";
+  region?: string;
   filingStatus?: "single" | "married-joint";
   
   currentAge: number;
@@ -119,12 +120,13 @@ export interface FireInputs {
 // Holdings are collapsed into the per-wrapper growth scalars by resolveInputs,
 // so the resolved shape the simulation runs on doesn't carry them.
 type BaseResolvedFireInputs = Required<
-  Omit<FireInputs, "schemaVersion" | "country" | "filingStatus" | "pots" | "isaHoldings" | "giaHoldings" | "sippHoldings" | "isaBalance" | "isaMonthlyContribution" | "sippBalance" | "sippMonthlyContribution" | "giaBalance" | "giaMonthlyContribution" | "isaGrowth" | "giaGrowth" | "sippGrowth">
+  Omit<FireInputs, "schemaVersion" | "country" | "region" | "filingStatus" | "pots" | "isaHoldings" | "giaHoldings" | "sippHoldings" | "isaBalance" | "isaMonthlyContribution" | "sippBalance" | "sippMonthlyContribution" | "giaBalance" | "giaMonthlyContribution" | "isaGrowth" | "giaGrowth" | "sippGrowth">
 >;
 
 export interface ResolvedFireInputs extends BaseResolvedFireInputs {
   schemaVersion?: number;
   country: "uk" | "us";
+  region: string;
   filingStatus: "single" | "married-joint";
   pots: Record<string, Required<WrapperInput>>;
 }
@@ -216,6 +218,7 @@ function resolveInputs(inputs: FireInputs): ResolvedFireInputs {
     ...inputs,
     schemaVersion: inputs.schemaVersion,
     country: inputs.country ?? "uk",
+    region: inputs.region ?? "zero-tax",
     filingStatus: inputs.filingStatus ?? "single",
     pots,
     contributionsUntilAge: inputs.contributionsUntilAge ?? inputs.retirementAge,
@@ -334,7 +337,8 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
   } = inputs;
 
   const pack = country === "us" ? usPack : ukPack;
-  const taxSystem = pack.taxSystem(undefined, undefined);
+  const regionObj = pack.regions.find(r => r.id === inputs.region);
+  const taxSystem = pack.taxSystem(regionObj, inputs.filingStatus);
 
   let stateBalances: Record<string, number> = {};
   let stateBases: Record<string, number> = {};
@@ -440,6 +444,12 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     // DRAWDOWN PHASE
     const inflationFactor = (1 + inflationRate) ** (age - currentAge);
     const yearTarget = targetAnnualIncome * inflationFactor;
+    
+    // UK Tax Bands are currently frozen until April 2028. Assuming current year is 2024/2025, that's roughly 3-4 years. 
+    // We will assume 4 years of frozen bands before they start inflating again.
+    const taxBandsFrozenYears = 4; 
+    const yearsOfTaxInflation = Math.max(0, (age - currentAge) - taxBandsFrozenYears);
+    const taxInflationFactor = (1 + inflationRate) ** yearsOfTaxInflation;
 
     // Use UK flat state pension or US calculated
     const statePensionAnnual = pack.statePension({ yearsContributed: age - 22 }, age); // Simplification for now
@@ -465,8 +475,8 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
         "realised-gains": gain,
       };
       
-      const taxWithGain = calculateTax(combinedIncomes, taxSystem);
-      const taxWithoutGain = calculateTax({ "employment": combinedIncomes.employment }, taxSystem);
+      const taxWithGain = calculateTax(combinedIncomes, taxSystem, taxInflationFactor);
+      const taxWithoutGain = calculateTax({ "employment": combinedIncomes.employment }, taxSystem, taxInflationFactor);
       propertyCgt = taxWithGain.totalTax - taxWithoutGain.totalTax;
       
       const proceeds = rentalValue - propertyCgt;
@@ -495,7 +505,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     
     // Other taxable income
     const otherTaxableIncome = statePensionIncome + rentalIncome + partTimeIncome;
-    const otherTaxableTax = calculateTax({ "employment": otherTaxableIncome }, taxSystem).totalTax;
+    const otherTaxableTax = calculateTax({ "employment": otherTaxableIncome }, taxSystem, taxInflationFactor).totalTax;
     const otherTaxableNet = otherTaxableIncome - otherTaxableTax;
     const potNeed = Math.max(0, yearTarget - otherTaxableNet);
     
@@ -538,7 +548,8 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       otherTaxableIncome,
       taxSystem,
       availableWrappers,
-      taxFreeLumpSumAvailable
+      taxFreeLumpSumAvailable,
+      taxInflationFactor
     );
     
     stateBalances = drawdownResult.state.balances;

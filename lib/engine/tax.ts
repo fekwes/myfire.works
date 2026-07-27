@@ -5,14 +5,21 @@ import { IncomeBucket, TaxSystem } from "../countries/types";
  */
 export function calculateTax(
   incomes: Partial<Record<IncomeBucket, number>>,
-  taxSystem: TaxSystem
+  taxSystem: TaxSystem,
+  taxInflationFactor: number = 1
 ): { totalTax: number; taxByBase: Record<string, number> } {
+  // 1. Deflate nominal incomes to evaluate against static tax bands
+  const deflatedIncomes: Partial<Record<IncomeBucket, number>> = {};
+  for (const [bucket, amount] of Object.entries(incomes)) {
+    if (amount !== undefined) deflatedIncomes[bucket as IncomeBucket] = amount / taxInflationFactor;
+  }
+
   const taxByBase: Record<string, number> = {};
   let totalTax = 0;
 
-  // 1. Group incomes into their respective bases
+  // 1. Group deflated incomes into their respective bases
   const incomeByBase: Record<string, number> = {};
-  for (const [bucket, amount] of Object.entries(incomes)) {
+  for (const [bucket, amount] of Object.entries(deflatedIncomes)) {
     if (!amount || amount <= 0) continue;
     const routing = taxSystem.routing[bucket as IncomeBucket];
     if (routing) {
@@ -22,44 +29,26 @@ export function calculateTax(
   }
 
   // 2. We need a way to determine total income for cross-base allowance tapers.
-  // For UK, total income is all income combined, but technically we should evaluate
-  // allowances within their base. For now we will sum up all routed income.
   const totalIncome = Object.values(incomeByBase).reduce((sum, val) => sum + val, 0);
 
-  // 3. Process each base. We process base by base. If a base stacks on another,
-  // we must process the other first (not strictly enforced here yet, just summing).
+  // 3. Process each base.
   for (const base of taxSystem.bases) {
     const baseIncome = incomeByBase[base.id] || 0;
     
     // Total income for stacking
     let stackedIncome = 0;
     if (base.stacksOn && incomeByBase[base.stacksOn]) {
-      // In reality, stacking means we start filling the schedule at stackedIncome.
       stackedIncome = incomeByBase[base.stacksOn];
     }
     
-    // For UK, allowance tapers based on total income.
-    // In our config, allowance takes `totalIncome`
     let allowance = 0;
     if (base.allowance) {
-      // For CGT, it's just the exempt amount (which might not taper, so totalIncome doesn't matter)
-      // For UK Income Tax, the taper applies to total income.
       allowance = base.allowance(totalIncome); 
     }
 
     const taxable = Math.max(0, baseIncome - allowance);
     let tax = 0;
 
-    // Apply the schedule
-    // The schedule tells us the maximum amount of income taxed at that rate.
-    // But if we stack, we are already starting at `stackedIncome`.
-    // Wait, UK CGT stacks on *taxable* income? No, it stacks on gross income?
-    // "taxed at 18% up to the basic-rate ceiling (as stacked on top of the year's income)"
-    // Let's look at calculateCapitalGainsTax:
-    //   const atBasic = Math.min(taxable, Math.max(0, remainingBasicBand));
-    // remainingBasicBand = Math.max(0, BASIC_RATE_CEILING - otherTaxableIncome);
-    
-    // Let's compute the filled bands
     let remainingIncome = taxable;
     let currentStackOffset = stackedIncome;
     
@@ -82,11 +71,20 @@ export function calculateTax(
   // 4. Surtaxes (if any)
   if (taxSystem.surtaxes) {
     for (const surtax of taxSystem.surtaxes) {
-      const tax = surtax.apply(totalIncome, incomeByBase); // Simplification
+      const tax = surtax.apply(totalIncome, incomeByBase, taxInflationFactor);
       taxByBase[surtax.id] = tax;
       totalTax += tax;
     }
   }
 
-  return { totalTax, taxByBase };
+  // 5. Inflate the resulting taxes back to nominal terms
+  const inflatedTaxByBase: Record<string, number> = {};
+  for (const [base, tax] of Object.entries(taxByBase)) {
+    inflatedTaxByBase[base] = tax * taxInflationFactor;
+  }
+
+  return { 
+    totalTax: totalTax * taxInflationFactor, 
+    taxByBase: inflatedTaxByBase 
+  };
 }
