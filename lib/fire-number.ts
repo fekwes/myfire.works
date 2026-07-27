@@ -155,7 +155,7 @@ export function computeFireNumber(inputs: FireInputs): FireNumberResult {
   }
 
   const fireNumber = bridgeRequired + pensionRequired;
-  const bridgeGap = Math.max(0, bridgeRequired - (isa + gia));
+  const bridgeGap = Math.max(0, bridgeRequired - bridgeBalance);
 
   return {
     projectedAtRetirement,
