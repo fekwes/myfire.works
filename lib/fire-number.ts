@@ -1,3 +1,4 @@
+import { smallestPassing } from "./bisect";
 import {
   type FireInputs,
   inflatedTargetAt,
@@ -68,15 +69,13 @@ export function computeFireNumber(inputs: FireInputs): FireNumberResult {
       }),
     ).sustainableToLifeExpectancy;
 
-  let lo = 0;
-  let hi = Math.max(total * 2, inputs.targetAnnualIncome * 40, 1e6);
-  while (!sustainsAt(hi) && hi < 1e9) hi *= 2;
-  for (let i = 0; i < 44; i++) {
-    const mid = (lo + hi) / 2;
-    if (sustainsAt(mid)) hi = mid;
-    else lo = mid;
-  }
-  const fireNumber = hi;
+  // No pot makes an impossible plan work — cap rather than loop forever. The
+  // caller shows a shortfall against it either way.
+  const fireNumber =
+    smallestPassing(sustainsAt, {
+      initialHi: Math.max(total * 2, inputs.targetAnnualIncome * 40, 1e6),
+      maxHi: 1e9,
+    }) ?? 1e9;
 
   return {
     projectedAtRetirement,

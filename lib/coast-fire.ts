@@ -1,3 +1,4 @@
+import { smallestPassing } from "./bisect";
 import {
   type FireInputs,
   type FireSimulationResult,
@@ -64,16 +65,12 @@ function solveCoastNumber(inputs: FireInputs, currentInvested: number): number {
       }),
     ).sustainableToLifeExpectancy;
 
-  let lo = 0;
-  let hi = Math.max(currentInvested * 2, inputs.targetAnnualIncome * 40, 1e6);
-  while (!sustainsAt(hi) && hi < 1e9) hi *= 2;
-
-  for (let i = 0; i < 44; i++) {
-    const mid = (lo + hi) / 2;
-    if (sustainsAt(mid)) hi = mid;
-    else lo = mid;
-  }
-  return hi;
+  return (
+    smallestPassing(sustainsAt, {
+      initialHi: Math.max(currentInvested * 2, inputs.targetAnnualIncome * 40, 1e6),
+      maxHi: 1e9,
+    }) ?? 1e9
+  );
 }
 
 /**

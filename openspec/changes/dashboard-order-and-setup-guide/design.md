@@ -75,12 +75,16 @@ The retire-a-year-earlier/later trade-off is the strongest content on the curren
 
 *Alternative rejected:* delete the calculation too. It costs two bisections per render, which is real, but the trade-off it expresses is not derivable from anything else on the page.
 
-### D5. Performance: defer the derived figures, do not debounce the input
+### D5. Performance: measured first, and it is smaller than it looked
 
-Roughly 300 simulations per keystroke after this change. Three mitigations, in order of leverage:
+**Measured before writing any of this** (`scripts/bench-solvers.ts`, a fully-featured plan, Node): `computeFireNumber` 1.06 ms, `retirementSensitivity` 1.91 ms, `computeCoastFire` 1.88 ms — **4.85 ms** for a render's worth of solvers, not the hundred-plus milliseconds the simulation count suggested. Roughly 300 simulations per keystroke is real, but each one is cheap.
+
+That reorders the mitigations below from "load-bearing" to "cheap headroom", and it means the Web Worker escape hatch is almost certainly never needed. The dominant cost of a Quick levers keystroke is React reconciliation and the Recharts redraw, not the arithmetic. Recharts is already the known lever on this page — `REVIEW-2026-07.md` puts it at about a third of the `/planner` bundle.
+
+The measurement stands as the reason to *stop* here rather than the reason to optimise further. Three mitigations, in order of leverage:
 
 1. **`useDeferredValue` on the inputs feeding derived figures.** `QuickLevers` keeps writing per keystroke so the input and the chart stay live; the Overview's bisections read a deferred copy and lag by a frame under load. This is the whole fix for perceived responsiveness and it costs a few lines.
-2. **Cut wasted bisection iterations.** 44 and 40 fixed iterations bisect far past penny precision — about 21 halvings covers a £2M range to £1. Reduce to 26 with an early exit at `hi - lo < 1`. Roughly halves the simulation count across every solve, with no visible change in any figure. This should land as its own commit with the existing tests unchanged, so any drift is attributable.
+2. **Cut wasted bisection iterations.** 44 and 40 fixed iterations bisect far past penny precision — about 21 halvings covers a £2M range to £1. The three solvers each carried their own copy of the loop, so they collapse into one `lib/bisect.ts` helper that exits once the bracket is under £1, with a loop cap as a backstop against a non-monotonic predicate rather than as the normal exit. **Landed and measured: 4.85 ms → 2.66 ms, with the existing tests passing unchanged.**
 3. **One `useMemo` per solve, keyed on the deferred inputs**, so switching chart tabs or toggling the money frame does not re-solve anything.
 
 *Alternative rejected:* debouncing `QuickLevers`. It would stop the chart tracking the input, which is the reason Quick levers is being promoted to the top of the page.
