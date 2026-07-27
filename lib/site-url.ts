@@ -13,35 +13,11 @@
 // sitemap entry, robots line and OG image URL on the live site pointed at a
 // hostname that does not exist. So we validate the *hostname* too, and fall
 // back to the origin Vercel already knows rather than to a wrong value.
+//
+// The parsing itself lives in `lib/origin.ts`, shared with the Supabase URL —
+// the other hand-typed URL variable, which met the same mistake.
 
-/**
- * A hostname we would accept from DNS: dot-separated labels of letters, digits
- * and hyphens. `localhost` is the one permitted dotless exception, for dev.
- * Deliberately stricter than `new URL()`, which happily accepts `_` and `=`.
- */
-const HOSTNAME =
-  /^(localhost|[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+)$/;
-
-/**
- * Normalise one candidate into an origin, or `null` if it isn't usable.
- * Tolerates the two mistakes people actually make in a dashboard — a missing
- * protocol (`myfire.works`) and a trailing slash — and rejects everything whose
- * hostname could not resolve.
- */
-function toOrigin(raw: string | undefined): string | null {
-  const value = raw?.trim();
-  if (!value) return null;
-
-  const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`;
-  try {
-    // `.origin` normalises (validates, drops any trailing slash or path), so
-    // downstream `${siteUrl}${path}` concatenation is safe.
-    const url = new URL(withProtocol);
-    return HOSTNAME.test(url.hostname) ? url.origin : null;
-  } catch {
-    return null;
-  }
-}
+import { toOrigin } from "./origin";
 
 /**
  * First usable candidate wins, else localhost. Exported for tests — the module
