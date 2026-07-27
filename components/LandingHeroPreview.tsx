@@ -6,13 +6,13 @@ import { formatCurrency } from "@/lib/format";
 // numbers the planner would show — so the hero previews the actual product
 // rather than a mocked-up screenshot.
 const SAMPLE: FireInputs = {
-  currentAge: 36,
-  retirementAge: 54,
-  targetAnnualIncome: 38000,
-  isaBalance: 190000,
-  isaMonthlyContribution: 2100,
-  sippBalance: 230000,
-  sippMonthlyContribution: 1500,
+  currentAge: 45,
+  retirementAge: 56,
+  targetAnnualIncome: 25000,
+  isaBalance: 200000,
+  isaMonthlyContribution: 1000,
+  sippBalance: 250000,
+  sippMonthlyContribution: 800,
   inflationRate: 0.025,
 };
 
@@ -79,7 +79,7 @@ export function LandingHeroPreview() {
     .filter((y) => y.age <= SAMPLE.retirementAge)
     .map(
       (y) =>
-        (y.isaBalanceEnd + y.giaBalanceEnd + y.sippBalanceEnd) /
+        (y.pots.isa.end + y.pots.gia.end + y.pots.sipp.end) /
         (1 + infl) ** (y.age - SAMPLE.currentAge),
     );
   const { line, area, end } = sparklinePath(values, 320);
