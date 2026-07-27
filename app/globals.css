@@ -369,17 +369,19 @@ body {
   z-index: -10;
   pointer-events: none;
   overflow: hidden;
+  /* Add a vignette effect to fade the edges seamlessly */
+  box-shadow: inset 0 0 120px 40px var(--background);
   background:
-    radial-gradient(ellipse 58% 48% at 50% -10%, var(--glow), transparent 60%),
+    radial-gradient(ellipse 65% 55% at 50% -10%, var(--glow), transparent 60%),
     radial-gradient(
-      ellipse 42% 40% at 84% 4%,
-      color-mix(in srgb, var(--accent) 15%, transparent),
-      transparent 62%
+      ellipse 50% 45% at 85% 0%,
+      color-mix(in srgb, var(--accent) 22%, transparent),
+      transparent 65%
     ),
     radial-gradient(
-      ellipse 48% 44% at 6% 20%,
-      color-mix(in srgb, var(--primary) 9%, transparent),
-      transparent 60%
+      ellipse 55% 50% at 10% 15%,
+      color-mix(in srgb, var(--primary) 12%, transparent),
+      transparent 65%
     );
 }
 
@@ -434,9 +436,11 @@ body {
   0%,
   100% {
     opacity: 0.5;
+    transform: translateY(0);
   }
   50% {
-    opacity: 0.78;
+    opacity: 0.85;
+    transform: translateY(-12px);
   }
 }
 
