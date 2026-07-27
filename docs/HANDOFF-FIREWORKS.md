@@ -159,6 +159,13 @@ grant matters: without it, logged-in saves hit "permission denied" even though
 RLS is correct. Also add every deployed origin to **Auth → Redirect URLs**, or
 sign-in breaks in production.
 
+A project provisioned from the *first* version of that file also needs
+`20260727000000_portfolios_rls_initplan.sql`. Supabase's database linter
+(`get_advisors` over MCP, or Advisors in the dashboard) flagged all four
+policies for `auth_rls_initplan`: a bare `auth.uid()` is re-evaluated per row.
+Both files now use `(select auth.uid())` and name `to authenticated`. Run the
+advisors after any DDL — that is what caught this.
+
 ## 7. Conventions
 
 - **One logical change = one commit**, ending with the `Co-Authored-By:` line.
