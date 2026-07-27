@@ -140,6 +140,18 @@ while every canonical, sitemap entry, robots line and OG image URL on the live
 site pointed at a hostname that does not exist. Validating the hostname, not
 just the URL, is what catches it; `lib/site-url.test.ts` pins the case.
 
+**`NEXT_PUBLIC_SUPABASE_URL` is the *Supabase* URL, not this app's.** It was
+once set to `https://onfire-nu.vercel.app` — the app's own deployment URL — and
+the only symptom was a CORS error on sign-up, because `signUp()` POSTed to
+`<the app>/auth/v1/signup` and the browser reports the missing
+`Access-Control-Allow-Origin` on the preflight before the 404 behind it. The
+message named neither the variable at fault nor this app. `lib/supabase/config.ts`
+now rejects an origin that belongs to the app (any `*.vercel.app`, or the
+configured site URL), logs which variable is wrong and how to fix it, and
+degrades to the signed-out app — an absent Sign in button beats one that fails
+on submit. Copy the value from **Supabase → Project Settings → API → Project
+URL**; it ends in `.supabase.co`.
+
 **Supabase setup:** run `supabase/migrations/20260101000000_portfolios.sql` in
 the SQL editor (DDL can't run with the API keys). It creates the `portfolios`
 table, enables RLS, **and grants the `authenticated` role table access** — the
