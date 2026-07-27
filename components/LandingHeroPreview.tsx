@@ -36,10 +36,18 @@ function burstRays(cx: number, cy: number) {
   });
 }
 
-function sparklinePath(values: number[], width: number, height: number) {
+// The plot is inset inside the viewBox rather than filling it. The final point
+// is the burst, and a burst in the very corner gets guillotined — the line, the
+// area's closing edge and the bloom all hit the boundary at once, which is what
+// made the old chart look cut off. Leaving room right and above lets the climax
+// sit *in* the frame with its glow spilling past.
+const PLOT = { right: 288, top: 14, baseline: 60 };
+
+function sparklinePath(values: number[], width: number) {
   const max = Math.max(...values, 1);
-  const stepX = width / (values.length - 1);
-  const y = (v: number) => height - (v / max) * (height - 6) - 3;
+  const stepX = PLOT.right / (values.length - 1);
+  const span = PLOT.baseline - PLOT.top;
+  const y = (v: number) => PLOT.baseline - (v / max) * span;
   const point = (v: number, i: number) => ({ x: i * stepX, y: y(v) });
   const line = values
     .map((v, i) => {
@@ -50,8 +58,9 @@ function sparklinePath(values: number[], width: number, height: number) {
   const last = point(values[values.length - 1], values.length - 1);
   return {
     line,
-    area: `${line} L${width},${height} L0,${height} Z`,
+    area: `${line} L${PLOT.right},${PLOT.baseline} L0,${PLOT.baseline} Z`,
     end: last,
+    width,
   };
 }
 
@@ -60,14 +69,20 @@ export function LandingHeroPreview() {
   const { fireNumber } = computeFireNumber(SAMPLE);
   const sustainable = plan.sustainableToLifeExpectancy;
 
-  // Total pot over time, in today's money, for the sparkline shape.
+  // Total pot over time, in today's money, for the sparkline shape — the
+  // *accumulation* only. The burst at the end of this line is the FI moment, so
+  // the line has to stop there. Running on to life expectancy (as it did) drew
+  // forty flat years of drawdown after the climax, which both contradicted the
+  // chart's own label and left the curve arriving at the burst dead level.
   const infl = SAMPLE.inflationRate ?? 0;
-  const values = plan.timeline.map(
-    (y) =>
-      (y.isaBalanceEnd + y.giaBalanceEnd + y.sippBalanceEnd) /
-      (1 + infl) ** (y.age - SAMPLE.currentAge),
-  );
-  const { line, area, end } = sparklinePath(values, 320, 64);
+  const values = plan.timeline
+    .filter((y) => y.age <= SAMPLE.retirementAge)
+    .map(
+      (y) =>
+        (y.isaBalanceEnd + y.giaBalanceEnd + y.sippBalanceEnd) /
+        (1 + infl) ** (y.age - SAMPLE.currentAge),
+    );
+  const { line, area, end } = sparklinePath(values, 320);
 
   return (
     <div
@@ -116,18 +131,32 @@ export function LandingHeroPreview() {
             <stop offset="45%" stopColor="var(--primary)" stopOpacity={0.18} />
             <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
           </radialGradient>
+          {/* The area has to stop somewhere, and a vertical edge directly under
+              the burst reads as a cut. Dissolve the last stretch instead. */}
+          <linearGradient id="hero-fill-fade" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="78%" stopColor="#fff" stopOpacity={1} />
+            <stop offset="100%" stopColor="#fff" stopOpacity={0} />
+          </linearGradient>
+          <mask id="hero-fill-mask">
+            <rect x="0" y="0" width="320" height="70" fill="url(#hero-fill-fade)" />
+          </mask>
         </defs>
-        {/* faint baseline */}
+        {/* faint baseline — sits on the plot's floor, not the viewBox's */}
         <line
           x1={0}
-          y1={64}
+          y1={PLOT.baseline}
           x2={320}
-          y2={64}
+          y2={PLOT.baseline}
           stroke="var(--border)"
           strokeWidth={1}
           vectorEffect="non-scaling-stroke"
         />
-        <path className="hero-chart-fill" d={area} fill="url(#hero-preview-fill)" />
+        <path
+          className="hero-chart-fill"
+          d={area}
+          fill="url(#hero-preview-fill)"
+          mask="url(#hero-fill-mask)"
+        />
         {/* This line is the second half of the hero's launch trail — the
             decorative arc runs under the card and re-emerges here as real
             engine output, so it draws itself once the trail has finished. */}
@@ -149,7 +178,7 @@ export function LandingHeroPreview() {
           className="spark-pop"
           cx={end.x}
           cy={end.y}
-          r={34}
+          r={26}
           fill="url(#hero-burst-glow)"
         />
         <g className="spark-pop">

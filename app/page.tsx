@@ -94,14 +94,20 @@ export default function Landing() {
             </span>
             .
           </h1>
-          <p className="landing-rise mt-5 max-w-xl text-base leading-relaxed text-muted-foreground [animation-delay:120ms] sm:text-lg">
+          {/* The trail climbs past this column; `data-launch-quiet` tells it to
+              dim across the prose and the CTA so nothing has to be read
+              through it. */}
+          <p
+            data-launch-quiet
+            className="landing-rise mt-5 max-w-xl text-base leading-relaxed text-muted-foreground [animation-delay:120ms] sm:text-lg"
+          >
             <Term term="FIRE">FIRE</Term> — financial independence, retire early
             — is having enough invested that work becomes optional. Fireworks
             models the whole drawdown (<Term>ISA</Term>, <Term>GIA</Term>,{" "}
             <Term>SIPP</Term>, State Pension and property) with the tax
             you&apos;ll actually pay. No spreadsheet, no hand-waving.
           </p>
-          <div className="landing-rise [animation-delay:180ms]">
+          <div data-launch-quiet className="landing-rise [animation-delay:180ms]">
             <LandingCta />
           </div>
         </div>
@@ -113,7 +119,7 @@ export default function Landing() {
 
       {/* Differentiators — editorial, not three identical cards. */}
       <section className="mt-24 grid grid-cols-1 gap-10 border-t border-border pt-14 lg:grid-cols-12 lg:gap-12">
-        <div className="lg:col-span-5">
+        <div className="flex flex-col lg:col-span-5">
           <h2 className="font-display text-2xl font-bold tracking-tight text-balance sm:text-3xl">
             Most calculators stop at a pot size.
             <span className="text-muted-foreground"> This one keeps going.</span>
@@ -123,9 +129,12 @@ export default function Landing() {
             when you can actually access the money, and what the taxman takes on
             the way out. Fireworks models the mechanics.
           </p>
-          {/* Where the firework is lit. The trail climbs from here to the hero's
-              preview card — only from `lg`, where there's room for the arc. */}
-          <span className="mt-10 hidden text-xs lg:flex">
+          {/* Where the firework is lit, and what fills this column. The feature
+              list on the right is taller than this copy, so `mt-auto` drops the
+              crate to the foot of the column — the empty space becomes the
+              ground it stands on rather than a gap. `lg` only: below that the
+              trail doesn't exist, so neither should its origin. */}
+          <span className="mt-auto hidden pt-12 lg:flex">
             <LaunchPad />
           </span>
         </div>
