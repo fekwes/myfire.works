@@ -11,6 +11,7 @@ import { MobileNav, Nav } from "@/components/Nav";
 import { PlanProvider } from "@/components/PlanProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { RegionToggle } from "@/components/RegionToggle";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -95,6 +96,7 @@ export default function RootLayout({
                 <HeaderLogo />
                 <div className="flex shrink-0 items-center gap-1 sm:gap-2">
                   <Nav />
+                  <RegionToggle />
                   <AuthButton />
                   <ThemeToggle />
                 </div>

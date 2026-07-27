@@ -462,18 +462,7 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
         description="Ages and the income you're aiming for."
         hidden={activeSection !== "basics"}
       >
-        <Field label="Tax Region" tooltip="Select which country's tax rules to apply to the simulation.">
-          <div className="flex items-center rounded-lg border border-border bg-background transition-colors hover:border-muted-foreground/40 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30 p-1 mb-4">
-            <select
-              value={country}
-              onChange={(e) => set("country", e.target.value as "uk" | "us")}
-              className="w-full min-w-0 bg-transparent px-2 py-1 text-sm outline-none font-medium"
-            >
-              <option value="uk">United Kingdom</option>
-              <option value="us">United States</option>
-            </select>
-          </div>
-        </Field>
+        
         {country === "us" && (
           <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 mb-4">
             <Field label="Filing Status" tooltip="Married Filing Jointly models pooled inputs using MFJ brackets.">

@@ -7,11 +7,37 @@ import type { FireInputs } from "./fire-engine";
  */
 export const PLAN_STORAGE_KEY = "onfire:plan";
 
+export function getActiveRegionLocal(): "uk" | "us" {
+  if (typeof window === "undefined") return "uk";
+  
+  const saved = window.localStorage.getItem("onfire:region");
+  if (saved === "uk" || saved === "us") return saved;
+  
+  try {
+    const raw = window.localStorage.getItem(PLAN_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.country === "us") {
+        window.localStorage.setItem("onfire:region", "us");
+        return "us";
+      }
+    }
+  } catch {}
+  
+  window.localStorage.setItem("onfire:region", "uk");
+  return "uk";
+}
+
+export function setActiveRegionLocal(region: "uk" | "us"): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem("onfire:region", region);
+}
+
 /** Persist an assembled plan so the planner can pick it up. Safe on the server. */
-export function savePlanLocal(inputs: FireInputs): void {
+export function savePlanLocal(region: "uk" | "us", inputs: FireInputs): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(inputs));
+    window.localStorage.setItem(`${PLAN_STORAGE_KEY}:${region}`, JSON.stringify(inputs));
   } catch {
     // Storage can be unavailable (private mode, quota) — degrade silently.
   }
@@ -235,10 +261,26 @@ export function sanitisePlanInput(parsed: unknown): FireInputs | null {
 }
 
 /** Read a previously-saved plan, or `null` if none/invalid. Safe on the server. */
-export function loadPlanLocal(): FireInputs | null {
+export function loadPlanLocal(region: "uk" | "us"): FireInputs | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(PLAN_STORAGE_KEY);
+    let raw = window.localStorage.getItem(`${PLAN_STORAGE_KEY}:${region}`);
+    
+    // Migration: if the region-specific key doesn't exist, try the legacy key
+    if (!raw) {
+      const legacyRaw = window.localStorage.getItem(PLAN_STORAGE_KEY);
+      if (legacyRaw) {
+        const parsed = JSON.parse(legacyRaw);
+        const legacyRegion = parsed.country === "us" ? "us" : "uk";
+        if (legacyRegion === region) {
+          raw = legacyRaw;
+          // Clean up by saving to the new key and optionally deleting the old one
+          window.localStorage.setItem(`${PLAN_STORAGE_KEY}:${region}`, legacyRaw);
+          window.localStorage.removeItem(PLAN_STORAGE_KEY);
+        }
+      }
+    }
+
     if (!raw) return null;
     return sanitisePlanInput(JSON.parse(raw));
   } catch {
@@ -247,10 +289,17 @@ export function loadPlanLocal(): FireInputs | null {
 }
 
 /** Forget any stored plan. Safe on the server. */
-export function clearPlanLocal(): void {
+export function clearPlanLocal(region?: "uk" | "us"): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.removeItem(PLAN_STORAGE_KEY);
+    if (region) {
+      window.localStorage.removeItem(`${PLAN_STORAGE_KEY}:${region}`);
+    } else {
+      window.localStorage.removeItem(`${PLAN_STORAGE_KEY}:uk`);
+      window.localStorage.removeItem(`${PLAN_STORAGE_KEY}:us`);
+      window.localStorage.removeItem(PLAN_STORAGE_KEY);
+      window.localStorage.removeItem("onfire:region");
+    }
   } catch {
     // no-op
   }
