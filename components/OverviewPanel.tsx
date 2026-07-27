@@ -57,6 +57,12 @@ export function OverviewPanel({
           <p className="font-display text-2xl font-bold tabular text-foreground">
             {formatReal(fn.fireNumber)}
           </p>
+          {fn.fireNumber === 0 && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              <Info className="inline size-3 mr-1" />
+              Passive income fully covers target
+            </p>
+          )}
           <div className="mt-2 space-y-1.5 border-t border-border/50 pt-2 text-sm">
             {hasBridge && (
               <div className="flex justify-between">
@@ -87,7 +93,7 @@ export function OverviewPanel({
               <p className="font-display text-2xl font-bold tabular text-foreground">
                 {req.extraNeeded > 0 ? `+${formatCurrency(req.extraNeeded)}/mo` : "On track"}
               </p>
-              {req.extraNeeded > 0 && (
+              {req.extraNeeded > 0 ? (
                 <div className="mt-2 space-y-1.5 border-t border-border/50 pt-2 text-sm">
                   {hasBridge && req.extraIsaGia > 0 && (
                     <div className="flex justify-between">
@@ -101,6 +107,13 @@ export function OverviewPanel({
                       <span className="font-medium tabular text-foreground">+{formatCurrency(req.extraSipp)}/mo</span>
                     </div>
                   )}
+                </div>
+              ) : (
+                <div className="mt-2 space-y-1.5 border-t border-border/50 pt-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Projected surplus</span>
+                    <span className="font-medium tabular text-success">+{formatReal(fn.surplus)}</span>
+                  </div>
                 </div>
               )}
             </>

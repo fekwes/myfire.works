@@ -23,6 +23,8 @@ export function smallestPassing(
     tolerance?: number;
   },
 ): number | null {
+  if (passes(0)) return 0;
+  
   const tolerance = options.tolerance ?? 1;
 
   let lo = 0;
