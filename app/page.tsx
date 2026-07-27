@@ -80,6 +80,10 @@ export default function Landing() {
       <section className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
 
         <div className="relative z-10 lg:col-span-7">
+          {/* Subtle hero ambient glow */}
+          <div className="absolute -left-20 top-20 -z-10 h-64 w-64 rounded-full bg-brand/10 blur-[80px]" />
+          <div className="absolute -right-20 top-0 -z-10 h-64 w-64 rounded-full bg-accent/10 blur-[80px]" />
+
           <span className="landing-rise inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-muted-foreground">
             <span className="size-1.5 rounded-full bg-brand" />
             Free FIRE planner · tax-aware drawdown
@@ -129,25 +133,22 @@ export default function Landing() {
             when you can actually access the money, and what the taxman takes on
             the way out. Fireworks models the mechanics.
           </p>
-          {/* Where the firework is lit, and what fills this column. The feature
-              list on the right is taller than this copy, so `mt-auto` drops the
-              crate to the foot of the column — the empty space becomes the
-              ground it stands on rather than a gap. `lg` only: below that the
+          {/* Where the firework is lit, and what fills this column. `mt-12` drops the
+              crate to a comfortable position below the copy. `lg` only: below that the
               trail doesn't exist, so neither should its origin. */}
-          <span className="mt-auto hidden pt-12 lg:flex w-full justify-center">
+          <span className="mt-12 hidden lg:flex w-full justify-center relative">
+            <div className="absolute inset-0 -z-10 bg-brand/5 blur-3xl rounded-full scale-150" />
             <LaunchPad />
           </span>
         </div>
 
-        <ul className="lg:col-span-7">
+        <ul className="lg:col-span-7 flex flex-col gap-4">
           {FEATURES.map((f, i) => (
             <li
               key={f.title}
-              className={`flex gap-5 py-6 ${
-                i !== FEATURES.length - 1 ? "border-b border-border" : ""
-              }`}
+              className="group flex gap-5 rounded-3xl border border-border/50 bg-surface-muted/30 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/30 hover:bg-surface-muted/50 hover:shadow-xl hover:shadow-brand/5"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-brand/10 text-primary">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-brand/5 text-primary transition-colors duration-300 group-hover:border-primary/40 group-hover:bg-brand/15">
                 <f.Icon className="size-[1.15rem]" strokeWidth={1.75} />
               </span>
               <div>
