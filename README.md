@@ -32,7 +32,7 @@ On top of the core drawdown engine:
 
 **One design rule worth calling out:** returns are always **deterministic**. A wrapper is a balance plus a single net-of-fees growth rate. When you build a portfolio, that rate is *derived* from your holdings — each holding's expected return comes from its **asset class** ([`lib/assets.ts`](lib/assets.ts)), never a per-fund guess. Even the AI import only classifies fund names into asset classes; it never invents a return. So the whole projection is reproducible from the URL, and nothing an LLM says can move a number.
 
-Full write-up: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Contributor's map, deploy notes and roadmap: [docs/HANDOFF-FIREWORKS.md](docs/HANDOFF-FIREWORKS.md).
+Full write-up: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Contributor's map, deploy notes and roadmap: [docs/HANDOFF-FIREWORKS.md](docs/HANDOFF-FIREWORKS.md). All documentation is indexed in [docs/README.md](docs/README.md), and behaviour is specced with [OpenSpec](https://github.com/Fission-AI/OpenSpec) under [`openspec/`](openspec/).
 
 ## Tech stack
 
@@ -43,7 +43,7 @@ Full write-up: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Contributor's map, 
 | Charts | Recharts, on a colour-blind-validated data ramp |
 | Auth & saved plans | Supabase (`@supabase/ssr`), Row-Level Security |
 | AI features | Google Gemini (`gemini-flash-latest`), structured JSON output |
-| Testing | Vitest (168 tests) |
+| Testing | Vitest (250 tests) |
 | Hosting | Vercel (Speed Insights, cookieless) |
 
 The app builds and runs with **none** of the optional services configured — auth, AI and saved plans each degrade to a friendly state — so it deploys safely without them.

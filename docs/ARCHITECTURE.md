@@ -1,10 +1,19 @@
 # Architecture
 
+> **Status: Current.** See [`README.md`](./README.md) for the documentation
+> index. This file and [`app/methodology/page.tsx`](../app/methodology/page.tsx)
+> describe the same engine to different audiences — an engine change lands in
+> both. The behavioural contract is specced in
+> [`openspec/specs/fire-engine/spec.md`](../openspec/specs/fire-engine/spec.md);
+> this file explains the *how* and the accepted simplifications.
+
 This is a deeper walkthrough of [`lib/fire-engine.ts`](../lib/fire-engine.ts), the part of the app worth actually reading. Everything else (`FireForm`, `FireDashboard`, the chart components) is fairly standard React — this file is where the domain logic lives.
 
 ## The simulation loop
 
 `simulateFire(inputs)` runs one iteration per age, from `currentAge` to `lifeExpectancyAge` (default 95), and produces a `YearSnapshot[]` — the exact series the dashboard charts render.
+
+`lifeExpectancyAge` is floored at `currentAge`, so the timeline is never empty. That is not defensive padding: the "Plan lasts to" field commits every keystroke, so clearing it to retype `95` passes through `9` first — and every consumer that reads a year out of the timeline ("the pot at retirement", "the last year") read `undefined` and threw.
 
 Each year falls into one of four phases, purely a function of age:
 
@@ -58,7 +67,7 @@ const netOf = (gross: number) => {
 
 ## Testing strategy
 
-`lib/fire-engine.test.ts` (with `coast-fire.test.ts` and `monte-carlo.test.ts`, 48 tests in total) covers, in four groups:
+`lib/fire-engine.test.ts`, with `coast-fire.test.ts` and `monte-carlo.test.ts`, covers four groups:
 
 - **Tax function correctness** — `calculatePersonalAllowance` and `calculateUkIncomeTax` against known HMRC figures at several points, including exactly at the taper boundaries.
 - **Solver correctness** — `solveGrossIncomeForNet` round-trips through `calculateUkIncomeTax` to confirm the net-of-tax result matches the target within a rounding tolerance.
@@ -72,10 +81,10 @@ One test originally asserted SIPP drawdown would occur for the app's *default* i
 Documented here rather than buried in comments, since they materially affect how literally to take the app's numbers:
 
 - **2026/27 rest-of-UK tax rates only.** Scottish income tax bands are different and not modeled.
-- **Flat nominal growth, per pot** (default 5%, editable per wrapper), not stochastic in the main projection (the Confidence tab adds Monte Carlo randomness). Each wrapper's growth can instead be set from a **Vanguard UK fund** (`lib/vanguard-funds.ts`): the net rate applied is `assetClassReturn − fundOCF − platformFee`, where the platform fee is Vanguard's 0.15%/yr (£4/mo floor, £375/yr cap; the growth model uses the flat 0.15% headline, a conservative simplification for large pots that hit the cap). Asset-class returns are illustrative long-run *nominal* assumptions (global/US equity 7%, LifeStrategy 80/60 at 6.2%/5.4%, bonds 4%, cash 3.5%) — not Vanguard forecasts. The "fee drag" readout re-runs the projection with fees added back and reports the pot difference at retirement. Inflation is modelled by growing the spending target: the target is quoted in today's money and multiplied by `(1 + inflationRate)^(age − currentAge)` each year (default 2.5%; 0 gives a purely nominal run). The **State Pension is grown by the same factor** (its triple-lock behaviour, so its real value doesn't wrongly erode), while **income-tax bands stay at 2026/27 nominal levels**, so fiscal drag falls out naturally. The planner can deflate the projection back to today's money for display.
+- **Flat nominal growth, per pot** (default 5%, editable per wrapper), not stochastic in the main projection (the Confidence tab adds Monte Carlo randomness). Each wrapper can instead define a **portfolio of holdings** (`*Holdings` on `FireInputs`), from a searchable ~40-fund UK catalogue (`lib/vanguard-funds.ts`) or custom entries. `resolveInputs` then derives that wrapper's single net-of-fees growth scalar from the holdings, balance-weighted. The net rate per holding is `assetClassReturn − fundOCF − platformFee`, where the platform fee is Vanguard's 0.15%/yr (£4/mo floor, £375/yr cap; the model uses the flat 0.15% headline, a conservative simplification for large pots that hit the cap). Asset-class returns are illustrative long-run *nominal* assumptions (global/US equity 7%, LifeStrategy 80/60 at 6.2%/5.4%, bonds 4%, cash 3.5%) — not Vanguard forecasts. **Expected return always comes from the holding's `assetClass`** (`ASSET_CLASS_RETURN` in `lib/assets.ts`), never a per-fund figure and never an LLM: the AI import classifies a fund *name* into an asset class and nothing more, so the projection stays reproducible from the URL. The "fee drag" readout re-runs the projection with fees added back and reports the pot difference at retirement. Inflation is modelled by growing the spending target: the target is quoted in today's money and multiplied by `(1 + inflationRate)^(age − currentAge)` each year (default 2.5%; 0 gives a purely nominal run). The **State Pension is grown by the same factor** (its triple-lock behaviour, so its real value doesn't wrongly erode), while **income-tax bands stay at 2026/27 nominal levels**, so fiscal drag falls out naturally. The planner can deflate the projection back to today's money for display.
 - **GIA Capital Gains Tax is modelled in a simplified form.** The GIA is a separate, taxable bucket drawn after the ISA: each withdrawal realises a gain proportional to the pot's embedded gain, taxed at 18%/24% above the £3,000 annual exempt amount. Three simplifications: the *starting* GIA balance is assumed to carry no embedded gain (cost basis = current value, so early CGT is understated); **dividend tax is not modelled**; and the CGT rate uses `remainingBasicBand` derived from the income known when the GIA is drawn, which is **before the same year's SIPP withdrawal** (drawn last in the waterfall) — so when both pots draw heavily in one year the gain can be taxed at 18% where part of it should fall into the 24% band. A fully correct version would need a second pass over the year once the SIPP draw is known.
 - **Contributions stop entirely at the modeled retirement age.** Optional **part-time ("Barista FIRE") income** can be added: taxable earnings received from the retirement age until a chosen end age, grown by inflation and offsetting the target exactly like rental income (`partTimeAnnualIncome` / `partTimeUntilAge` in `fire-engine.ts`).
-- **Onboarding is persona-first.** The `/start` quiz asks three questions — a FIRE persona (Standard / Lean / Fat / Coast / Barista), a lifestyle, and your ages — then drops you in the planner. Lifestyle targets use the **UK PLSA Retirement Living Standards 2025** (single, excluding housing): Minimum £13,400, Moderate £31,700, Comfortable £43,900. Personas map to those defaults plus a strategy (Barista adds part-time income; Coast is a normal plan whose Coast FIRE card lights up). See `lib/quiz.ts`.
+- **Onboarding asks four questions, then reveals.** The `/start` quiz collects a spending target, your ages, a strategy and your savings, then shows the live `simulateFire` result before handing over to the planner. Lifestyle targets use the **UK PLSA Retirement Living Standards 2025** (single, excluding housing): Minimum £13,400, Moderate £31,700, Comfortable £43,900. The strategy is one of `standard | coast | barista` (`StrategyId` in `lib/quiz.ts`) — Barista adds part-time income; Coast is a normal plan whose Coast FIRE card lights up. Everything the engine needs but the quiz doesn't ask (statutory ages, growth, pension strategy, life expectancy) comes from the silent defaults in `lib/quiz.ts`.
 - **The tax-free lump sum is taken as a single event** at `max(retirementAge, sippAccessAge)`, not phased across multiple withdrawals (which some real SIPP providers support and which can have different practical tax timing implications).
 - **State Pension amount is a fixed default** (£12,547.60/year — the 2026/27 full new State Pension, £241.30/week) — it doesn't account for incomplete National Insurance records, which reduce the actual entitlement. It offsets pot withdrawals rather than being surplus income.
 - **95-year fixed life expectancy horizon** — no mortality modeling, no partner/joint planning.

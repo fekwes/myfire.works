@@ -1,10 +1,17 @@
 # OnFIRE — handoff archive (pre-rebrand)
 
-> ## 👉 Read [`HANDOFF-FIREWORKS.md`](./HANDOFF-FIREWORKS.md) instead.
+> ## 👉 Status: Archive. Read [`HANDOFF-FIREWORKS.md`](../HANDOFF-FIREWORKS.md) instead.
 >
 > That file is the current source of truth: repo map, deploy/env, the
-> identifiers that must never be renamed, known gaps and the backlog. This
-> file is kept for history — where the two disagree, the other one wins.
+> identifiers that must never be renamed, known gaps and the backlog. This file
+> is kept for the reasoning, not the facts — **do not update it**, and do not
+> act on anything in it without checking the current handoff first.
+>
+> The sections that told you what to *do* — env-var values, pending Supabase
+> steps, the going-live checklist, the next task and the backlog — have been
+> removed rather than left to mislead: every one of them was either done, wrong,
+> or contradicted by the current handoff. What remains is the record of what was
+> built and why, which is the part worth keeping. Full text is in git history.
 
 > **Rebranded.** The product is now **Fireworks** (domain **myfire.works**),
 > wordmark `Fire·works`, design system **"Night & Ember"**. See
@@ -40,13 +47,8 @@
 
 ## Original OnFIRE handoff (pre-rebrand)
 
-Read this first when continuing work in a new session. It's the single source
-of truth for where the project stands and what's next.
-
-> **Repo location (absolute):** `/Users/alberto/Documents/Claude Projects/uk-fire-app`
-> This is the git root. **`cd` into it first** — the parent directory
-> `/Users/alberto/Documents/Claude Projects` is *not* a git repo, so a new
-> session must enter the `uk-fire-app` subfolder before running git/npm.
+What follows is the handoff exactly as it stood before the rebrand, minus the
+sections that gave instructions. It is history.
 
 ## What it is
 
@@ -56,8 +58,6 @@ drawdown across ISA, GIA, SIPP, State Pension and property, with correct UK
 tax, plus Coast FIRE and Monte Carlo confidence modelling.
 
 - **Repo:** https://github.com/fekwes/onfire (private)
-- **Local dir (absolute):** `/Users/alberto/Documents/Claude Projects/uk-fire-app`
-  (folder still named `uk-fire-app`; the GitHub repo was renamed to `onfire`).
 - **Live dev:** `npm run dev` → http://localhost:3000
 
 ## Tech stack
@@ -67,7 +67,7 @@ Recharts · Vitest · `next-themes` · Supabase (`@supabase/ssr`)
 (AI tips route uses **Google Gemini** via `@google/genai` and `GEMINI_API_KEY` —
 not the Anthropic SDK, despite older notes below).
 
-## Design language ("Ink & Lime")
+## Design language ("Ink & Lime") — superseded by "Night & Ember", see `docs/DESIGN.md`
 
 Warm-ink surfaces + electric-lime signature accent (deliberately NOT the
 generic emerald/purple-gradient "AI look"). Bricolage Grotesque display
@@ -84,8 +84,8 @@ summary + progressive disclosure), verified in-browser in both themes.
 - **Stage 5** — Monte Carlo confidence tab (flat / ±5% / ±10% guardrails, allocation slider, fan chart).
 - **Maths correctness pass** — fixed 4 real bugs (SIPP drawn before access age; lump-sum→ISA; State-Pension-as-surplus; per-wrapper growth) and moved to **2026/27** UK figures. Hand-verified.
 - **Property** — rental (taxable income offsets target + optional sale w/ residential CGT → GIA) and home (net worth, optional downsize → tax-free cash to GIA). No mortgages.
-- **Login (Supabase)** — code complete and wired; gated on env config. Publishable key is set in `.env.local` (gitignored); the Sign-in UI is live.
-- **Stage 6** — onboarding quiz + landing page. `/` is now a landing page (hero + "Build my plan" CTA), the planner moved to `/planner`, and `/start` is a 7-step quiz that collects the ~6 key inputs, reveals the live `simulateFire` result, and ends with an optional Supabase sign-up ("maybe later" skips). Quiz→planner state is handed over via `localStorage["onfire:plan"]`. Silent defaults (statutory ages, growth, pension strategy, life expectancy) live in `lib/quiz.ts`.
+- **Login (Supabase)** — code complete and wired; gated on env config.
+- **Stage 6** — onboarding quiz + landing page. `/` is now a landing page (hero + "Build my plan" CTA), the planner moved to `/planner`, and `/start` is a multi-step quiz that collects the key inputs, reveals the live `simulateFire` result, and ends with an optional Supabase sign-up ("maybe later" skips). Quiz→planner state is handed over via `localStorage["onfire:plan"]`. Silent defaults (statutory ages, growth, pension strategy, life expectancy) live in `lib/quiz.ts`.
 - **v1 finishing pass** (post-Stage-6):
   - **FIRE number** — `lib/fire-number.ts` bisects the pot needed at retirement vs. what you're on course for; surfaced prominently in the planner + reused in the AI prompt.
   - **Net worth incl. property** — a net-worth stat + a dashed net-worth line on the asset chart, so a home/rental is finally visible.
@@ -96,9 +96,9 @@ summary + progressive disclosure), verified in-browser in both themes.
   - **Core tabs:** **Planner** (`/planner` — analysis + a compact `QuickLevers` row, Share/Export actions), **Your Finances** (`/finances` — the full `FireForm` + saved plans), **Methodology**, and an **Account** page (`/account` — password change + delete-my-data, reached from the auth dropdown).
   - **Shared state:** `components/PlanProvider.tsx` holds the one active plan (localStorage-backed) so Planner and Your Finances edit the same data. `usePlan()` is the hook.
   - **Share/Export:** `lib/share.ts` (URL-encoded read-only links → `/planner?p=`, with a "Make it mine" adopt flow) and `lib/export.ts` (CSV timeline + JSON + print, via `components/PlanActions.tsx`). No backend.
-  - **Account deletion** currently removes the user's saved-plan rows + local plan and signs out; full auth-record deletion needs a service-role server route (`SUPABASE_SERVICE_ROLE_KEY`) — not yet built.
-
-**74 Vitest tests pass. `tsc`/`eslint` clean. Production build green.**
+  - **Account deletion** removed saved-plan rows and signed out, without deleting
+    the auth record. *(Superseded: full deletion via a service-role route shipped
+    later — `app/api/account/delete/route.ts`.)*
 
 ## Key files
 
@@ -112,7 +112,7 @@ summary + progressive disclosure), verified in-browser in both themes.
 - `app/page.tsx` (landing), `app/planner/page.tsx` (dashboard), `app/start/page.tsx` (quiz).
 - `components/QuizFlow.tsx` + `components/quiz/QuizPrimitives.tsx` — the onboarding quiz.
 - `lib/quiz.ts` (`assembleQuizInputs` + silent defaults), `lib/plan-storage.ts` (localStorage handoff).
-- `docs/ARCHITECTURE.md` (engine deep-dive), `docs/ONBOARDING.md` (Stage 6 spec, now built).
+- `docs/ARCHITECTURE.md` (engine deep-dive), `docs/ONBOARDING.md` (the Stage 6 brief).
 
 ## Conventions (please keep)
 
@@ -122,49 +122,9 @@ summary + progressive disclosure), verified in-browser in both themes.
 - Run `npm test` + `npx tsc --noEmit` + `npx eslint .` and **verify in the browser** (both themes) before committing.
 - Keep the Methodology page and `docs/ARCHITECTURE.md` accurate when the engine changes.
 
-## Pending — user-only Supabase steps (I can't do these)
-
-1. Run `supabase/migrations/20260101000000_portfolios.sql` in the Supabase SQL editor (or `supabase db push`) — creating tables needs dashboard/secret access the publishable key doesn't have.
-2. Create an account via the Sign-in popover (I don't create accounts or enter passwords).
-Then saving plans works end-to-end.
-
-## Going public — checklist
-
-- **AI endpoint is rate-limited** (`lib/rate-limit.ts` + `app/api/analyze/route.ts`): per-IP 5/min + 40/day, global 500/day, `429` + `Retry-After`. In-memory per instance — for multi-instance/serverless production, swap the store for Upstash/Vercel KV behind the `RateLimiter` interface (the limiter is the only thing to change).
-- **Privacy note** lives at `/privacy` (linked in the footer). Keep it accurate if data flows change.
-- **Supabase graceful-off:** auth UI, saved plans and the Account tab all degrade to friendly states when `NEXT_PUBLIC_SUPABASE_*` is unset, so a public launch without Supabase is safe.
-- **Analytics/monitoring (recommended, not bundled):** if you want usage/error data, prefer a cookieless, privacy-friendly option enabled at deploy time (e.g. Vercel Analytics) rather than a third-party script — keeps the CSP clean and the `/privacy` promise true. The app already has a branded `error.tsx` boundary.
-- **Full account deletion** is built: `app/api/account/delete/route.ts` verifies the caller's session, then uses `SUPABASE_SERVICE_ROLE_KEY` (server-only env) to `auth.admin.deleteUser` (portfolios cascade). `/account` calls it and falls back to a data-only delete when the key is unset.
-
-## Going live (Vercel + Supabase) — env vars & steps
-
-App builds and deploys with or without these; they switch features on.
-
-1. **Supabase migration** (dashboard SQL editor): run `supabase/migrations/20260101000000_portfolios.sql` so saved plans work. DDL can't be run with the API keys — it's a dashboard action.
-2. **Vercel → Settings → Environment Variables:**
-   - `NEXT_PUBLIC_SUPABASE_URL` = `https://cnbeqbxgnvruyrtsxwxt.supabase.co`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = anon key (public, browser-safe under RLS)
-   - `SUPABASE_SERVICE_ROLE_KEY` = service-role key (secret; for account deletion) — **rotate first, it was shared in chat**
-   - `GEMINI_API_KEY` = secret (AI tips stay disabled until set). The app uses
-     Google Gemini, *not* Anthropic — earlier drafts of this doc said otherwise.
-   - `NEXT_PUBLIC_SITE_URL` = the Vercel prod URL (OG cards / sitemap / share links)
-3. **Deploy:** merge PR #1 → `main` (Vercel↔GitHub connected) for production, or push the branch for a preview URL.
-4. Locally, the same vars live in `.env.local` (gitignored, never committed).
-
 ## Stage 6 — DONE
 
 Onboarding quiz + landing page shipped per **`docs/ONBOARDING.md`**: landing at
 `/`, planner at `/planner`, quiz at `/start`, quiz→planner handoff via
 `localStorage["onfire:plan"]`, optional Supabase sign-up at the end. Silent
 defaults centralised in `lib/quiz.ts`. Browser-verified in both themes.
-
-## NEXT TASK — pick from the backlog below
-
-No specific next stage is queued. The polish backlog (below) is the natural
-next thing; a deploy to Vercel would make the portfolio piece shareable.
-
-## Also nice-to-have polish (backlog)
-
-- `docs/ARCHITECTURE.md` still has a few pre-property/pre-2026 phrasings ("21 tests", "two balances", "flat 5% applied identically to ISA and SIPP", "past age 58") — refresh it.
-- Consider showing property value / total net worth somewhere visual (currently only flows via GIA jumps + sustainability).
-- Deploy to Vercel (add `NEXT_PUBLIC_SUPABASE_*` + `GEMINI_API_KEY` env vars; add the deployed URL to Supabase Auth redirect URLs).

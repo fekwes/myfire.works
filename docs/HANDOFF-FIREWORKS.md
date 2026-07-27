@@ -1,10 +1,16 @@
 # Fireworks — project handoff
 
-**Read this first.** It is the single source of truth for where the project
-stands, how it's built, what's deployed, and what to do next.
+> **Status: Current.** The single source of truth for where the project stands,
+> how it's built, what's deployed, and what to do next. Where any other document
+> disagrees with this one, this one wins.
+>
+> [`README.md`](./README.md) indexes every document and marks it Current, Design
+> or Archive. Behaviour is specced with [OpenSpec](https://github.com/Fission-AI/OpenSpec)
+> under [`openspec/`](../openspec/) — see [`AGENTS.md`](../AGENTS.md) for the
+> propose → apply → archive workflow, which is how changes are expected to happen
+> here.
 
-`docs/HANDOFF.md` is the pre-rebrand OnFIRE archive — useful history, but this
-file supersedes it wherever they disagree.
+**Read this first.**
 
 ---
 
@@ -72,6 +78,15 @@ components/
   SavedPlans.tsx        Profiles (save/load/rename/copy/delete)
   AssetTimelineChart · IncomeSafetyChart · ConfidencePanel   the three charts
   PlanProvider.tsx      the one active plan (localStorage-backed)
+  AuthProvider.tsx  AuthButton.tsx  AccountPanel.tsx   sign-in state, popover, account
+  PlanChecklist.tsx     the 6-step "what to do next" rail; reads onfire:flag:*
+  QuickLevers.tsx       the few inputs people tweak while watching the result
+  WhatIfCard.tsx        scenario deltas. Status colour follows outcome, not position.
+  FeeDragCard.tsx       what OCFs + platform fee cost you by retirement
+  AiInsights.tsx        Gemini tips (/api/analyze). Degrades without a key.
+  PlanActions.tsx       Share / CSV / JSON / print
+  LandingCta.tsx  HeaderLogo.tsx  Glossary.tsx        landing + chrome + jargon
+  ThemeProvider.tsx  ThemeToggle.tsx                  dark default, via next-themes
   ui/                   Button · Card · Menu · Collapsible
 
 lib/
@@ -83,7 +98,16 @@ lib/
   plan-storage.ts       localStorage + sanitisePlanInput (the validator)
   share.ts              ?p= encode/decode (uses the same validator)
   profiles.ts           profile naming/sorting/errors + PROFILES_TABLE
-  checklist.ts  format.ts  export.ts  rate-limit.ts
+  plan-sync.ts          when a plan is written into an account (decidePlanSync)
+  origin.ts             URL-from-a-dashboard-box parsing, shared by the two below
+  site-url.ts           the public origin, resolved not trusted
+  supabase/config.ts    validates NEXT_PUBLIC_SUPABASE_URL; client.ts / server.ts
+  ai-errors.ts          keeps upstream error text out of the browser
+  checklist.ts  format.ts  export.ts  rate-limit.ts  identifiers.test.ts
+
+proxy.ts                Supabase session refresh. Was middleware.ts — Next 16
+                        deprecated that convention (PR #15).
+openspec/               specs + change proposals. See AGENTS.md for the workflow.
 ```
 
 **Portfolio model (the one thing to understand before touching funds):** a
@@ -252,9 +276,9 @@ convenient, and nothing in the code needs to change.
   allocation and fee-drag are holdings-only. `sanitisePlanInput` was kept — it
   hardens untrusted share-link input, which is timeless, not old-plan compat.
 
-**Green:** 168 tests · `tsc` · `eslint` · production build.
+**Green:** the full gate — `npm test` · `tsc` · `eslint` · production build.
 
-**Branch `harden-profiles-and-import` — the two known gaps, then a review:**
+**PR #10 — harden profiles + AI import, then a review.**
 Full findings in **`docs/REVIEW-2026-07.md`**. The headline: the
 "sign-up saves your plan" feature was **unreachable on this project**. It read
 `data.session` from `signUp()`, which is only populated when Supabase email
@@ -271,7 +295,31 @@ reaching the engine without `sanitisePlanInput`; a crafted `?p=` link building a
 live in the shared validator); Monte Carlo scoring the three strategies on
 *different* market paths, which had it reporting ±10% guardrails as worse than
 ±5%; a blocked caller still draining the global AI budget; and upstream error
-text reaching the browser. 226 tests.
+text reaching the browser.
+
+**PR #11 — the site origin resolves itself.** `NEXT_PUBLIC_SITE_URL` had been
+set to a whole `KEY=value` line, which *parses*, so the build stayed green while
+every canonical and OG URL pointed at a hostname that does not exist. §6 has the
+detail.
+
+**PR #12 — a plan that ends before it starts.** A "Plan lasts to" age below the
+current age produced an empty timeline, and reading the pot at retirement out of
+it threw — reachable just by typing, since the field commits every keystroke.
+Fixed as an engine invariant rather than at the one call site. Part-time work
+also became a switch instead of a pair of fields you had to zero.
+
+**PR #13 — a Supabase URL pointing at the app itself.** `NEXT_PUBLIC_SUPABASE_URL`
+was set to the app's own deployment URL, so every auth call went to
+`<the app>/auth/v1/…` and surfaced only as a CORS error naming neither the
+variable nor this app. §6 has the detail and the guard that now catches it.
+
+**PR #14 — RLS policies re-evaluating `auth.uid()` per row.** Supabase's linter
+flagged all four `portfolios` policies with `auth_rls_initplan`; they now use
+`(select auth.uid())` and name `to authenticated`. §6 has the migration note.
+
+**PR #15 — `middleware.ts` → `proxy.ts`.** Next 16 deprecated the `middleware`
+file convention. Same `config.matcher`, same session refresh; Proxy defaults to
+the Node.js runtime and rejects a `runtime` config option.
 
 ### Known gaps
 - 🔴 **The signed-in profile flows still need a human with an account.** Agents
@@ -294,7 +342,12 @@ text reaching the browser. 226 tests.
   measured and reverted (it duplicates the library); replacing it with plain SVG
   is the real lever. R2.
 - 🟡 No error reporting, and no end-to-end regression net. R3, R5.
-- 🟡 `docs/ARCHITECTURE.md` still has pre-property/pre-2026 phrasings.
+- 🟡 **Only `fire-engine` has an OpenSpec spec.** The other capabilities —
+  onboarding, profiles/auth, sharing, the AI features — are unspecced. Add each
+  as a change touches it, not in one speculative sweep: a wrong spec is worse
+  than a missing one.
+- 🟡 **Leaked password protection is off** in Supabase Auth, and enabling it
+  needs the Pro plan. Reported by the security advisor; unfixable from the repo.
 - 🟡 Single-person plans only; rest-of-UK tax only; property has no mortgage.
 
 ## 10. Backlog — candidate next moves
@@ -336,10 +389,15 @@ Paste this in:
 
 > You're continuing **Fireworks** (repo `fekwes/onfire`), a UK FIRE planner.
 >
-> **First, read `docs/HANDOFF-FIREWORKS.md` end to end** — it has the full
-> context, repo map, deploy/env notes, the identifiers that must never be
-> renamed, and the backlog. Then skim `docs/DESIGN.md` (the "Night & Ember"
-> system and the validated chart ramp) and `docs/ARCHITECTURE.md` (the engine).
+> **First, read `AGENTS.md` and `docs/HANDOFF-FIREWORKS.md` end to end** —
+> between them they have the workflow, the full context, the repo map, deploy/env
+> notes, the identifiers that must never be renamed, and the backlog. Then skim
+> `docs/DESIGN.md` (the "Night & Ember" system and the validated chart ramp) and
+> `docs/ARCHITECTURE.md` (the engine).
+>
+> **This project is spec-driven with OpenSpec.** Unless the task is a trivial
+> fix, start with `/opsx:propose`, show me the proposal before writing code, and
+> `/opsx:archive` when it's done so the specs stay true.
 >
 > Work on a new branch off `main`; never push to `main` directly. Keep the
 > quality gate green on **every** commit: `npm test`, `npx tsc --noEmit`,

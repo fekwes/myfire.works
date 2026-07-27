@@ -1,5 +1,11 @@
 # Onboarding — evaluation and plan
 
+> **Status: Archive.** The evaluation that drove the PR #8 and PR #9 onboarding
+> work; most of it shipped. It describes the app *as it was when walked*, so the
+> observations below are no longer current — the quiz is four questions before
+> the reveal, not three. Kept for the findings and the reasoning. Do not update
+> it. See [`README.md`](../README.md) for the documentation index.
+
 Written after walking the live app cold, as someone who has never seen it and
 doesn't know what a SIPP is. Every finding below is observed, not assumed;
 the evidence is in §1.

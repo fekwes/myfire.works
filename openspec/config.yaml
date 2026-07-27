@@ -1,0 +1,54 @@
+schema: spec-driven
+
+context: |
+  Fireworks — a UK FIRE (Financial Independence, Retire Early) planner, live at
+  myfire.works. Repo fekwes/onfire. Also a recruiter-facing portfolio piece, so
+  code and docs are read by strangers.
+
+  Tech stack: Next.js 16 (App Router, Turbopack), React 19, TypeScript,
+  Tailwind v4, Recharts, Vitest, Supabase (@supabase/ssr), Google Gemini
+  (@google/genai) for the two AI features. Deployed on Vercel from `main`.
+
+  Next 16 has breaking changes from older training data. Read the relevant guide
+  in node_modules/next/dist/docs/ before writing code. The request-interception
+  file is `proxy.ts` — the `middleware` convention is deprecated.
+
+  Domain rules that are not negotiable:
+  - The projection is deterministic and reproducible from the URL. Expected
+    returns come from a holding's asset class (lib/assets.ts), never a per-fund
+    number and never an LLM. AI may classify a fund name into an asset class; it
+    may not supply a return.
+  - UK tax figures are verified against real 2026/27 guidance, never invented.
+    Rest-of-UK bands only; Scotland is not modelled.
+  - Pension default is gradual (UFPLS). Lump-sum cash goes to the GIA, never the
+    ISA — it cannot fit an ISA's annual allowance.
+  - Some identifiers are keys into data that already exists and must never be
+    renamed: the `onfire:plan` localStorage key, `onfire:flag:*` flags, the
+    `onfire:flags` event, the Supabase `portfolios` table, the repo name.
+    lib/identifiers.test.ts fails CI on a rename.
+  - Every optional service degrades gracefully. The app builds and runs with no
+    Supabase and no Gemini key.
+
+  Conventions: one logical change = one commit. Quality gate green on every
+  commit — npm test, npx tsc --noEmit, npx eslint ., npm run build. Verify in
+  the browser in both themes and at mobile width; this codebase has a history of
+  bugs that were invisible until measured.
+
+  Docs: docs/README.md is the index and marks each document Current, Design or
+  Archive. docs/HANDOFF-FIREWORKS.md is the source of truth for project state.
+  docs/ARCHITECTURE.md and app/methodology/page.tsx describe the same engine to
+  different audiences and must move together.
+
+rules:
+  proposal:
+    - State what breaks or degrades if this is not done, not just what is gained.
+    - Include a Non-goals section.
+  spec:
+    - Specs describe current behaviour, never history. No "we used to" wording.
+    - Prefer observable behaviour over implementation detail; name the module
+      only where the module boundary is the requirement.
+    - Do not quote test counts or bundle sizes in a spec; they rot.
+  tasks:
+    - Every task that changes engine behaviour includes updating both
+      docs/ARCHITECTURE.md and app/methodology/page.tsx.
+    - The last task is the quality gate.
