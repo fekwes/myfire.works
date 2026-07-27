@@ -12,7 +12,9 @@ import {
 import { FireForm } from "@/components/FireForm";
 import { usePlan } from "@/components/PlanProvider";
 import { SavedPlans } from "@/components/SavedPlans";
-import { ButtonLink, Card } from "@/components/ui";
+import { ButtonLink, Card, Button } from "@/components/ui";
+import { Sparkles } from "lucide-react";
+import { PlanImport } from "@/components/quiz/PlanImport";
 
 const SECTION_IDS = FINANCE_SECTIONS.map((s) => s.id) as readonly string[];
 const isSectionId = (v: string): v is FinanceSectionId =>
@@ -47,6 +49,8 @@ export function FinancesPanel() {
     window.history.replaceState(null, "", `#${id}`);
   };
 
+  const [importing, setImporting] = useState(false);
+
   return (
     <div className="space-y-5">
       <Card padding="lg">
@@ -66,9 +70,34 @@ export function FinancesPanel() {
               updates instantly.
             </p>
           </div>
-          <ButtonLink href="/planner">View dashboard →</ButtonLink>
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setImporting(!importing)}
+              className="gap-2 text-brand"
+            >
+              <Sparkles className="size-4" />
+              Import with AI
+            </Button>
+            <ButtonLink href="/planner">View dashboard →</ButtonLink>
+          </div>
         </div>
       </Card>
+
+      {importing && (
+        <Card padding="lg" className="border-brand/30 bg-brand/5 shadow-sm">
+          <PlanImport
+            onImport={(plan) => {
+              // Merge the imported figures with existing inputs,
+              // preserving fields the AI doesn't extract (like ages).
+              setInputs({ ...inputs, ...plan });
+              setImporting(false);
+            }}
+            onCancel={() => setImporting(false)}
+          />
+        </Card>
+      )}
 
       {/* Before sign-in this is just a one-line nudge (SavedPlans renders the
           dashed prompt itself); the full Profiles card only appears once signed

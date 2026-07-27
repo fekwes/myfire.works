@@ -104,35 +104,40 @@ export default function RootLayout({
               </div>
             </header>
             <main className="flex flex-1 flex-col">{children}</main>
-            <footer className="border-t border-border">
-              <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-xs text-muted-foreground sm:px-6">
-                <p>
-                  <span className="font-medium text-foreground">Fireworks</span>{" "}
-                  — financial independence modelling across ISA, GIA, SIPP and
-                  State Pension.
-                </p>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                  <span>For planning purposes only. Not financial advice.</span>
+            <footer className="mt-16 border-t border-border bg-surface/50">
+              <div className="mx-auto flex w-full max-w-6xl flex-col md:flex-row items-center justify-between gap-6 px-4 py-8 text-sm text-muted-foreground sm:px-6">
+                <div className="flex flex-col gap-1.5 text-center md:text-left">
+                  <p>
+                    <span className="font-semibold text-foreground">Fireworks</span>{" "}
+                    — financial independence modelling.
+                  </p>
+                  <p className="text-xs">For planning purposes only. Not financial advice.</p>
+                </div>
+                
+                <div className="flex items-center gap-6 font-medium text-foreground">
                   <Link
                     href="/methodology"
-                    className="underline-offset-2 hover:text-foreground hover:underline"
+                    className="underline decoration-border underline-offset-4 transition-colors hover:decoration-primary hover:text-primary"
                   >
                     Methodology
                   </Link>
                   <Link
                     href="/privacy"
-                    className="underline-offset-2 hover:text-foreground hover:underline"
+                    className="underline decoration-border underline-offset-4 transition-colors hover:decoration-primary hover:text-primary"
                   >
                     Privacy
                   </Link>
                   <a
                     href="mailto:1mpersecond@gmail.com"
-                    className="underline-offset-2 hover:text-foreground hover:underline"
+                    className="underline decoration-border underline-offset-4 transition-colors hover:decoration-primary hover:text-primary"
                   >
                     Contact
                   </a>
                 </div>
-                <FooterCredit />
+                
+                <div className="text-center text-xs md:text-right">
+                  <FooterCredit />
+                </div>
               </div>
             </footer>
             </PlanProvider>

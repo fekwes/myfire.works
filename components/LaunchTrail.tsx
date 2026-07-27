@@ -214,78 +214,70 @@ function replayLaunch() {
  * read. The lit tube carries `data-launch-from`, so the trail is measured from
  * the exact point the ember sits at.
  */
-// Four mortar tubes. The second is the loaded one — its mouth is where the
-// trail is measured from, so its x/y are referenced below rather than repeated.
-const TUBES = [
-  { x: 42, h: 26, rot: -11 },
-  { x: 62, h: 40, rot: -3 },
-  { x: 82, h: 24, rot: 5 },
-  { x: 100, h: 31, rot: 12 },
-];
-const LIT = TUBES[1];
-const CRATE_TOP = 86;
-const FUSE = { x: LIT.x - 2, y: CRATE_TOP - LIT.h - 6 };
-
 function LaunchBox() {
   return (
-    <svg viewBox="0 0 160 116" aria-hidden className="h-28 w-40 overflow-visible">
-      {/* the ground it stands on — a hairline, fading at both ends */}
+    <svg viewBox="0 0 320 240" aria-hidden className="h-[240px] w-full max-w-[320px] overflow-visible mx-auto">
       <defs>
         <linearGradient id="launch-ground" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="var(--border)" stopOpacity={0} />
-          <stop offset="30%" stopColor="var(--border)" stopOpacity={1} />
-          <stop offset="70%" stopColor="var(--border)" stopOpacity={1} />
+          <stop offset="50%" stopColor="var(--border)" stopOpacity={1} />
           <stop offset="100%" stopColor="var(--border)" stopOpacity={0} />
         </linearGradient>
         <radialGradient id="launch-halo">
           <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.4} />
           <stop offset="100%" stopColor="var(--brand)" stopOpacity={0} />
         </radialGradient>
+        <linearGradient id="pillar-1" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--surface-muted)" stopOpacity={0.8} />
+          <stop offset="100%" stopColor="var(--surface)" stopOpacity={0} />
+        </linearGradient>
+        <linearGradient id="pillar-2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--surface-muted)" stopOpacity={1} />
+          <stop offset="100%" stopColor="var(--surface)" stopOpacity={0} />
+        </linearGradient>
+        <linearGradient id="pillar-brand" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.4} />
+          <stop offset="100%" stopColor="var(--brand)" stopOpacity={0} />
+        </linearGradient>
       </defs>
-      <line x1="4" y1="110" x2="156" y2="110" stroke="url(#launch-ground)" strokeWidth="1" />
 
-      {TUBES.map((t) => (
-        <rect
-          key={t.x}
-          x={t.x - 5}
-          y={CRATE_TOP - t.h}
-          width="10"
-          height={t.h + 6}
-          rx="2.5"
-          fill="var(--surface-muted)"
-          stroke="var(--border)"
-          strokeWidth="1"
-          transform={`rotate(${t.rot} ${t.x} ${CRATE_TOP})`}
-        />
-      ))}
+      {/* The ground */}
+      <line x1="0" y1="230" x2="320" y2="230" stroke="url(#launch-ground)" strokeWidth="1" />
 
-      {/* the crate */}
-      <rect
-        x="26"
-        y={CRATE_TOP - 2}
-        width="108"
-        height="26"
-        rx="4"
-        fill="var(--surface)"
-        stroke="var(--border)"
-        strokeWidth="1"
-      />
-      {/* banded like a real crate, and two slats for weight */}
-      <rect x="26" y={CRATE_TOP + 8} width="108" height="3.5" fill="var(--primary)" opacity="0.45" />
-      <line x1="48" y1={CRATE_TOP - 2} x2="48" y2={CRATE_TOP + 24} stroke="var(--border)" strokeWidth="1" />
-      <line x1="112" y1={CRATE_TOP - 2} x2="112" y2={CRATE_TOP + 24} stroke="var(--border)" strokeWidth="1" />
+      {/* Background ambient glow */}
+      <circle cx="160" cy="180" r="100" fill="var(--surface-muted)" opacity="0.2" filter="blur(20px)" />
 
-      {/* two spent embers on the ground — this crate has been used before */}
-      <circle cx="20" cy="108" r="1.4" fill="var(--primary)" opacity="0.35" />
-      <circle cx="142" cy="107" r="1.1" fill="var(--accent)" opacity="0.3" />
+      {/* Financial Pillars (Data bars building up) */}
+      <rect x="50" y="160" width="30" height="70" rx="3" fill="url(#pillar-1)" stroke="var(--border)" strokeWidth="1" opacity="0.7" />
+      <rect x="95" y="120" width="30" height="110" rx="3" fill="url(#pillar-2)" stroke="var(--border)" strokeWidth="1" />
+      <rect x="140" y="90" width="30" height="140" rx="3" fill="url(#pillar-2)" stroke="var(--border)" strokeWidth="1" />
+      
+      {/* The Hero Pillar (Ignition Point) */}
+      <rect x="185" y="50" width="30" height="180" rx="3" fill="url(#pillar-brand)" stroke="var(--primary)" strokeWidth="1" opacity="0.9" />
+      
+      <rect x="230" y="140" width="30" height="90" rx="3" fill="url(#pillar-1)" stroke="var(--border)" strokeWidth="1" opacity="0.6" />
 
-      {/* the lit fuse. `group-hover` lifts it, so the crate feels ready to go */}
-      <g className="transition-transform duration-[var(--dur-base)] group-hover:-translate-y-1">
-        <circle cx={FUSE.x} cy={FUSE.y} r="14" fill="url(#launch-halo)" />
-        <circle cx={FUSE.x} cy={FUSE.y} r="3.4" fill="var(--brand)" />
-        <circle cx={FUSE.x} cy={FUSE.y} r="1.4" fill="#fff" opacity="0.9" />
+      {/* Connectivity Lines */}
+      <path d="M 65 160 L 110 120 L 155 90 L 200 50" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.5" />
+      
+      {/* Data points on the lines */}
+      <circle cx="65" cy="160" r="3" fill="var(--background)" stroke="var(--border)" strokeWidth="1.5" />
+      <circle cx="110" cy="120" r="3" fill="var(--background)" stroke="var(--border)" strokeWidth="1.5" />
+      <circle cx="155" cy="90" r="3" fill="var(--background)" stroke="var(--border)" strokeWidth="1.5" />
+
+      {/* The lit fuse at the Hero Pillar */}
+      <g className="transition-transform duration-[var(--dur-base)] group-hover:-translate-y-2">
+        <circle cx="200" cy="50" r="24" fill="url(#launch-halo)" />
+        <circle cx="200" cy="50" r="4" fill="var(--brand)" />
+        <circle cx="200" cy="50" r="1.5" fill="#fff" opacity="0.9" />
+        <circle data-launch-from cx="200" cy="50" r="0.5" fill="none" />
       </g>
-      <circle data-launch-from cx={FUSE.x} cy={FUSE.y} r="0.5" fill="none" />
+      
+      {/* Floating embers (ambient) */}
+      <circle cx="180" cy="30" r="1.5" fill="var(--primary)" opacity="0.7" className="animate-pulse" />
+      <circle cx="220" cy="70" r="2" fill="var(--accent)" opacity="0.5" />
+      <circle cx="215" cy="20" r="1" fill="var(--brand)" opacity="0.8" />
+      <circle cx="160" cy="60" r="1.5" fill="var(--primary)" opacity="0.4" />
     </svg>
   );
 }
