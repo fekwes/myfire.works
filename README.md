@@ -1,6 +1,6 @@
 # Fireworks — UK FIRE planner
 
-[![CI](https://github.com/fekwes/onfire/actions/workflows/ci.yml/badge.svg)](https://github.com/fekwes/onfire/actions/workflows/ci.yml)
+[![CI](https://github.com/fekwes/myfire.works/actions/workflows/ci.yml/badge.svg)](https://github.com/fekwes/myfire.works/actions/workflows/ci.yml)
 
 A UK **FIRE** (Financial Independence, Retire Early) planner that models the three phases that actually decide whether early retirement works in the UK — drawing down an **ISA/GIA bridge** before your pension unlocks, taking the **25% tax-free SIPP lump sum** and paying real income tax on the rest, and letting the **State Pension** offset your drawdown later — with the **UK tax you'll actually pay**, year by year.
 
@@ -51,8 +51,8 @@ The app builds and runs with **none** of the optional services configured — au
 ## Getting started
 
 ```bash
-git clone https://github.com/fekwes/onfire.git
-cd onfire
+git clone https://github.com/fekwes/myfire.works.git
+cd myfire.works
 npm install
 npm run dev
 ```

@@ -21,7 +21,7 @@ recruiter-facing portfolio piece. It models drawdown across ISA, GIA, SIPP,
 State Pension and property with correct 2026/27 UK tax, plus Coast FIRE and
 Monte Carlo confidence.
 
-- **Repo:** https://github.com/fekwes/onfire (private)
+- **Repo:** https://github.com/fekwes/myfire.works (private)
 - **Domain:** `myfire.works`
 - **Wordmark:** `Fire·works` · **Design system:** "Night & Ember"
 - **Local dev:** `npm run dev` → http://localhost:3000
@@ -50,11 +50,21 @@ affected it looks like the app threw their data away.
 | `onfire:flag:confidence-run`, `onfire:flag:withdrawals-viewed` | checklist flags |
 | `onfire:flags` | the DOM event the checklist listens for |
 | `portfolios` | the Supabase table (via `PROFILES_TABLE` in `lib/profiles.ts`) |
-| `fekwes/onfire` | the GitHub repo name |
 
-`lib/identifiers.test.ts` pins all of them, so an accidental rename fails in CI.
+`lib/identifiers.test.ts` pins all four, so an accidental rename fails in CI.
 If a rename is ever genuinely wanted it needs a real migration: read the old
 key, write the new one, keep the fallback for a release or two.
+
+**The GitHub repo name is not one of these, and was renamed** `fekwes/onfire` →
+`fekwes/myfire.works`. Earlier versions of this table listed it alongside the
+four above, which was wrong: it is not a key into anyone's data, and nothing in
+the app reads it. GitHub redirects the old URLs, so existing clones, links and
+the Vercel integration kept working — the rename cost nothing but the references
+in this repo, which now point at the new name. The Vercel *project* is still
+called `onfire`; that is a separate name and equally cosmetic.
+
+The lesson worth keeping: "never rename" applies to names that **data is stored
+under**, not to every name that happens to be old.
 
 ## 4. Repo map
 
@@ -387,7 +397,7 @@ Roughly highest value first. Nothing here is started.
 
 Paste this in:
 
-> You're continuing **Fireworks** (repo `fekwes/onfire`), a UK FIRE planner.
+> You're continuing **Fireworks** (repo `fekwes/myfire.works`), a UK FIRE planner.
 >
 > **First, read `AGENTS.md` and `docs/HANDOFF-FIREWORKS.md` end to end** —
 > between them they have the workflow, the full context, the repo map, deploy/env

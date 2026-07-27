@@ -441,7 +441,7 @@ export default function MethodologyPage() {
       <div className="mt-8 flex flex-wrap items-center gap-4 text-sm">
         <ButtonLink href="/planner">← Back to the planner</ButtonLink>
         <a
-          href="https://github.com/fekwes/onfire"
+          href="https://github.com/fekwes/myfire.works"
           target="_blank"
           rel="noopener noreferrer"
           className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"

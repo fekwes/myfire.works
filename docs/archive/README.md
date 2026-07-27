@@ -24,6 +24,9 @@ Listed so nobody has to discover them by acting on one:
   replaced by **"Night & Ember"** in PR #3 — see [`../DESIGN.md`](../DESIGN.md).
   It also describes account deletion as data-only; full deletion via a
   service-role route shipped later.
+- **`HANDOFF.md`** links to `github.com/fekwes/onfire`. The repo was renamed to
+  **`fekwes/myfire.works`**; GitHub redirects the old URL, so the link still
+  works, but the name is stale.
 - **`ONBOARDING.md`** and **`ONBOARDING-PLAN.md`** describe a **three-question
   quiz with five personas** (Standard / Lean / Fat / Coast / Barista). The quiz
   now asks **four** questions before the reveal, and the personas were cut to
