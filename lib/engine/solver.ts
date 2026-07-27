@@ -21,12 +21,13 @@ export function solveGrossIncomeForNetGeneric(
   baseIncomes: Partial<Record<IncomeBucket, number>>,
   bucketToSolve: IncomeBucket,
   taxSystem: TaxSystem,
+  age: number = 0,
   taxInflationFactor: number = 1
 ): number {
   if (targetNet <= 0) return 0;
 
   // We find the total net income of the base incomes first
-  const baseTax = calculateTax(baseIncomes, taxSystem, taxInflationFactor).totalTax;
+  const baseTax = calculateTax(baseIncomes, taxSystem, age, taxInflationFactor).totalTax;
   const baseGross = Object.values(baseIncomes).reduce((a, b) => (a || 0) + (b || 0), 0) || 0;
   const baseNet = baseGross - baseTax;
 
@@ -34,7 +35,7 @@ export function solveGrossIncomeForNetGeneric(
     const combinedIncomes = { ...baseIncomes };
     combinedIncomes[bucketToSolve] = (combinedIncomes[bucketToSolve] || 0) + gross;
     
-    const tax = calculateTax(combinedIncomes, taxSystem, taxInflationFactor).totalTax;
+    const tax = calculateTax(combinedIncomes, taxSystem, age, taxInflationFactor).totalTax;
     const totalGross = baseGross + gross;
     const totalNet = totalGross - tax;
     return totalNet - baseNet;
@@ -53,12 +54,13 @@ export function solveGrossForNetWithTaxFreeFraction(
   taxFreeFraction: number,
   remainingTaxFreeCap: number,
   taxSystem: TaxSystem,
+  age: number = 0,
   taxInflationFactor: number = 1
 ): number {
   if (targetNet <= 0) return 0;
 
   const baseGross = Object.values(baseIncomes).reduce((a, b) => (a || 0) + (b || 0), 0) || 0;
-  const baseTax = calculateTax(baseIncomes, taxSystem, taxInflationFactor).totalTax;
+  const baseTax = calculateTax(baseIncomes, taxSystem, age, taxInflationFactor).totalTax;
   const baseNet = baseGross - baseTax;
 
   const netOf = (gross: number) => {
@@ -68,7 +70,7 @@ export function solveGrossForNetWithTaxFreeFraction(
     const combinedIncomes = { ...baseIncomes };
     combinedIncomes[bucketToSolve] = (combinedIncomes[bucketToSolve] || 0) + taxable;
     
-    const tax = calculateTax(combinedIncomes, taxSystem, taxInflationFactor).totalTax;
+    const tax = calculateTax(combinedIncomes, taxSystem, age, taxInflationFactor).totalTax;
     const totalNet = taxFree + (baseGross + taxable) - tax;
     return totalNet - baseNet;
   };
@@ -86,6 +88,7 @@ export function solveGainGrossForNet(
   gainBucket: IncomeBucket,
   gainFraction: number,
   taxSystem: TaxSystem,
+  age: number = 0,
   taxInflationFactor: number = 1
 ): number {
   if (targetNet <= 0) return 0;
@@ -94,7 +97,7 @@ export function solveGainGrossForNet(
   const basisRatio = Math.max(0, 1 - gainFraction);
 
   const baseGross = Object.values(baseIncomes).reduce((a, b) => (a || 0) + (b || 0), 0) || 0;
-  const baseTax = calculateTax(baseIncomes, taxSystem, taxInflationFactor).totalTax;
+  const baseTax = calculateTax(baseIncomes, taxSystem, age, taxInflationFactor).totalTax;
   const baseNet = baseGross - baseTax;
 
   const netOf = (gross: number) => {
@@ -106,7 +109,7 @@ export function solveGainGrossForNet(
     
     // We only care about the extra CGT paid because GIA principal isn't taxed.
     // The total tax will include base income tax + CGT.
-    const totalTax = calculateTax(combinedIncomes, taxSystem, taxInflationFactor).totalTax;
+    const totalTax = calculateTax(combinedIncomes, taxSystem, age, taxInflationFactor).totalTax;
     
     const totalNet = gross + baseGross - totalTax;
     return totalNet - baseNet;

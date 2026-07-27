@@ -26,14 +26,21 @@ function testInputsWithPots(inputs: FireInputs, isa: number, gia: number, sipp: 
 
   if (newInputs.pots) {
     newInputs.pots = { ...newInputs.pots };
-    if (newInputs.pots.isa) {
-      newInputs.pots.isa = { ...newInputs.pots.isa, balance: isa, monthlyContribution: 0 };
+    // Zero out ALL pots first to ensure we don't accidentally leave US or other country pots with their full balances
+    for (const key of Object.keys(newInputs.pots)) {
+      newInputs.pots[key] = { ...newInputs.pots[key], balance: 0, monthlyContribution: 0 };
     }
-    if (newInputs.pots.gia) {
-      newInputs.pots.gia = { ...newInputs.pots.gia, balance: gia, monthlyContribution: 0 };
-    }
-    if (newInputs.pots.sipp) {
-      newInputs.pots.sipp = { ...newInputs.pots.sipp, balance: sipp, monthlyContribution: 0 };
+    
+    // Then assign the test amounts to the UK aliases (simulateFire will map them properly if the country is UK, 
+    // or if US, we should ideally map them to the US equivalents, but for now this fixes the "0 FIRE number" bug)
+    if (newInputs.pots.isa) newInputs.pots.isa.balance = isa;
+    if (newInputs.pots.gia) newInputs.pots.gia.balance = gia;
+    if (newInputs.pots.sipp) newInputs.pots.sipp.balance = sipp;
+    
+    // Quick fix for US pots to ensure they get the test amounts too
+    if (newInputs.country === "us") {
+      if (newInputs.pots.brokerage) newInputs.pots.brokerage.balance = isa + gia;
+      if (newInputs.pots["401k"]) newInputs.pots["401k"].balance = sipp;
     }
   }
   return newInputs;
@@ -45,15 +52,37 @@ export function computeFireNumber(inputs: FireInputs): FireNumberResult {
 
   const atRetirement =
     full.timeline.find((y) => y.age === retirementAge) ?? full.timeline[0];
-  const isa = atRetirement?.pots.isa.start ?? (inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0);
-  const gia = atRetirement?.pots.gia.start ?? (inputs.pots?.gia?.balance ?? inputs.giaBalance ?? 0) ?? 0;
-  const sipp = atRetirement?.pots.sipp.start ?? (inputs.pots?.sipp?.balance ?? inputs.sippBalance ?? 0);
-  const projectedAtRetirement = isa + gia + sipp;
+  
+  let projectedAtRetirement = 0;
+  if (atRetirement) {
+    for (const key of Object.keys(atRetirement.pots)) {
+      projectedAtRetirement += atRetirement.pots[key].start;
+    }
+  }
 
   const total = projectedAtRetirement;
+  
+  // Weights for bridge vs pension split when testing requirements
+  // Calculate dynamically based on whatever pots are bridge (tax-free/taxable) vs pension (tax-deferred)
+  const isUS = inputs.country === "us";
+  const bridgePots = isUS ? ["brokerage"] : ["isa", "gia"];
+  const pensionPots = isUS ? ["401k", "roth"] : ["sipp"];
+  
+  let bridgeBalance = 0;
+  let pensionBalance = 0;
+  
+  if (atRetirement) {
+    for (const key of bridgePots) {
+      if (atRetirement.pots[key]) bridgeBalance += atRetirement.pots[key].start;
+    }
+    for (const key of pensionPots) {
+      if (atRetirement.pots[key]) pensionBalance += atRetirement.pots[key].start;
+    }
+  }
+
   const weights =
     total > 0
-      ? { isa: isa / total, gia: gia / total, sipp: sipp / total }
+      ? { isa: bridgeBalance / total, gia: 0, sipp: pensionBalance / total }
       : { isa: 0.4, gia: 0, sipp: 0.6 };
 
   const targetAtRetirement = inflatedTargetAt(inputs, retirementAge);

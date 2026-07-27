@@ -54,13 +54,19 @@ export function OverviewPanel({
           <h3 className="font-mono text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
             Your FIRE Number
           </h3>
-          <p className="font-display text-2xl font-bold tabular text-foreground">
-            {formatReal(fn.fireNumber)}
-          </p>
-          {fn.fireNumber === 0 && (
+          {fn.fireNumber < 1000 ? (
+            <p className="font-display text-2xl font-bold text-success">
+              Goal Achieved
+            </p>
+          ) : (
+            <p className="font-display text-2xl font-bold tabular text-foreground">
+              {formatReal(fn.fireNumber)}
+            </p>
+          )}
+          {fn.fireNumber < 1000 && (
             <p className="mt-1 text-xs text-muted-foreground">
               <Info className="inline size-3 mr-1" />
-              Passive income fully covers target
+              Passive income covers target
             </p>
           )}
           <div className="mt-2 space-y-1.5 border-t border-border/50 pt-2 text-sm">
@@ -86,12 +92,16 @@ export function OverviewPanel({
         {/* Module 2: What it takes */}
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface-muted p-4">
           <h3 className="font-mono text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
-            What it takes
+            {req && req.extraNeeded <= 0 ? "Current Trajectory" : "What it takes"}
           </h3>
           {req ? (
             <>
-              <p className="font-display text-2xl font-bold tabular text-foreground">
-                {req.extraNeeded > 0 ? `+${formatCurrency(req.extraNeeded)}/mo` : "On track"}
+              <p className="font-display text-2xl font-bold tabular text-success">
+                {req.extraNeeded > 0 ? (
+                  <span className="text-foreground">+{formatCurrency(req.extraNeeded)}/mo</span>
+                ) : (
+                  "On Track"
+                )}
               </p>
               {req.extraNeeded > 0 ? (
                 <div className="mt-2 space-y-1.5 border-t border-border/50 pt-2 text-sm">

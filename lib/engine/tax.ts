@@ -6,6 +6,7 @@ import { IncomeBucket, TaxSystem } from "../countries/types";
 export function calculateTax(
   incomes: Partial<Record<IncomeBucket, number>>,
   taxSystem: TaxSystem,
+  age: number = 0,
   taxInflationFactor: number = 1
 ): { totalTax: number; taxByBase: Record<string, number> } {
   // 1. Deflate nominal incomes to evaluate against static tax bands
@@ -71,7 +72,7 @@ export function calculateTax(
   // 4. Surtaxes (if any)
   if (taxSystem.surtaxes) {
     for (const surtax of taxSystem.surtaxes) {
-      const tax = surtax.apply(totalIncome, incomeByBase, taxInflationFactor);
+      const tax = surtax.apply(totalIncome, incomeByBase, age);
       taxByBase[surtax.id] = tax;
       totalTax += tax;
     }

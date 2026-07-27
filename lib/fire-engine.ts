@@ -475,8 +475,8 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
         "realised-gains": gain,
       };
       
-      const taxWithGain = calculateTax(combinedIncomes, taxSystem, taxInflationFactor);
-      const taxWithoutGain = calculateTax({ "employment": combinedIncomes.employment }, taxSystem, taxInflationFactor);
+      const taxWithGain = calculateTax(combinedIncomes, taxSystem, age, taxInflationFactor);
+      const taxWithoutGain = calculateTax({ "employment": combinedIncomes.employment }, taxSystem, age, taxInflationFactor);
       propertyCgt = taxWithGain.totalTax - taxWithoutGain.totalTax;
       
       const proceeds = rentalValue - propertyCgt;
@@ -505,7 +505,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     
     // Other taxable income
     const otherTaxableIncome = statePensionIncome + rentalIncome + partTimeIncome;
-    const otherTaxableTax = calculateTax({ "employment": otherTaxableIncome }, taxSystem, taxInflationFactor).totalTax;
+    const otherTaxableTax = calculateTax({ "employment": otherTaxableIncome }, taxSystem, age, taxInflationFactor).totalTax;
     const otherTaxableNet = otherTaxableIncome - otherTaxableTax;
     const potNeed = Math.max(0, yearTarget - otherTaxableNet);
     
@@ -549,6 +549,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       taxSystem,
       availableWrappers,
       taxFreeLumpSumAvailable,
+      age,
       taxInflationFactor
     );
     
