@@ -1,3 +1,4 @@
+import { smallestPassing } from "./bisect";
 import { type FireInputs, simulateFire } from "./fire-engine";
 
 /**
@@ -24,16 +25,12 @@ function minMonthlyForSustainable(
     }).sustainableToLifeExpectancy;
 
   if (sustainsAt(0)) return 0;
-  let lo = 0;
-  let hi = Math.max(currentTotal * 2, 5000);
-  while (!sustainsAt(hi) && hi < 1e6) hi *= 2;
-  if (!sustainsAt(hi)) return Infinity;
-  for (let i = 0; i < 40; i++) {
-    const mid = (lo + hi) / 2;
-    if (sustainsAt(mid)) hi = mid;
-    else lo = mid;
-  }
-  return hi;
+  return (
+    smallestPassing(sustainsAt, {
+      initialHi: Math.max(currentTotal * 2, 5000),
+      maxHi: 1e6,
+    }) ?? Infinity
+  );
 }
 
 export interface RetirementSensitivity {
