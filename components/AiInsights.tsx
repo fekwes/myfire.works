@@ -1,8 +1,8 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Button } from "@/components/ui";
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/Button";
 import type { FireSimulationResult } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
 
@@ -11,13 +11,34 @@ interface Tip {
   detail: string;
 }
 
-export function AiInsights({ result }: { result: FireSimulationResult }) {
+// Global cache to prevent refetching the same plan during a session
+const cache = new Map<string, Tip[]>();
+
+export function AiInsights({ result, isProvisional, isReadOnly }: { result: FireSimulationResult, isProvisional: boolean, isReadOnly: boolean }) {
   const [tips, setTips] = useState<Tip[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fire = useMemo(() => computeFireNumber(result.inputs), [result.inputs]);
+  const fire = useMemo(() => computeFireNumber(result.inputs), [result]);
 
-  async function handleAnalyze() {
+  // Compute a simple signature of the inputs to use as a cache key
+  const signature = useMemo(() => {
+    const { inputs } = result;
+    return JSON.stringify({
+      currentAge: inputs.currentAge,
+      retirementAge: inputs.retirementAge,
+      targetAnnualIncome: inputs.targetAnnualIncome,
+      isaBalance: inputs.isaBalance,
+      isaMonthlyContribution: inputs.isaMonthlyContribution,
+      sippBalance: inputs.sippBalance,
+      sippMonthlyContribution: inputs.sippMonthlyContribution,
+    });
+  }, [result.inputs]);
+
+  const handleAnalyze = async (force: boolean = false) => {
+    if (!force && cache.has(signature)) {
+      setTips(cache.get(signature)!);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -30,14 +51,14 @@ export function AiInsights({ result }: { result: FireSimulationResult }) {
           targetAnnualIncome: result.inputs.targetAnnualIncome,
           isaBalance: result.inputs.isaBalance,
           isaMonthlyContribution: result.inputs.isaMonthlyContribution,
-          giaBalance: result.inputs.giaBalance,
+          giaBalance: result.inputs.giaBalance ?? 0,
           sippBalance: result.inputs.sippBalance,
           sippMonthlyContribution: result.inputs.sippMonthlyContribution,
-          propertyValue: result.inputs.rentalValue + result.inputs.homeValue,
+          propertyValue: (result.inputs.rentalValue ?? 0) + (result.inputs.homeValue ?? 0),
           fireNumber: Math.round(fire.fireNumber),
           projectedAtRetirement: Math.round(fire.projectedAtRetirement),
-          sippAccessAge: result.inputs.sippAccessAge,
-          statePensionAge: result.inputs.statePensionAge,
+          sippAccessAge: result.inputs.sippAccessAge ?? 57,
+          statePensionAge: result.inputs.statePensionAge ?? 67,
           taxFreeLumpSum: result.taxFreeLumpSum,
           sustainableToLifeExpectancy: result.sustainableToLifeExpectancy,
           isaDepletedAge: result.isaDepletedAge,
@@ -54,16 +75,29 @@ export function AiInsights({ result }: { result: FireSimulationResult }) {
       }
 
       const data = (await res.json()) as { tips: Tip[] };
+      cache.set(signature, data.tips);
       setTips(data.tips);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_AI_TIPS_AUTORUN !== "true") return;
+    if (isProvisional || isReadOnly) return;
+    if (cache.has(signature)) {
+      setTimeout(() => setTips(cache.get(signature)!), 0);
+      return;
+    }
+    // Auto-run once
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    handleAnalyze();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature, isProvisional, isReadOnly]);
 
   return (
-    // Generated tips are worth printing; an empty prompt with a button isn't.
     <div
       className={`mt-7 rounded-xl border border-border bg-surface-muted p-4 ${
         tips ? "" : "no-print"
@@ -79,7 +113,7 @@ export function AiInsights({ result }: { result: FireSimulationResult }) {
         <Button
           type="button"
           size="sm"
-          onClick={handleAnalyze}
+          onClick={() => handleAnalyze(true)}
           disabled={loading}
           className="no-print"
         >

@@ -4,106 +4,98 @@ import { ArrowRight, Check, ChevronDown, ListChecks, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { Spark } from "@/components/Logo";
 import { usePlan } from "@/components/PlanProvider";
 import { ButtonLink } from "@/components/ui";
 import {
   buildChecklist,
-  type ChecklistFlags,
-  CHECKLIST_FLAGS_EVENT,
   checklistProgress,
   nextChecklistStep,
-  readChecklistFlags,
 } from "@/lib/checklist";
 
 const DISMISS_KEY = "onfire:checklist-dismissed";
 
-/**
- * Progressive "Complete your plan" card. Reveals the single next step with its
- * CTA (plus an optional full view), auto-ticking as the underlying data lands —
- * so onboarding feels like momentum rather than a wall of tasks.
- */
 export function PlanChecklist() {
   const { inputs } = usePlan();
-  const { user } = useAuth();
+  const { user, configured } = useAuth();
   const [expanded, setExpanded] = useState(false);
-  // Start hidden until we've read localStorage, to avoid a flash then dismiss.
   const [hydration, setHydration] = useState<{
     ready: boolean;
     dismissed: boolean;
-    flags: ChecklistFlags;
   }>({
     ready: false,
     dismissed: false,
-    flags: { ranConfidence: false, viewedWithdrawals: false },
   });
 
   useEffect(() => {
-    const readAll = () => {
-      let dismissed = false;
-      try {
-        dismissed = localStorage.getItem(DISMISS_KEY) === "1";
-      } catch {
-        // no-op
-      }
-      setHydration({ ready: true, dismissed, flags: readChecklistFlags() });
-    };
-    readAll();
-    const syncFlags = () =>
-      setHydration((h) => ({ ...h, flags: readChecklistFlags() }));
-    window.addEventListener(CHECKLIST_FLAGS_EVENT, syncFlags);
-    window.addEventListener("storage", syncFlags);
-    return () => {
-      window.removeEventListener(CHECKLIST_FLAGS_EVENT, syncFlags);
-      window.removeEventListener("storage", syncFlags);
-    };
+    let dismissed = false;
+    try {
+      // 4.6 Move dismissal to sessionStorage
+      dismissed = sessionStorage.getItem(DISMISS_KEY) === "1";
+    } catch {
+      // no-op
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHydration({ ready: true, dismissed });
   }, []);
 
-  const steps = buildChecklist(inputs, hydration.flags, !!user);
+  const steps = buildChecklist(inputs, !!user, configured);
   const { done, total, complete } = checklistProgress(steps);
   const next = nextChecklistStep(steps);
 
-  if (!hydration.ready || hydration.dismissed) return null;
+  if (!hydration.ready) return null;
+  // 4.5 return null once every step is done
+  if (complete) return null;
 
   const dismiss = () => {
     try {
-      localStorage.setItem(DISMISS_KEY, "1");
+      sessionStorage.setItem(DISMISS_KEY, "1");
     } catch {
       // no-op
     }
     setHydration((h) => ({ ...h, dismissed: true }));
   };
+  
+  const show = () => {
+    try {
+      sessionStorage.removeItem(DISMISS_KEY);
+    } catch {
+      // no-op
+    }
+    setHydration((h) => ({ ...h, dismissed: false }));
+  };
+
+  if (hydration.dismissed) {
+    return (
+      <div className="no-print mb-4 flex justify-end">
+        <button
+          onClick={show}
+          className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ListChecks className="size-3.5" />
+          Show setup guide ({total - done} left)
+        </button>
+      </div>
+    );
+  }
 
   const pct = Math.round((done / total) * 100);
 
   return (
-    // A guidance callout, not part of the plan itself — an accent-tinted
-    // surface with its own "setup guide" label so it never reads as one of the
-    // plan's data cards. Setup prompts are for the screen, not a printed plan.
     <aside
       aria-label="Setup guide"
-      className="no-print rounded-2xl border border-accent/40 bg-accent/[0.06] p-5 sm:p-6"
+      className="no-print rounded-2xl border border-accent/40 bg-accent/[0.06] p-5 sm:p-6 mb-4"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="flex items-center gap-1.5 font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             <ListChecks aria-hidden className="size-3.5 shrink-0 text-accent" />
-            {complete ? "Setup guide — all done" : "Setup guide"}
+            Setup guide
           </h3>
           <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-            {complete ? (
-              <>
-                <Spark size={14} className="shrink-0 text-brand" />
-                Nice — you&apos;ve set up every part of your plan.
-              </>
-            ) : (
-              <>
-                <span className="font-semibold text-foreground tabular">
-                  {done}/{total}
-                </span>{" "}
-                done — one small step at a time.
-              </>
-            )}
+            <span className="font-semibold text-foreground tabular">
+              {done}/{total}
+            </span>{" "}
+            done — one small step at a time.
           </p>
         </div>
         <button
@@ -127,9 +119,7 @@ export function PlanChecklist() {
         />
       </div>
 
-      {/* The next step — the one thing to do right now. A solid surface card
-          sitting on the tinted callout, so the single action stands out. */}
-      {!complete && next && (
+      {next && (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground">{next.label}</p>
@@ -146,7 +136,6 @@ export function PlanChecklist() {
         </div>
       )}
 
-      {/* Optional full view — kept out of the way so the card stays light. */}
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
