@@ -35,7 +35,7 @@ function zeroContributions(inputs: FireInputs): FireInputs {
 }
 
 function totalInvested(inputs: FireInputs): number {
-  return inputs.isaBalance + (inputs.giaBalance ?? 0) + inputs.sippBalance;
+  return (inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0) + ((inputs.pots?.gia?.balance ?? inputs.giaBalance ?? 0) ?? 0) + (inputs.pots?.sipp?.balance ?? inputs.sippBalance ?? 0);
 }
 
 /**
@@ -49,9 +49,9 @@ function solveCoastNumber(inputs: FireInputs, currentInvested: number): number {
   const weights =
     total > 0
       ? {
-          isa: inputs.isaBalance / total,
-          gia: (inputs.giaBalance ?? 0) / total,
-          sipp: inputs.sippBalance / total,
+          isa: (inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0) / total,
+          gia: ((inputs.pots?.gia?.balance ?? inputs.giaBalance ?? 0) ?? 0) / total,
+          sipp: (inputs.pots?.sipp?.balance ?? inputs.sippBalance ?? 0) / total,
         }
       : { isa: 0.4, gia: 0, sipp: 0.6 };
 
@@ -84,9 +84,9 @@ function solveCoastAge(inputs: FireInputs): number | null {
 
   for (let age = inputs.currentAge; age <= lastAge; age++) {
     const snap = full.timeline.find((y) => y.age === age);
-    const isa = snap ? snap.isaBalanceStart : inputs.isaBalance;
-    const gia = snap ? snap.giaBalanceStart : (inputs.giaBalance ?? 0);
-    const sipp = snap ? snap.sippBalanceStart : inputs.sippBalance;
+    const isa = snap ? snap.pots.isa.start : (inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0);
+    const gia = snap ? snap.pots.gia.start : ((inputs.pots?.gia?.balance ?? inputs.giaBalance ?? 0) ?? 0);
+    const sipp = snap ? snap.pots.sipp.start : (inputs.pots?.sipp?.balance ?? inputs.sippBalance ?? 0);
 
     const sustains = simulateFire(
       zeroContributions({

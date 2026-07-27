@@ -110,7 +110,7 @@ export function runMonteCarlo(
 
   const first = retired[0];
   const startPot = first
-    ? first.isaBalanceStart + first.giaBalanceStart + first.sippBalanceStart
+    ? first.pots.isa.start + first.pots.gia.start + first.pots.sipp.start
     : 0;
 
   const guaranteedByAge = new Map<number, number>();
@@ -122,9 +122,9 @@ export function runMonteCarlo(
       y.statePensionIncome + y.rentalIncome + y.partTimeIncome,
     );
     grossIncome +=
-      y.isaWithdrawal +
-      y.giaWithdrawal +
-      y.sippGrossWithdrawal +
+      y.potWithdrawals.isa.gross +
+      y.potWithdrawals.gia.gross +
+      y.potWithdrawals.sipp.gross +
       y.statePensionIncome +
       y.rentalIncome +
       y.partTimeIncome;

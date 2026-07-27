@@ -13,9 +13,9 @@ export function minMonthlyForSustainable(
   retireAge: number,
 ): number {
   const currentTotal =
-    inputs.isaMonthlyContribution + inputs.sippMonthlyContribution;
+    (inputs.pots?.isa?.monthlyContribution ?? inputs.isaMonthlyContribution ?? 0) + (inputs.pots?.sipp?.monthlyContribution ?? inputs.sippMonthlyContribution ?? 0);
   const isaFrac =
-    currentTotal > 0 ? inputs.isaMonthlyContribution / currentTotal : 0.5;
+    currentTotal > 0 ? (inputs.pots?.isa?.monthlyContribution ?? inputs.isaMonthlyContribution ?? 0) / currentTotal : 0.5;
 
   const sustainsAt = (monthly: number) =>
     simulateFire({
@@ -42,7 +42,7 @@ export interface RequiredContributions {
 }
 
 export function requiredContributions(inputs: FireInputs): RequiredContributions | null {
-  const currentTotal = inputs.isaMonthlyContribution + (inputs.giaMonthlyContribution ?? 0) + inputs.sippMonthlyContribution;
+  const currentTotal = (inputs.pots?.isa?.monthlyContribution ?? inputs.isaMonthlyContribution ?? 0) + ((inputs.pots?.gia?.monthlyContribution ?? inputs.giaMonthlyContribution ?? 0) ?? 0) + (inputs.pots?.sipp?.monthlyContribution ?? inputs.sippMonthlyContribution ?? 0);
   const needed = minMonthlyForSustainable(inputs, inputs.retirementAge);
   
   if (!Number.isFinite(needed)) {
@@ -64,8 +64,8 @@ export function requiredContributions(inputs: FireInputs): RequiredContributions
   if (bridgeGap > 0) {
     extraIsaGia = extraNeeded; // Direct the extra to the bridge pots first
   } else {
-    const currentTotalIsaSipp = inputs.isaMonthlyContribution + inputs.sippMonthlyContribution;
-    const isaFrac = currentTotalIsaSipp > 0 ? inputs.isaMonthlyContribution / currentTotalIsaSipp : 0.5;
+    const currentTotalIsaSipp = (inputs.pots?.isa?.monthlyContribution ?? inputs.isaMonthlyContribution ?? 0) + (inputs.pots?.sipp?.monthlyContribution ?? inputs.sippMonthlyContribution ?? 0);
+    const isaFrac = currentTotalIsaSipp > 0 ? (inputs.pots?.isa?.monthlyContribution ?? inputs.isaMonthlyContribution ?? 0) / currentTotalIsaSipp : 0.5;
     extraIsaGia = extraNeeded * isaFrac;
     extraSipp = extraNeeded * (1 - isaFrac);
   }
@@ -101,7 +101,7 @@ export function retirementSensitivity(
   inputs: FireInputs,
 ): RetirementSensitivity {
   const currentMonthly =
-    inputs.isaMonthlyContribution + inputs.sippMonthlyContribution;
+    (inputs.pots?.isa?.monthlyContribution ?? inputs.isaMonthlyContribution ?? 0) + (inputs.pots?.sipp?.monthlyContribution ?? inputs.sippMonthlyContribution ?? 0);
   const earlierAge = inputs.retirementAge - 1;
   const laterAge = inputs.retirementAge + 1;
 

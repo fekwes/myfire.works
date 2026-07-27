@@ -67,14 +67,14 @@ export function QuickLevers() {
         </Field>
         <Field label="ISA / mo">
           <NumberInput
-            value={inputs.isaMonthlyContribution}
+            value={(inputs.pots?.isa?.monthlyContribution ?? inputs.isaMonthlyContribution ?? 0)}
             onChange={(v) => set("isaMonthlyContribution", v)}
             prefix="£"
           />
         </Field>
         <Field label="Pension / mo">
           <NumberInput
-            value={inputs.sippMonthlyContribution}
+            value={(inputs.pots?.sipp?.monthlyContribution ?? inputs.sippMonthlyContribution ?? 0)}
             onChange={(v) => set("sippMonthlyContribution", v)}
             prefix="£"
           />

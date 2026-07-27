@@ -85,14 +85,14 @@ export function AssetTimelineChart({
 
   const data = result.timeline.map((year) => ({
     age: year.age,
-    ISA: Math.round(deflate(year.isaBalanceEnd, year.age)),
-    GIA: Math.round(deflate(year.giaBalanceEnd, year.age)),
-    SIPP: Math.round(deflate(year.sippBalanceEnd, year.age)),
+    ISA: Math.round(deflate(year.pots.isa.end, year.age)),
+    GIA: Math.round(deflate(year.pots.gia.end, year.age)),
+    SIPP: Math.round(deflate(year.pots.sipp.end, year.age)),
     "Net worth": Math.round(
       deflate(
-        year.isaBalanceEnd +
-          year.giaBalanceEnd +
-          year.sippBalanceEnd +
+        year.pots.isa.end +
+          year.pots.gia.end +
+          year.pots.sipp.end +
           year.rentalValueEnd +
           year.homeValueEnd,
         year.age,

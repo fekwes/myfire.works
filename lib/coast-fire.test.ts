@@ -51,7 +51,7 @@ describe("computeCoastFire", () => {
     const total = coast.currentInvested;
     const w =
       total > 0
-        ? { isa: inputs.isaBalance / total, sipp: inputs.sippBalance / total }
+        ? { isa: (inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0) / total, sipp: (inputs.pots?.sipp?.balance ?? inputs.sippBalance ?? 0) / total }
         : { isa: 0.4, sipp: 0.6 };
     const check = simulateFire({
       ...inputs,

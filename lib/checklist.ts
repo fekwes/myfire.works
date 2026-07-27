@@ -15,13 +15,13 @@ export function buildChecklist(
   authConfigured: boolean,
 ): ChecklistStep[] {
   const hasBalances =
-    inputs.isaBalance > 0 ||
-    inputs.sippBalance > 0 ||
-    (inputs.giaBalance ?? 0) > 0;
+    (inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0) > 0 ||
+    (inputs.pots?.sipp?.balance ?? inputs.sippBalance ?? 0) > 0 ||
+    ((inputs.pots?.gia?.balance ?? inputs.giaBalance ?? 0) ?? 0) > 0;
   const hasFund =
-    (inputs.isaHoldings?.length ?? 0) > 0 ||
-    (inputs.sippHoldings?.length ?? 0) > 0 ||
-    (inputs.giaHoldings?.length ?? 0) > 0;
+    ((inputs.pots?.isa?.holdings ?? inputs.isaHoldings ?? [])?.length ?? 0) > 0 ||
+    ((inputs.pots?.sipp?.holdings ?? inputs.sippHoldings ?? [])?.length ?? 0) > 0 ||
+    ((inputs.pots?.gia?.holdings ?? inputs.giaHoldings ?? [])?.length ?? 0) > 0;
 
   const steps: ChecklistStep[] = [
     {

@@ -375,6 +375,8 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
   // Actually, we can use the pack's taxFreeLifetimeCap
   const taxFreeCap = pack.wrappers.find(w => w.treatment === "tax-deferred")?.taxFreeLifetimeCap || 0;
   let taxFreeLumpSumAvailable = taxFreeCap;
+  let totalLumpSumTaken = 0;
+  let lumpThisYear = 0;
 
   let bridgeToSippTransitionAge: number | null = null;
   const depletedAges: Record<string, number | null> = {};
@@ -437,6 +439,9 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       continue;
     }
 
+    // Reset yearly trackers
+    lumpThisYear = 0;
+    
     // DRAWDOWN PHASE
     const inflationFactor = (1 + inflationRate) ** (age - currentAge);
     const yearTarget = targetAnnualIncome * inflationFactor;
@@ -456,11 +461,18 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
 
     if (!rentalSold && rentalSaleAge > 0 && age >= rentalSaleAge && rentalValue > 0) {
       const gain = Math.max(0, rentalValue - rentalBasis);
-      // We calculate CGT properly inside executeDrawdownSequence later? 
-      // Property CGT is independent of portfolio CGT, but they stack!
-      // This is a simplification:
-      const taxSys = pack.taxSystem(undefined as any, undefined as any);
-      propertyCgt = 0; // Simplified for this script
+      // Property CGT is independent of portfolio CGT, but they stack on total income.
+      const rentalIncomeCurrent = rentalMonthlyIncome * 12;
+      const partTimeIncomeCurrent = partTimeAnnualIncome > 0 && age < partTimeUntilAge ? partTimeAnnualIncome * inflationFactor : 0;
+      
+      const combinedIncomes: Partial<Record<any, number>> = {
+        "employment": statePensionIncome + rentalIncomeCurrent + partTimeIncomeCurrent,
+        "realised-gains": gain,
+      };
+      
+      const taxWithGain = calculateTax(combinedIncomes, taxSystem);
+      const taxWithoutGain = calculateTax({ "employment": combinedIncomes.employment }, taxSystem);
+      propertyCgt = taxWithGain.totalTax - taxWithoutGain.totalTax;
       
       const proceeds = rentalValue - propertyCgt;
       if (taxableWrapperId) {
@@ -488,12 +500,15 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     
     // Other taxable income
     const otherTaxableIncome = statePensionIncome + rentalIncome + partTimeIncome;
+    const otherTaxableTax = calculateTax({ "employment": otherTaxableIncome }, taxSystem).totalTax;
+    const otherTaxableNet = otherTaxableIncome - otherTaxableTax;
+    const potNeed = Math.max(0, yearTarget - otherTaxableNet);
     
     // LUMP SUM Strategy
     if (inputs.pensionStrategy === "lump-sum" && age >= lumpSumAge && !lumpSumTaken) {
       const taxDeferredId = pack.wrappers.find(w => w.treatment === "tax-deferred")?.id;
       if (taxDeferredId && stateBalances[taxDeferredId] > 0) {
-        const lump = Math.min(stateBalances[taxDeferredId] * 0.25, taxFreeLumpSumAvailable); // simplifying max logic
+        const lump = Math.min(stateBalances[taxDeferredId] * 0.25, taxFreeLumpSumAvailable);
         stateBalances[taxDeferredId] -= lump;
         if (taxableWrapperId) {
           stateBalances[taxableWrapperId] = (stateBalances[taxableWrapperId] || 0) + lump;
@@ -501,6 +516,8 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
         }
         taxFreeLumpSumAvailable -= lump;
         totalTaxFreePension += lump;
+        totalLumpSumTaken += lump;
+        lumpThisYear = lump;
         lumpSumTaken = true;
       }
     }
@@ -521,7 +538,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     
     const drawdownResult = executeDrawdownSequence(
       strategyName,
-      yearTarget,
+      potNeed,
       { balances: stateBalances, bases: stateBases },
       otherTaxableIncome,
       taxSystem,
@@ -533,7 +550,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     stateBases = drawdownResult.state.bases;
     totalTaxFreePension += Object.values(drawdownResult.potWithdrawals).reduce((sum, w) => sum + w.taxFree, 0);
     
-    const netIncome = drawdownResult.netIncomeFromPots + otherTaxableIncome - drawdownResult.incomeTaxPaid - drawdownResult.capitalGainsTaxPaid;
+    const netIncome = drawdownResult.netIncomeFromPots + otherTaxableNet;
     const shortfall = netIncome < yearTarget - 0.01;
 
     for (const key of Object.keys(stateBalances)) {
@@ -556,19 +573,28 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     let phase = age < inputs.sippAccessAge! ? "bridge" : "sipp";
     if (age >= statePensionAge) phase = "state-pension";
 
+    const finalPotWithdrawals = { ...drawdownResult.potWithdrawals };
+    if (lumpThisYear > 0) {
+      const taxDeferredId = pack.wrappers.find(w => w.treatment === "tax-deferred")?.id;
+      if (taxDeferredId && finalPotWithdrawals[taxDeferredId]) {
+        finalPotWithdrawals[taxDeferredId].gross += lumpThisYear;
+        finalPotWithdrawals[taxDeferredId].taxFree += lumpThisYear;
+      }
+    }
+
     timeline.push({
       age,
       phase: phase as any,
       pots: potsSnap,
-      potWithdrawals: drawdownResult.potWithdrawals,
+      potWithdrawals: finalPotWithdrawals,
       statePensionIncome,
       rentalIncome,
       partTimeIncome,
       propertyCashReleased,
       rentalValueEnd: rentalValue,
       homeValueEnd: homeValue,
-      incomeTaxPaid: drawdownResult.incomeTaxPaid,
-      capitalGainsTaxPaid: drawdownResult.capitalGainsTaxPaid,
+      incomeTaxPaid: drawdownResult.incomeTaxPaid + otherTaxableTax,
+      capitalGainsTaxPaid: drawdownResult.capitalGainsTaxPaid + propertyCgt,
       netIncome,
       shortfall,
     });
@@ -579,7 +605,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
   return {
     inputs,
     timeline,
-    taxFreeLumpSum: 0,
+    taxFreeLumpSum: totalLumpSumTaken,
     totalTaxFreePension,
     bridgeToSippTransitionAge,
     isaDepletedAge: depletedAges["isa"] ?? null,

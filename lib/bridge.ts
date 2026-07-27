@@ -20,9 +20,9 @@ export function sustainableIncomeFromPots(
   inputs: FireInputs,
 ): SustainableIncomeResult | null {
   if (
-    inputs.isaBalance === 0 &&
-    inputs.giaBalance === 0 &&
-    inputs.sippBalance === 0
+    (inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0) === 0 &&
+    (inputs.pots?.gia?.balance ?? inputs.giaBalance ?? 0) === 0 &&
+    (inputs.pots?.sipp?.balance ?? inputs.sippBalance ?? 0) === 0
   ) {
     return null;
   }

@@ -445,9 +445,9 @@ function StepReveal({
         .filter((y) => y.age <= inputs.retirementAge)
         .map(
           (y) =>
-            (y.isaBalanceStart ?? 0) +
-            (y.giaBalanceStart ?? 0) +
-            (y.sippBalanceStart ?? 0),
+            (y.pots.isa.start ?? 0) +
+            (y.pots.gia.start ?? 0) +
+            (y.pots.sipp.start ?? 0),
         ),
     [plan, inputs.retirementAge],
   );

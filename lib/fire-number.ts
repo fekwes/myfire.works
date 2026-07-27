@@ -30,9 +30,9 @@ export function computeFireNumber(inputs: FireInputs): FireNumberResult {
 
   const atRetirement =
     full.timeline.find((y) => y.age === retirementAge) ?? full.timeline[0];
-  const isa = atRetirement?.isaBalanceStart ?? inputs.isaBalance;
-  const gia = atRetirement?.giaBalanceStart ?? inputs.giaBalance ?? 0;
-  const sipp = atRetirement?.sippBalanceStart ?? inputs.sippBalance;
+  const isa = atRetirement?.pots.isa.start ?? (inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0);
+  const gia = atRetirement?.pots.gia.start ?? (inputs.pots?.gia?.balance ?? inputs.giaBalance ?? 0) ?? 0;
+  const sipp = atRetirement?.pots.sipp.start ?? (inputs.pots?.sipp?.balance ?? inputs.sippBalance ?? 0);
   const projectedAtRetirement = isa + gia + sipp;
 
   const total = projectedAtRetirement;

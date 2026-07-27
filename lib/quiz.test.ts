@@ -73,18 +73,18 @@ describe("assembleQuizInputs", () => {
     expect(inputs.statePensionAge).toBe(68);
     expect(inputs.statePensionAnnual).toBe(DEFAULT_ASSUMPTIONS.statePensionAnnual);
     expect(inputs.pensionStrategy).toBe(DEFAULT_ASSUMPTIONS.pensionStrategy);
-    expect(inputs.isaGrowth).toBe(QUIZ_POT_GROWTH);
+    expect((inputs.pots?.isa?.growth ?? inputs.isaGrowth ?? inputs.growthRate ?? 0)).toBe(QUIZ_POT_GROWTH);
     expect(inputs.homeGrowth).toBe(QUIZ_PROPERTY_GROWTH);
     expect(inputs.inflationRate).toBe(DEFAULT_INFLATION_RATE);
   });
 
   it("starts balances at zero with placeholder contributions", () => {
     const inputs = assembleQuizInputs(base);
-    expect(inputs.isaBalance).toBe(0);
-    expect(inputs.sippBalance).toBe(0);
-    expect(inputs.giaBalance).toBe(0);
-    expect(inputs.isaMonthlyContribution).toBeGreaterThan(0);
-    expect(inputs.sippMonthlyContribution).toBeGreaterThan(0);
+    expect((inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0)).toBe(0);
+    expect((inputs.pots?.sipp?.balance ?? inputs.sippBalance ?? 0)).toBe(0);
+    expect((inputs.pots?.gia?.balance ?? inputs.giaBalance ?? 0)).toBe(0);
+    expect((inputs.pots?.isa?.monthlyContribution ?? inputs.isaMonthlyContribution ?? 0)).toBeGreaterThan(0);
+    expect((inputs.pots?.sipp?.monthlyContribution ?? inputs.sippMonthlyContribution ?? 0)).toBeGreaterThan(0);
   });
 
   it("seeds the ISA balance from savings when the user gave a figure", () => {
@@ -93,10 +93,10 @@ describe("assembleQuizInputs", () => {
       savings: 85000,
       savingsProvided: true,
     });
-    expect(inputs.isaBalance).toBe(85000);
+    expect((inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0)).toBe(85000);
     // The combined figure is parked in ISA only — not fabricated into a pension.
-    expect(inputs.sippBalance).toBe(0);
-    expect(inputs.giaBalance).toBe(0);
+    expect((inputs.pots?.sipp?.balance ?? inputs.sippBalance ?? 0)).toBe(0);
+    expect((inputs.pots?.gia?.balance ?? inputs.giaBalance ?? 0)).toBe(0);
   });
 
   it("ignores a savings figure when the step was skipped", () => {
@@ -105,7 +105,7 @@ describe("assembleQuizInputs", () => {
       savings: 85000,
       savingsProvided: false,
     });
-    expect(inputs.isaBalance).toBe(0);
+    expect((inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0)).toBe(0);
   });
 
   it("clamps a negative savings figure to zero", () => {
@@ -114,7 +114,7 @@ describe("assembleQuizInputs", () => {
       savings: -1000,
       savingsProvided: true,
     });
-    expect(inputs.isaBalance).toBe(0);
+    expect((inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0)).toBe(0);
   });
 
   it("gives the part-time strategy income to State Pension age", () => {

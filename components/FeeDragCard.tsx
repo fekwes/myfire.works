@@ -15,9 +15,9 @@ import { estimateFeeDrag } from "@/lib/vanguard-funds";
 export function FeeDragCard() {
   const { inputs } = usePlan();
   const hasPortfolio =
-    (inputs.isaHoldings?.length ?? 0) > 0 ||
-    (inputs.sippHoldings?.length ?? 0) > 0 ||
-    (inputs.giaHoldings?.length ?? 0) > 0;
+    ((inputs.pots?.isa?.holdings ?? inputs.isaHoldings ?? [])?.length ?? 0) > 0 ||
+    ((inputs.pots?.sipp?.holdings ?? inputs.sippHoldings ?? [])?.length ?? 0) > 0 ||
+    ((inputs.pots?.gia?.holdings ?? inputs.giaHoldings ?? [])?.length ?? 0) > 0;
   const drag = useMemo(() => estimateFeeDrag(inputs), [inputs]);
 
   if (!hasPortfolio || drag < 1) return null;

@@ -514,14 +514,14 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
         >
           <Field label="Current balance">
             <NumberInput
-              value={value.isaBalance}
+              value={value.isaBalance ?? 0}
               onChange={(v) => set("isaBalance", v)}
               prefix="£"
             />
           </Field>
           <Field label="Monthly contribution">
             <NumberInput
-              value={value.isaMonthlyContribution}
+              value={value.isaMonthlyContribution ?? 0}
               onChange={(v) => set("isaMonthlyContribution", v)}
               prefix="£"
             />
@@ -545,14 +545,14 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
         >
           <Field label="Current balance">
             <NumberInput
-              value={value.sippBalance}
+              value={value.sippBalance ?? 0}
               onChange={(v) => set("sippBalance", v)}
               prefix="£"
             />
           </Field>
           <Field label="Monthly contribution">
             <NumberInput
-              value={value.sippMonthlyContribution}
+              value={value.sippMonthlyContribution ?? 0}
               onChange={(v) => set("sippMonthlyContribution", v)}
               prefix="£"
             />

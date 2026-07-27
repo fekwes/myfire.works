@@ -129,7 +129,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
 
   const plan = useMemo(() => simulateFire(inputs), [inputs]);
 
-  const netWorth = inputs.isaBalance + (inputs.giaBalance ?? 0) + inputs.sippBalance + (inputs.rentalValue ?? 0) + (inputs.homeValue ?? 0);
+  const netWorth = (inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0) + ((inputs.pots?.gia?.balance ?? inputs.giaBalance ?? 0) ?? 0) + (inputs.pots?.sipp?.balance ?? inputs.sippBalance ?? 0) + (inputs.rentalValue ?? 0) + (inputs.homeValue ?? 0);
   const provisional = netWorth === 0;
 
   const sustainable = plan.sustainableToLifeExpectancy;
