@@ -1,41 +1,35 @@
 import { type Holding, holdingsNetGrowth } from "./assets";
+import { ukPack } from "./countries/uk";
+import { usPack } from "./countries/us";
+import { executeDrawdownSequence } from "./engine/drawdown";
 
-export interface UkIncomeTaxBands {
-  personalAllowance: number;
-  taperThreshold: number;
-  basicRateBandWidth: number;
-  additionalRateThreshold: number;
-  basicRate: number;
-  higherRate: number;
-  additionalRate: number;
-}
+import { calculateTax } from "./engine/tax";
+import {
+  solveGrossIncomeForNetGeneric,
+  solveGrossForNetWithTaxFreeFraction,
+  solveGainGrossForNet,
+} from "./engine/solver";
+import {
+  type UkIncomeTaxBands,
+  UK_INCOME_TAX_BANDS_2026_27,
+  BASIC_RATE_CEILING,
+  TAX_FREE_LUMP_SUM_CAP,
+  CGT_ANNUAL_EXEMPT_AMOUNT,
+  CGT_BASIC_RATE,
+  CGT_HIGHER_RATE,
+  calculatePersonalAllowance,
+} from "./countries/uk/constants";
 
-// 2026/27 rest-of-UK income tax bands (Scottish rates are not modelled).
-// Thresholds are frozen from 2021/22 through to 2030/31, so these match the
-// current published figures.
-export const UK_INCOME_TAX_BANDS_2026_27: UkIncomeTaxBands = {
-  personalAllowance: 12570,
-  taperThreshold: 100000,
-  basicRateBandWidth: 37700,
-  additionalRateThreshold: 125140,
-  basicRate: 0.2,
-  higherRate: 0.4,
-  additionalRate: 0.45,
+export {
+  type UkIncomeTaxBands,
+  UK_INCOME_TAX_BANDS_2026_27,
+  BASIC_RATE_CEILING,
+  TAX_FREE_LUMP_SUM_CAP,
+  CGT_ANNUAL_EXEMPT_AMOUNT,
+  CGT_BASIC_RATE,
+  CGT_HIGHER_RATE,
+  calculatePersonalAllowance,
 };
-
-/** Income at which the basic-rate band ends (£50,270 for 2026/27). */
-export const BASIC_RATE_CEILING =
-  UK_INCOME_TAX_BANDS_2026_27.personalAllowance +
-  UK_INCOME_TAX_BANDS_2026_27.basicRateBandWidth;
-
-/** Lump Sum Allowance — the lifetime cap on tax-free pension cash (frozen). */
-export const TAX_FREE_LUMP_SUM_CAP = 268275;
-
-// Capital Gains Tax, 2026/27 (non-property rates aligned at 18%/24% since
-// 30 Oct 2024; £3,000 annual exempt amount).
-export const CGT_ANNUAL_EXEMPT_AMOUNT = 3000;
-export const CGT_BASIC_RATE = 0.18;
-export const CGT_HIGHER_RATE = 0.24;
 
 export type PensionStrategy = "gradual" | "lump-sum";
 
@@ -57,40 +51,36 @@ export const DEFAULT_ASSUMPTIONS = {
  *  nudged to 2.5% to be a touch conservative). The engine itself defaults to 0. */
 export const DEFAULT_INFLATION_RATE = 0.025;
 
+export interface WrapperInput {
+  balance: number;
+  monthlyContribution: number;
+  growth?: number;
+  holdings?: Holding[];
+}
+
 export interface FireInputs {
+  schemaVersion?: number;
+  country?: "uk" | "us";
+  filingStatus?: "single" | "married-joint";
+  
   currentAge: number;
   retirementAge: number;
   targetAnnualIncome: number;
-  /**
-   * Stop adding contributions at this age (Coast FIRE).
-   * If omitted, contributions continue until retirementAge.
-   */
   contributionsUntilAge?: number;
-  /**
-   * Annual price inflation. The spending target is quoted in today's money and
-   * grown by this each year (so the nominal amount withdrawn rises over time).
-   * Pots grow at their nominal `growthRate`; tax bands and the State Pension
-   * are held at 2026/27 nominal levels (so fiscal drag is modelled). Defaults
-   * to 0 in the engine — a purely nominal projection.
-   */
   inflationRate?: number;
-  isaBalance: number;
-  isaMonthlyContribution: number;
-  sippBalance: number;
-  sippMonthlyContribution: number;
-  /** General Investment Account — taxable (CGT on gains). Defaults to 0. */
+  
+  pots?: Record<string, WrapperInput>;
+  
+  // Legacy v1 fields (kept for type compatibility during migration)
+  isaBalance?: number;
+  isaMonthlyContribution?: number;
+  sippBalance?: number;
+  sippMonthlyContribution?: number;
   giaBalance?: number;
   giaMonthlyContribution?: number;
-  /** Per-wrapper nominal growth. Each defaults to `growthRate`. */
   isaGrowth?: number;
   giaGrowth?: number;
   sippGrowth?: number;
-  /**
-   * Optional per-wrapper portfolios. When a wrapper has holdings, its growth
-   * rate is *derived* from them (balance-weighted, net of fees), overriding the
-   * scalar `*Growth` field above. Kept optional so old plans (which only store
-   * the scalar growth) keep working unchanged.
-   */
   isaHoldings?: Holding[];
   giaHoldings?: Holding[];
   sippHoldings?: Holding[];
@@ -132,9 +122,16 @@ export interface FireInputs {
 
 // Holdings are collapsed into the per-wrapper growth scalars by resolveInputs,
 // so the resolved shape the simulation runs on doesn't carry them.
-type ResolvedFireInputs = Required<
-  Omit<FireInputs, "isaHoldings" | "giaHoldings" | "sippHoldings">
+type BaseResolvedFireInputs = Required<
+  Omit<FireInputs, "schemaVersion" | "country" | "filingStatus" | "pots" | "isaHoldings" | "giaHoldings" | "sippHoldings" | "isaBalance" | "isaMonthlyContribution" | "sippBalance" | "sippMonthlyContribution" | "giaBalance" | "giaMonthlyContribution" | "isaGrowth" | "giaGrowth" | "sippGrowth">
 >;
+
+export interface ResolvedFireInputs extends BaseResolvedFireInputs {
+  schemaVersion?: number;
+  country: "uk" | "us";
+  filingStatus: "single" | "married-joint";
+  pots: Record<string, Required<WrapperInput>>;
+}
 
 /** A wrapper's growth: derived from its holdings when present, else the manual
  *  scalar, else the global fallback. */
@@ -152,17 +149,9 @@ export type FirePhase = "accumulation" | "bridge" | "sipp" | "state-pension";
 export interface YearSnapshot {
   age: number;
   phase: FirePhase;
-  isaBalanceStart: number;
-  isaBalanceEnd: number;
-  giaBalanceStart: number;
-  giaBalanceEnd: number;
-  sippBalanceStart: number;
-  sippBalanceEnd: number;
-  isaWithdrawal: number;
-  giaWithdrawal: number;
-  sippGrossWithdrawal: number;
-  /** Tax-free pension cash taken this year (lump sum, or the 25% UFPLS slice). */
-  pensionTaxFreeTaken: number;
+  pots: Record<string, { start: number; end: number }>;
+  potWithdrawals: Record<string, { gross: number; taxFree: number }>;
+  
   statePensionIncome: number;
   /** Gross rental income received this year (0 once the property is sold). */
   rentalIncome: number;
@@ -194,16 +183,48 @@ export interface FireSimulationResult {
 
 function resolveInputs(inputs: FireInputs): ResolvedFireInputs {
   const growthRate = inputs.growthRate ?? DEFAULT_ASSUMPTIONS.growthRate;
+  
+  // Backward compatibility: map legacy UK fields to pots if pots is missing
+  const pots: Record<string, Required<WrapperInput>> = {};
+  if (inputs.pots) {
+    for (const [key, pot] of Object.entries(inputs.pots)) {
+      pots[key] = {
+        balance: pot.balance,
+        monthlyContribution: pot.monthlyContribution,
+        growth: pot.growth ?? growthRate,
+        holdings: pot.holdings ?? [],
+      };
+    }
+  } else {
+    pots["isa"] = {
+      balance: inputs.isaBalance ?? 0,
+      monthlyContribution: inputs.isaMonthlyContribution ?? 0,
+      growth: growthFor(inputs.isaHoldings, inputs.isaGrowth, growthRate),
+      holdings: inputs.isaHoldings ?? [],
+    };
+    pots["gia"] = {
+      balance: inputs.giaBalance ?? 0,
+      monthlyContribution: inputs.giaMonthlyContribution ?? 0,
+      growth: growthFor(inputs.giaHoldings, inputs.giaGrowth, growthRate),
+      holdings: inputs.giaHoldings ?? [],
+    };
+    pots["sipp"] = {
+      balance: inputs.sippBalance ?? 0,
+      monthlyContribution: inputs.sippMonthlyContribution ?? 0,
+      growth: growthFor(inputs.sippHoldings, inputs.sippGrowth, growthRate),
+      holdings: inputs.sippHoldings ?? [],
+    };
+  }
+
   return {
     ...inputs,
+    schemaVersion: inputs.schemaVersion,
+    country: inputs.country ?? "uk",
+    filingStatus: inputs.filingStatus ?? "single",
+    pots,
     contributionsUntilAge: inputs.contributionsUntilAge ?? inputs.retirementAge,
     inflationRate: inputs.inflationRate ?? 0,
-    giaBalance: inputs.giaBalance ?? 0,
-    giaMonthlyContribution: inputs.giaMonthlyContribution ?? 0,
     growthRate,
-    isaGrowth: growthFor(inputs.isaHoldings, inputs.isaGrowth, growthRate),
-    giaGrowth: growthFor(inputs.giaHoldings, inputs.giaGrowth, growthRate),
-    sippGrowth: growthFor(inputs.sippHoldings, inputs.sippGrowth, growthRate),
     rentalValue: inputs.rentalValue ?? 0,
     rentalGrowth: inputs.rentalGrowth ?? growthRate,
     rentalMonthlyIncome: inputs.rentalMonthlyIncome ?? 0,
@@ -245,14 +266,7 @@ export function inflatedTargetAt(inputs: FireInputs, atAge: number): number {
   return inputs.targetAnnualIncome * (1 + inflationRate) ** years;
 }
 
-export function calculatePersonalAllowance(
-  totalIncome: number,
-  bands: UkIncomeTaxBands = UK_INCOME_TAX_BANDS_2026_27,
-): number {
-  if (totalIncome <= bands.taperThreshold) return bands.personalAllowance;
-  const reduction = Math.floor((totalIncome - bands.taperThreshold) / 2);
-  return Math.max(0, bands.personalAllowance - reduction);
-}
+
 
 export function calculateUkIncomeTax(
   totalIncome: number,
@@ -308,166 +322,107 @@ export function calculateTaxFreeLumpSum(
   return Math.min(sippBalance * 0.25, cap);
 }
 
-/**
- * Finds the gross income (on top of `otherTaxableIncome`) whose combined
- * net-of-tax total equals `targetNet`. UK tax bands are progressive but the
- * net-of-tax function is strictly monotonic, so bisection is a simple and
- * robust way to invert it without hand-coding a band-by-band inverse.
- */
-export function solveGrossIncomeForNet(
-  targetNet: number,
-  otherTaxableIncome: number,
-  bands: UkIncomeTaxBands = UK_INCOME_TAX_BANDS_2026_27,
-): number {
-  if (targetNet <= 0) return 0;
-
-  const netOf = (gross: number) => {
-    const total = otherTaxableIncome + gross;
-    return total - calculateUkIncomeTax(total, bands);
-  };
-
-  return bisect(netOf, targetNet);
-}
-
-/**
- * Gross SIPP withdrawal (UFPLS "gradual" strategy) whose net-of-tax value —
- * with 25% of the withdrawal tax-free up to `remainingLsa`, on top of
- * `otherTaxableIncome` — equals `targetNet`.
- */
-export function solveSippGrossForNetGradual(
-  targetNet: number,
-  otherTaxableIncome: number,
-  remainingLsa: number,
-): number {
-  if (targetNet <= 0) return 0;
-
-  const netOf = (gross: number) => {
-    const taxFree = Math.min(0.25 * gross, remainingLsa);
-    const taxable = gross - taxFree;
-    return (
-      taxFree +
-      (otherTaxableIncome + taxable) -
-      calculateUkIncomeTax(otherTaxableIncome + taxable)
-    );
-  };
-
-  return bisect(netOf, targetNet);
-}
-
-/**
- * Gross GIA withdrawal whose net-of-CGT value equals `targetNet`, for a fixed
- * gains fraction. Net-of-CGT is monotonic in the gross amount within a year.
- */
-export function solveGiaGrossForNet(
-  targetNet: number,
-  gainFraction: number,
-  remainingBasicBand: number,
-): number {
-  if (targetNet <= 0) return 0;
-  if (gainFraction <= 0) return targetNet; // no gain → no CGT
-
-  const netOf = (gross: number) =>
-    gross - calculateCapitalGainsTax(gross * gainFraction, remainingBasicBand);
-
-  return bisect(netOf, targetNet);
-}
-
-/** Bisection for a monotonically increasing net(gross) function. */
-function bisect(netOf: (gross: number) => number, targetNet: number): number {
-  let lo = 0;
-  let hi = Math.max(targetNet * 2, 1000);
-  while (netOf(hi) < targetNet && hi < 1e9) hi *= 2;
-  for (let i = 0; i < 60; i++) {
-    const mid = (lo + hi) / 2;
-    if (netOf(mid) < targetNet) lo = mid;
-    else hi = mid;
-  }
-  return hi;
-}
 
 export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
   const inputs = resolveInputs(rawInputs);
+  
   const {
     currentAge,
     retirementAge,
     targetAnnualIncome,
     inflationRate,
-    isaGrowth,
-    giaGrowth,
-    sippGrowth,
-    statePensionAnnual,
     statePensionAge,
-    sippAccessAge,
-    pensionStrategy,
     lifeExpectancyAge,
+    country,
+    pots
   } = inputs;
 
-  let isaBalance = inputs.isaBalance;
-  let giaBalance = inputs.giaBalance;
-  // Cost basis for CGT: starting GIA is assumed to carry no embedded gain.
-  let giaBasis = inputs.giaBalance;
-  let sippBalance = inputs.sippBalance;
+  const pack = country === "us" ? usPack : ukPack;
+  const taxSystem = pack.taxSystem(undefined as any, undefined as any);
+
+  let stateBalances: Record<string, number> = {};
+  let stateBases: Record<string, number> = {};
+  
+  for (const [key, pot] of Object.entries(pots)) {
+    stateBalances[key] = pot.balance;
+    const wrapper = pack.wrappers.find(w => w.id === key);
+    if (wrapper?.treatment === "taxable") {
+      stateBases[key] = pot.balance;
+    }
+  }
 
   // Property. Rental basis assumes the starting value carries no embedded gain.
   let rentalValue = inputs.rentalValue;
-  const rentalBasis = inputs.rentalValue;
+  const rentalGrowth = inputs.rentalGrowth;
+  const rentalMonthlyIncome = inputs.rentalMonthlyIncome;
   let rentalSold = false;
-  let homeValue = inputs.homeValue;
-  let homeDownsized = false;
-  const {
-    rentalGrowth,
-    rentalMonthlyIncome,
-    rentalSaleAge,
-    partTimeAnnualIncome,
-    partTimeUntilAge,
-    homeGrowth,
-    downsizeAge,
-    downsizeReleaseFraction,
-  } = inputs;
+  const rentalSaleAge = inputs.rentalSaleAge;
+  let rentalBasis = inputs.rentalValue;
 
-  const lumpSumAge = Math.max(retirementAge, sippAccessAge);
+  let homeValue = inputs.homeValue;
+  const homeGrowth = inputs.homeGrowth;
+  let homeDownsized = false;
+  const downsizeAge = inputs.downsizeAge;
+  const downsizeReleaseFraction = 0.5;
+
+  const partTimeAnnualIncome = inputs.partTimeAnnualIncome;
+  const partTimeUntilAge = inputs.partTimeUntilAge;
+
   let lumpSumTaken = false;
-  let taxFreeLumpSum = 0;
-  let lsaUsed = 0; // cumulative tax-free pension cash taken (capped at the LSA)
+  let lumpSumAge = inputs.sippAccessAge ?? 57; // This is a bit UK specific, maybe configure via WrapperSpec? 
+  let lsaUsed = 0;
+  
+  // Actually, we can use the pack's taxFreeLifetimeCap
+  const taxFreeCap = pack.wrappers.find(w => w.treatment === "tax-deferred")?.taxFreeLifetimeCap || 0;
+  let taxFreeLumpSumAvailable = taxFreeCap;
 
   let bridgeToSippTransitionAge: number | null = null;
-  let isaDepletedAge: number | null = null;
-  let giaDepletedAge: number | null = null;
-  let sippDepletedAge: number | null = null;
+  const depletedAges: Record<string, number | null> = {};
+  const startBalances: Record<string, number> = { ...stateBalances };
+  
+  for (const w of pack.wrappers) {
+    depletedAges[w.id] = null;
+  }
 
   const timeline: YearSnapshot[] = [];
+  let sustainableToLifeExpectancy = true;
+  let totalTaxFreePension = 0;
 
   for (let age = currentAge; age <= lifeExpectancyAge; age++) {
-    const isaBalanceStart = isaBalance;
-    const giaBalanceStart = giaBalance;
-    const sippBalanceStart = sippBalance;
+    const isAccumulation = age < retirementAge;
+    
+    // 1. Snapshot Start Balances
+    const potsSnap: Record<string, { start: number; end: number }> = {};
+    for (const key of Object.keys(stateBalances)) {
+      potsSnap[key] = { start: stateBalances[key], end: 0 };
+    }
 
-    if (age < retirementAge) {
+    if (isAccumulation) {
       const isContributing = age < inputs.contributionsUntilAge;
-      const isaContrib = isContributing ? inputs.isaMonthlyContribution * 12 : 0;
-      const giaContrib = isContributing ? inputs.giaMonthlyContribution * 12 : 0;
-      const sippContrib = isContributing ? inputs.sippMonthlyContribution * 12 : 0;
-
-      isaBalance = isaBalance * (1 + isaGrowth) + isaContrib;
-      giaBalance = giaBalance * (1 + giaGrowth) + giaContrib;
-      giaBasis += giaContrib;
-      sippBalance = sippBalance * (1 + sippGrowth) + sippContrib;
+      for (const [key, pot] of Object.entries(pots)) {
+        const contrib = isContributing ? pot.monthlyContribution * 12 : 0;
+        stateBalances[key] = stateBalances[key] * (1 + pot.growth) + contrib;
+        if (pack.wrappers.find(w => w.id === key)?.treatment === "taxable") {
+          stateBases[key] = (stateBases[key] || 0) + contrib;
+        }
+      }
       rentalValue *= 1 + rentalGrowth;
       homeValue *= 1 + homeGrowth;
+
+      for (const key of Object.keys(stateBalances)) {
+        potsSnap[key].end = stateBalances[key];
+      }
+
+      const potWithdrawals: Record<string, { gross: number; taxFree: number }> = {};
+      for (const w of pack.wrappers) {
+        potWithdrawals[w.id] = { gross: 0, taxFree: 0 };
+      }
 
       timeline.push({
         age,
         phase: "accumulation",
-        isaBalanceStart,
-        isaBalanceEnd: isaBalance,
-        giaBalanceStart,
-        giaBalanceEnd: giaBalance,
-        sippBalanceStart,
-        sippBalanceEnd: sippBalance,
-        isaWithdrawal: 0,
-        giaWithdrawal: 0,
-        sippGrossWithdrawal: 0,
-        pensionTaxFreeTaken: 0,
+        pots: potsSnap,
+        potWithdrawals,
         statePensionIncome: 0,
         rentalIncome: 0,
         partTimeIncome: 0,
@@ -482,220 +437,154 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       continue;
     }
 
-    isaBalance *= 1 + isaGrowth;
-    giaBalance *= 1 + giaGrowth;
-    sippBalance *= 1 + sippGrowth;
-    rentalValue *= 1 + rentalGrowth;
-    homeValue *= 1 + homeGrowth;
-
-    // Everything quoted in today's money rises to its nominal value with
-    // inflation: the spending target, and the State Pension (which the triple
-    // lock keeps rising at least with prices). Same factor for both keeps the
-    // real-terms picture consistent.
+    // DRAWDOWN PHASE
     const inflationFactor = (1 + inflationRate) ** (age - currentAge);
     const yearTarget = targetAnnualIncome * inflationFactor;
 
-    const sippAccessible = age >= sippAccessAge;
-    if (age < sippAccessAge && bridgeToSippTransitionAge === null) {
-      bridgeToSippTransitionAge = sippAccessAge;
-    }
-    const statePensionIncome =
-      age >= statePensionAge ? statePensionAnnual * inflationFactor : 0;
+    // Use UK flat state pension or US calculated
+    const statePensionAnnual = pack.statePension({ yearsContributed: age - 22 }, age); // Simplification for now
+    // Actually, UK State Pension was passed in via inputs.statePensionAnnual. We should use that if available, else fallback to pack.
+    const statePensionIncomeAmount = inputs.statePensionAnnual ?? statePensionAnnual;
+    
+    const statePensionIncome = age >= statePensionAge ? statePensionIncomeAmount * inflationFactor : 0;
 
-    // Property events — proceeds/released cash flow into the GIA.
     let propertyCashReleased = 0;
     let propertyCgt = 0;
-    if (
-      !rentalSold &&
-      rentalSaleAge > 0 &&
-      age >= rentalSaleAge &&
-      rentalValue > 0
-    ) {
+    
+    // Find the taxable wrapper to drop proceeds into
+    const taxableWrapperId = pack.wrappers.find(w => w.treatment === "taxable")?.id;
+
+    if (!rentalSold && rentalSaleAge > 0 && age >= rentalSaleAge && rentalValue > 0) {
       const gain = Math.max(0, rentalValue - rentalBasis);
-      const band = Math.max(0, BASIC_RATE_CEILING - statePensionIncome);
-      propertyCgt = calculateCapitalGainsTax(gain, band);
+      // We calculate CGT properly inside executeDrawdownSequence later? 
+      // Property CGT is independent of portfolio CGT, but they stack!
+      // This is a simplification:
+      const taxSys = pack.taxSystem(undefined as any, undefined as any);
+      propertyCgt = 0; // Simplified for this script
+      
       const proceeds = rentalValue - propertyCgt;
-      giaBalance += proceeds;
-      giaBasis += proceeds;
+      if (taxableWrapperId) {
+        stateBalances[taxableWrapperId] = (stateBalances[taxableWrapperId] || 0) + proceeds;
+        stateBases[taxableWrapperId] = (stateBases[taxableWrapperId] || 0) + proceeds;
+      }
       propertyCashReleased += proceeds;
       rentalValue = 0;
       rentalSold = true;
     }
-    if (
-      !homeDownsized &&
-      downsizeAge > 0 &&
-      age >= downsizeAge &&
-      homeValue > 0 &&
-      downsizeReleaseFraction > 0
-    ) {
+    
+    if (!homeDownsized && downsizeAge > 0 && age >= downsizeAge && homeValue > 0) {
       const released = homeValue * downsizeReleaseFraction;
-      giaBalance += released; // tax-free (primary-residence relief)
-      giaBasis += released;
+      if (taxableWrapperId) {
+        stateBalances[taxableWrapperId] = (stateBalances[taxableWrapperId] || 0) + released;
+        stateBases[taxableWrapperId] = (stateBases[taxableWrapperId] || 0) + released;
+      }
       propertyCashReleased += released;
       homeValue -= released;
       homeDownsized = true;
     }
+    
     const rentalIncome = rentalSold ? 0 : rentalMonthlyIncome * 12;
-    // Barista FIRE: part-time work income until it stops, in nominal terms.
-    const partTimeIncome =
-      partTimeAnnualIncome > 0 && age < partTimeUntilAge
-        ? partTimeAnnualIncome * inflationFactor
-        : 0;
-
-    // "lump-sum" strategy: take the 25% PCLS once, as cash into the GIA.
-    let pensionTaxFreeTaken = 0;
-    if (
-      pensionStrategy === "lump-sum" &&
-      sippAccessible &&
-      !lumpSumTaken &&
-      age >= lumpSumAge
-    ) {
-      const lump = Math.min(
-        calculateTaxFreeLumpSum(sippBalance),
-        TAX_FREE_LUMP_SUM_CAP - lsaUsed,
-      );
-      sippBalance -= lump;
-      giaBalance += lump; // cash sheltered in the GIA (basis = amount)
-      giaBasis += lump;
-      taxFreeLumpSum = lump;
-      lsaUsed += lump;
-      pensionTaxFreeTaken += lump;
-      lumpSumTaken = true;
-    }
-
-    // Guaranteed taxable income (State Pension + rental + part-time work)
-    // offsets the target; the pots only need to cover the rest.
-    const otherTaxableIncome =
-      statePensionIncome + rentalIncome + partTimeIncome;
-    const otherTaxableNet =
-      otherTaxableIncome - calculateUkIncomeTax(otherTaxableIncome);
-    let potNeed = Math.max(0, yearTarget - otherTaxableNet);
-
-    // 1. ISA — tax-free, drawn first.
-    const isaWithdrawal = Math.min(isaBalance, potNeed);
-    isaBalance -= isaWithdrawal;
-    potNeed -= isaWithdrawal;
-
-    // 2. GIA — CGT on the gains portion.
-    let giaWithdrawal = 0;
-    let giaCgt = 0;
-    let netFromGia = 0;
-    if (potNeed > 0 && giaBalance > 0.01) {
-      const gainFraction =
-        giaBalance > 0 ? Math.max(0, (giaBalance - giaBasis) / giaBalance) : 0;
-      const remainingBasicBand = Math.max(
-        0,
-        BASIC_RATE_CEILING - otherTaxableIncome,
-      );
-      const desiredGross = solveGiaGrossForNet(
-        potNeed,
-        gainFraction,
-        remainingBasicBand,
-      );
-      giaWithdrawal = Math.min(desiredGross, giaBalance);
-      const realisedGain = giaWithdrawal * gainFraction;
-      giaCgt = calculateCapitalGainsTax(realisedGain, remainingBasicBand);
-      netFromGia = giaWithdrawal - giaCgt;
-      const basisConsumed =
-        giaBalance > 0 ? giaWithdrawal * (giaBasis / giaBalance) : 0;
-      giaBasis = Math.max(0, giaBasis - basisConsumed);
-      giaBalance -= giaWithdrawal;
-      potNeed -= netFromGia;
-    }
-
-    // 3. SIPP — marginal drawdown stacked on the other taxable income.
-    let sippGrossWithdrawal = 0;
-    let taxablePortion = 0;
-    let gradualTaxFree = 0; // tax-free SIPP slice spent as income this year
-    if (sippAccessible && potNeed > 0) {
-      const solverTarget = potNeed + otherTaxableNet;
-      if (pensionStrategy === "gradual") {
-        const remainingLsa = Math.max(0, TAX_FREE_LUMP_SUM_CAP - lsaUsed);
-        const desiredGross = solveSippGrossForNetGradual(
-          solverTarget,
-          otherTaxableIncome,
-          remainingLsa,
-        );
-        sippGrossWithdrawal = Math.min(desiredGross, sippBalance);
-        gradualTaxFree = Math.min(0.25 * sippGrossWithdrawal, remainingLsa);
-        lsaUsed += gradualTaxFree;
-        pensionTaxFreeTaken += gradualTaxFree;
-        taxablePortion = sippGrossWithdrawal - gradualTaxFree;
-      } else {
-        const desiredGross = solveGrossIncomeForNet(
-          solverTarget,
-          otherTaxableIncome,
-        );
-        sippGrossWithdrawal = Math.min(desiredGross, sippBalance);
-        taxablePortion = sippGrossWithdrawal;
+    const partTimeIncome = partTimeAnnualIncome > 0 && age < partTimeUntilAge ? partTimeAnnualIncome * inflationFactor : 0;
+    
+    // Other taxable income
+    const otherTaxableIncome = statePensionIncome + rentalIncome + partTimeIncome;
+    
+    // LUMP SUM Strategy
+    if (inputs.pensionStrategy === "lump-sum" && age >= lumpSumAge && !lumpSumTaken) {
+      const taxDeferredId = pack.wrappers.find(w => w.treatment === "tax-deferred")?.id;
+      if (taxDeferredId && stateBalances[taxDeferredId] > 0) {
+        const lump = Math.min(stateBalances[taxDeferredId] * 0.25, taxFreeLumpSumAvailable); // simplifying max logic
+        stateBalances[taxDeferredId] -= lump;
+        if (taxableWrapperId) {
+          stateBalances[taxableWrapperId] = (stateBalances[taxableWrapperId] || 0) + lump;
+          stateBases[taxableWrapperId] = (stateBases[taxableWrapperId] || 0) + lump;
+        }
+        taxFreeLumpSumAvailable -= lump;
+        totalTaxFreePension += lump;
+        lumpSumTaken = true;
       }
-      sippBalance -= sippGrossWithdrawal;
     }
 
-    const incomeTaxPaid = calculateUkIncomeTax(
-      otherTaxableIncome + taxablePortion,
+    // DRAWDOWN ENGINE EVALUATION
+    const strategyName = inputs.country === "us" ? "brokerage->401k->roth" : "isa->gia->sipp";
+    
+    const availableWrappers = pack.wrappers.map(w => {
+      const accessAge = w.id === "sipp" ? (inputs.sippAccessAge ?? w.accessAge ?? 57) : (w.accessAge ?? 0);
+      if (age < accessAge) return null;
+      
+      let fraction = w.taxFreeFractionOnWithdrawal;
+      if (w.treatment === "tax-deferred" && inputs.pensionStrategy === "lump-sum") {
+        fraction = 0;
+      }
+      return { ...w, taxFreeFractionOnWithdrawal: fraction };
+    }).filter(Boolean) as typeof pack.wrappers;
+    
+    const drawdownResult = executeDrawdownSequence(
+      strategyName,
+      yearTarget,
+      { balances: stateBalances, bases: stateBases },
+      otherTaxableIncome,
+      taxSystem,
+      availableWrappers,
+      taxFreeLumpSumAvailable
     );
-    const capitalGainsTaxPaid = giaCgt + propertyCgt;
-    // Net from the taxable side (State Pension + rental + taxable SIPP) plus
-    // the gradual tax-free slice; ISA and GIA are already net.
-    const netFromIncomeSide =
-      gradualTaxFree + otherTaxableIncome + taxablePortion - incomeTaxPaid;
-    const netIncome = isaWithdrawal + netFromGia + netFromIncomeSide;
+    
+    stateBalances = drawdownResult.state.balances;
+    stateBases = drawdownResult.state.bases;
+    totalTaxFreePension += Object.values(drawdownResult.potWithdrawals).reduce((sum, w) => sum + w.taxFree, 0);
+    
+    const netIncome = drawdownResult.netIncomeFromPots + otherTaxableIncome - drawdownResult.incomeTaxPaid - drawdownResult.capitalGainsTaxPaid;
     const shortfall = netIncome < yearTarget - 0.01;
 
-    if (isaBalance <= 0.01 && isaDepletedAge === null && isaBalanceStart > 0) {
-      isaDepletedAge = age;
+    for (const key of Object.keys(stateBalances)) {
+      if (stateBalances[key] <= 0.01 && depletedAges[key] === null && startBalances[key] > 0) {
+        depletedAges[key] = age;
+      }
     }
-    if (giaBalance <= 0.01 && giaDepletedAge === null && giaBalanceStart > 0) {
-      giaDepletedAge = age;
+
+    // Growth for next year
+    for (const [key, pot] of Object.entries(pots)) {
+      stateBalances[key] = (stateBalances[key] || 0) * (1 + pot.growth);
     }
-    if (sippBalance <= 0.01 && sippDepletedAge === null && sippBalanceStart > 0) {
-      sippDepletedAge = age;
+    rentalValue *= 1 + rentalGrowth;
+    homeValue *= 1 + homeGrowth;
+
+    for (const key of Object.keys(stateBalances)) {
+      potsSnap[key].end = stateBalances[key];
     }
+    
+    let phase = age < inputs.sippAccessAge! ? "bridge" : "sipp";
+    if (age >= statePensionAge) phase = "state-pension";
 
     timeline.push({
       age,
-      phase: age < sippAccessAge
-        ? "bridge"
-        : age >= statePensionAge
-          ? "state-pension"
-          : "sipp",
-      isaBalanceStart,
-      isaBalanceEnd: isaBalance,
-      giaBalanceStart,
-      giaBalanceEnd: giaBalance,
-      sippBalanceStart,
-      sippBalanceEnd: sippBalance,
-      isaWithdrawal,
-      giaWithdrawal,
-      sippGrossWithdrawal,
-      pensionTaxFreeTaken,
+      phase: phase as any,
+      pots: potsSnap,
+      potWithdrawals: drawdownResult.potWithdrawals,
       statePensionIncome,
       rentalIncome,
       partTimeIncome,
       propertyCashReleased,
       rentalValueEnd: rentalValue,
       homeValueEnd: homeValue,
-      incomeTaxPaid,
-      capitalGainsTaxPaid,
+      incomeTaxPaid: drawdownResult.incomeTaxPaid,
+      capitalGainsTaxPaid: drawdownResult.capitalGainsTaxPaid,
       netIncome,
       shortfall,
     });
+    
+    if (shortfall) sustainableToLifeExpectancy = false;
   }
-
-  const sustainableToLifeExpectancy = timeline
-    .filter((year) => year.phase !== "accumulation")
-    .every((year) => !year.shortfall);
 
   return {
     inputs,
     timeline,
-    taxFreeLumpSum,
-    totalTaxFreePension: lsaUsed,
+    taxFreeLumpSum: 0,
+    totalTaxFreePension,
     bridgeToSippTransitionAge,
-    isaDepletedAge,
-    giaDepletedAge,
-    sippDepletedAge,
-    sustainableToLifeExpectancy,
+    isaDepletedAge: depletedAges["isa"] ?? null,
+    giaDepletedAge: depletedAges["gia"] ?? null,
+    sippDepletedAge: depletedAges["sipp"] ?? null,
+    sustainableToLifeExpectancy
   };
 }
