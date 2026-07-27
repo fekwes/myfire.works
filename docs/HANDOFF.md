@@ -107,7 +107,7 @@ summary + progressive disclosure), verified in-browser in both themes.
 - `components/FireDashboard.tsx` — the planner (summary + form + charts + tabs).
 - `components/FireForm.tsx` — inputs (essentials + "More options" progressive disclosure).
 - `components/{AssetTimelineChart,IncomeSafetyChart,ConfidencePanel}.tsx` — charts.
-- `components/{AuthProvider,AuthButton,SavedPlans}.tsx` + `lib/supabase/*` + `middleware.ts` — auth.
+- `components/{AuthProvider,AuthButton,SavedPlans}.tsx` + `lib/supabase/*` + `proxy.ts` — auth.
 - `app/methodology/page.tsx` — the docs page (keep it in sync with the engine).
 - `app/page.tsx` (landing), `app/planner/page.tsx` (dashboard), `app/start/page.tsx` (quiz).
 - `components/QuizFlow.tsx` + `components/quiz/QuizPrimitives.tsx` — the onboarding quiz.

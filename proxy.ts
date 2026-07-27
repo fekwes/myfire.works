@@ -1,8 +1,15 @@
+// This was `middleware.ts`. Next 16 deprecated that file convention and
+// renamed it to `proxy`, so the file and the exported function both follow —
+// the build warned on every run until they did. Behaviour is unchanged: same
+// `config.matcher`, same session refresh. Note that Proxy defaults to the
+// Node.js runtime and rejects a `runtime` config option, which this file never
+// set.
+
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // No Supabase configured → nothing to refresh.
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     return NextResponse.next();
