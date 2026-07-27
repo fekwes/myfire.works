@@ -48,7 +48,7 @@ affected it looks like the app threw their data away.
 |---|---|
 | `onfire:plan` | localStorage key for the active plan |
 | `onfire:flag:confidence-run`, `onfire:flag:withdrawals-viewed` | checklist flags |
-| `onfire:flags` | the DOM event the checklist listens for |
+| `onfire:flags` | the DOM event the checklist listens for (`CHECKLIST_FLAGS_EVENT`) |
 | `portfolios` | the Supabase table (via `PROFILES_TABLE` in `lib/profiles.ts`) |
 
 `lib/identifiers.test.ts` pins all four, so an accidental rename fails in CI.
@@ -113,6 +113,7 @@ lib/
   site-url.ts           the public origin, resolved not trusted
   supabase/config.ts    validates NEXT_PUBLIC_SUPABASE_URL; client.ts / server.ts
   ai-errors.ts          keeps upstream error text out of the browser
+  portfolio-import.ts   parses a pasted statement / CSV before Gemini sees it
   checklist.ts  format.ts  export.ts  rate-limit.ts  identifiers.test.ts
 
 proxy.ts                Supabase session refresh. Was middleware.ts — Next 16

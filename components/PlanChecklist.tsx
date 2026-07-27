@@ -10,6 +10,7 @@ import { ButtonLink } from "@/components/ui";
 import {
   buildChecklist,
   type ChecklistFlags,
+  CHECKLIST_FLAGS_EVENT,
   checklistProgress,
   nextChecklistStep,
   readChecklistFlags,
@@ -50,10 +51,10 @@ export function PlanChecklist() {
     readAll();
     const syncFlags = () =>
       setHydration((h) => ({ ...h, flags: readChecklistFlags() }));
-    window.addEventListener("onfire:flags", syncFlags);
+    window.addEventListener(CHECKLIST_FLAGS_EVENT, syncFlags);
     window.addEventListener("storage", syncFlags);
     return () => {
-      window.removeEventListener("onfire:flags", syncFlags);
+      window.removeEventListener(CHECKLIST_FLAGS_EVENT, syncFlags);
       window.removeEventListener("storage", syncFlags);
     };
   }, []);

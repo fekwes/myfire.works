@@ -43,7 +43,7 @@ Full write-up: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Contributor's map, 
 | Charts | Recharts, on a colour-blind-validated data ramp |
 | Auth & saved plans | Supabase (`@supabase/ssr`), Row-Level Security |
 | AI features | Google Gemini (`gemini-flash-latest`), structured JSON output |
-| Testing | Vitest (250 tests) |
+| Testing | Vitest (251 tests) |
 | Hosting | Vercel (Speed Insights, cookieless) |
 
 The app builds and runs with **none** of the optional services configured — auth, AI and saved plans each degrade to a friendly state — so it deploys safely without them.
