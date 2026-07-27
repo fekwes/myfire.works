@@ -227,15 +227,11 @@ function LaunchBox() {
           <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.4} />
           <stop offset="100%" stopColor="var(--brand)" stopOpacity={0} />
         </radialGradient>
-        <linearGradient id="pillar-1" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--surface-muted)" stopOpacity={0.8} />
-          <stop offset="100%" stopColor="var(--surface)" stopOpacity={0} />
-        </linearGradient>
-        <linearGradient id="pillar-2" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="card-1" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--surface-muted)" stopOpacity={1} />
           <stop offset="100%" stopColor="var(--surface)" stopOpacity={0} />
         </linearGradient>
-        <linearGradient id="pillar-brand" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="card-brand" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.4} />
           <stop offset="100%" stopColor="var(--brand)" stopOpacity={0} />
         </linearGradient>
@@ -247,37 +243,54 @@ function LaunchBox() {
       {/* Background ambient glow */}
       <circle cx="160" cy="180" r="100" fill="var(--surface-muted)" opacity="0.2" filter="blur(20px)" />
 
-      {/* Financial Pillars (Data bars building up) */}
-      <rect x="50" y="160" width="30" height="70" rx="3" fill="url(#pillar-1)" stroke="var(--border)" strokeWidth="1" opacity="0.7" />
-      <rect x="95" y="120" width="30" height="110" rx="3" fill="url(#pillar-2)" stroke="var(--border)" strokeWidth="1" />
-      <rect x="140" y="90" width="30" height="140" rx="3" fill="url(#pillar-2)" stroke="var(--border)" strokeWidth="1" />
-      
-      {/* The Hero Pillar (Ignition Point) */}
-      <rect x="185" y="50" width="30" height="180" rx="3" fill="url(#pillar-brand)" stroke="var(--primary)" strokeWidth="1" opacity="0.9" />
-      
-      <rect x="230" y="140" width="30" height="90" rx="3" fill="url(#pillar-1)" stroke="var(--border)" strokeWidth="1" opacity="0.6" />
+      {/* Wallet Back */}
+      <rect x="90" y="140" width="140" height="70" rx="8" fill="var(--surface-muted)" stroke="var(--border)" strokeWidth="1" />
 
-      {/* Connectivity Lines */}
-      <path d="M 65 160 L 110 120 L 155 90 L 200 50" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.5" />
+      {/* Cards inside the wallet */}
+      {/* Left Card */}
+      <g transform="translate(100, 110) rotate(-12)">
+        <rect x="0" y="0" width="40" height="70" rx="4" fill="url(#card-1)" stroke="var(--border)" strokeWidth="1" />
+        <circle cx="20" cy="20" r="8" fill="var(--muted)" opacity="0.5" />
+        <rect x="10" y="35" width="20" height="4" rx="2" fill="var(--muted)" opacity="0.5" />
+      </g>
       
-      {/* Data points on the lines */}
-      <circle cx="65" cy="160" r="3" fill="var(--background)" stroke="var(--border)" strokeWidth="1.5" />
-      <circle cx="110" cy="120" r="3" fill="var(--background)" stroke="var(--border)" strokeWidth="1.5" />
-      <circle cx="155" cy="90" r="3" fill="var(--background)" stroke="var(--border)" strokeWidth="1.5" />
+      {/* Right Card */}
+      <g transform="translate(170, 105) rotate(15)">
+        <rect x="0" y="0" width="40" height="70" rx="4" fill="url(#card-1)" stroke="var(--border)" strokeWidth="1" />
+        <rect x="8" y="15" width="24" height="24" rx="4" fill="var(--muted)" opacity="0.5" />
+      </g>
 
-      {/* The lit fuse at the Hero Pillar */}
+      {/* Center Brand Card (The ignition source) */}
+      <g transform="translate(137, 80)">
+        <rect x="0" y="0" width="46" height="90" rx="6" fill="url(#card-brand)" stroke="var(--primary)" strokeWidth="1" />
+        <circle cx="23" cy="25" r="10" fill="var(--primary)" opacity="0.2" />
+        <rect x="11" y="45" width="24" height="6" rx="3" fill="var(--primary)" opacity="0.3" />
+        <rect x="11" y="57" width="16" height="4" rx="2" fill="var(--primary)" opacity="0.2" />
+      </g>
+
+      {/* Wallet Front */}
+      <rect x="80" y="160" width="160" height="60" rx="10" fill="var(--surface)" stroke="var(--border)" strokeWidth="1.5" />
+      
+      {/* Wallet stitching detail */}
+      <rect x="86" y="166" width="148" height="48" rx="6" fill="none" stroke="var(--muted-foreground)" strokeWidth="1" strokeDasharray="4 4" opacity="0.3" />
+      
+      {/* Wallet clip/emblem */}
+      <rect x="145" y="155" width="30" height="15" rx="4" fill="var(--surface-muted)" stroke="var(--border)" strokeWidth="1" />
+      <circle cx="160" cy="162.5" r="3" fill="var(--primary)" opacity="0.5" />
+
+      {/* The lit spark (emerging from the center brand card) */}
       <g className="transition-transform duration-[var(--dur-base)] group-hover:-translate-y-2">
-        <circle cx="200" cy="50" r="24" fill="url(#launch-halo)" />
-        <circle cx="200" cy="50" r="4" fill="var(--brand)" />
-        <circle cx="200" cy="50" r="1.5" fill="#fff" opacity="0.9" />
-        <circle data-launch-from cx="200" cy="50" r="0.5" fill="none" />
+        <circle cx="160" cy="80" r="24" fill="url(#launch-halo)" />
+        <circle cx="160" cy="80" r="4" fill="var(--brand)" />
+        <circle cx="160" cy="80" r="1.5" fill="#fff" opacity="0.9" />
+        {/* data-launch-from marks the origin of the trail */}
+        <circle data-launch-from cx="160" cy="80" r="0.5" fill="none" />
       </g>
       
       {/* Floating embers (ambient) */}
-      <circle cx="180" cy="30" r="1.5" fill="var(--primary)" opacity="0.7" className="animate-pulse" />
-      <circle cx="220" cy="70" r="2" fill="var(--accent)" opacity="0.5" />
-      <circle cx="215" cy="20" r="1" fill="var(--brand)" opacity="0.8" />
-      <circle cx="160" cy="60" r="1.5" fill="var(--primary)" opacity="0.4" />
+      <circle cx="150" cy="50" r="1.5" fill="var(--primary)" opacity="0.7" className="animate-pulse" />
+      <circle cx="180" cy="60" r="2" fill="var(--accent)" opacity="0.5" />
+      <circle cx="140" cy="65" r="1" fill="var(--brand)" opacity="0.8" />
     </svg>
   );
 }
