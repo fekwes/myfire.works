@@ -15,13 +15,28 @@ export interface FireNumberResult {
   onTrack: boolean;
 }
 
-function zeroContributions(inputs: FireInputs): FireInputs {
-  return {
-    ...inputs,
-    isaMonthlyContribution: 0,
-    giaMonthlyContribution: 0,
-    sippMonthlyContribution: 0,
-  };
+function testInputsWithPots(inputs: FireInputs, isa: number, gia: number, sipp: number): FireInputs {
+  const newInputs = { ...inputs };
+  newInputs.isaBalance = isa;
+  newInputs.giaBalance = gia;
+  newInputs.sippBalance = sipp;
+  newInputs.isaMonthlyContribution = 0;
+  newInputs.giaMonthlyContribution = 0;
+  newInputs.sippMonthlyContribution = 0;
+
+  if (newInputs.pots) {
+    newInputs.pots = { ...newInputs.pots };
+    if (newInputs.pots.isa) {
+      newInputs.pots.isa = { ...newInputs.pots.isa, balance: isa, monthlyContribution: 0 };
+    }
+    if (newInputs.pots.gia) {
+      newInputs.pots.gia = { ...newInputs.pots.gia, balance: gia, monthlyContribution: 0 };
+    }
+    if (newInputs.pots.sipp) {
+      newInputs.pots.sipp = { ...newInputs.pots.sipp, balance: sipp, monthlyContribution: 0 };
+    }
+  }
+  return newInputs;
 }
 
 export function computeFireNumber(inputs: FireInputs): FireNumberResult {
@@ -50,14 +65,12 @@ export function computeFireNumber(inputs: FireInputs): FireNumberResult {
   if (retirementAge >= sippAccessAge) {
     const sustainsPension = (amount: number) =>
       simulateFire(
-        zeroContributions({
-          ...inputs,
-          currentAge: retirementAge,
-          targetAnnualIncome: targetAtRetirement,
-          isaBalance: 0,
-          giaBalance: 0,
-          sippBalance: amount,
-        })
+        testInputsWithPots(
+          { ...inputs, currentAge: retirementAge, targetAnnualIncome: targetAtRetirement },
+          0,
+          0,
+          amount
+        )
       ).sustainableToLifeExpectancy;
 
     pensionRequired =
@@ -72,14 +85,12 @@ export function computeFireNumber(inputs: FireInputs): FireNumberResult {
 
     const sustainsBridge = (amount: number) => {
       const sim = simulateFire(
-        zeroContributions({
-          ...inputs,
-          currentAge: retirementAge,
-          targetAnnualIncome: targetAtRetirement,
-          isaBalance: amount * bridgeRatio,
-          giaBalance: amount * giaRatio,
-          sippBalance: 0,
-        })
+        testInputsWithPots(
+          { ...inputs, currentAge: retirementAge, targetAnnualIncome: targetAtRetirement },
+          amount * bridgeRatio,
+          amount * giaRatio,
+          0
+        )
       );
       return !sim.timeline
         .filter((y) => y.age >= retirementAge && y.age < sippAccessAge)
@@ -97,14 +108,12 @@ export function computeFireNumber(inputs: FireInputs): FireNumberResult {
     // to avoid the 45% SIPP tax overshoot caused by forcing the pension leg into 100% SIPP.
     const sustainsTotal = (amount: number) =>
       simulateFire(
-        zeroContributions({
-          ...inputs,
-          currentAge: retirementAge,
-          targetAnnualIncome: targetAtRetirement,
-          isaBalance: amount * weights.isa,
-          giaBalance: amount * weights.gia,
-          sippBalance: amount * weights.sipp,
-        })
+        testInputsWithPots(
+          { ...inputs, currentAge: retirementAge, targetAnnualIncome: targetAtRetirement },
+          amount * weights.isa,
+          amount * weights.gia,
+          amount * weights.sipp
+        )
       ).sustainableToLifeExpectancy;
 
     const baseFireNumber =
