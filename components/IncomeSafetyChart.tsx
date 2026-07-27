@@ -17,7 +17,7 @@ import { formatCurrency, formatCurrencyCompact } from "@/lib/format";
 interface TooltipPayloadEntry {
   name: string;
   value: number;
-  payload: { age: number; netIncome: number; shortfall: boolean; [key: string]: any };
+  payload: { age: number; netIncome: number; shortfall: boolean; [key: string]: unknown };
   color: string;
 }
 
@@ -99,7 +99,7 @@ export function IncomeSafetyChart({
       };
     });
 
-  const target = result.inputs.targetAnnualIncome;
+
 
   return (
     <div className="w-full">
