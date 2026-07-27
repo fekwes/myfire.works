@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CHECKLIST_FLAG_KEYS } from "./checklist";
+import { CHECKLIST_FLAG_KEYS, CHECKLIST_FLAGS_EVENT } from "./checklist";
 import { PLAN_STORAGE_KEY } from "./plan-storage";
 import { PROFILES_TABLE } from "./profiles";
 
@@ -28,6 +28,10 @@ describe("persistent identifiers must not be renamed", () => {
       confidence: "onfire:flag:confidence-run",
       withdrawals: "onfire:flag:withdrawals-viewed",
     });
+  });
+
+  it("keeps the checklist's DOM event name", () => {
+    expect(CHECKLIST_FLAGS_EVENT).toBe("onfire:flags");
   });
 
   it("keeps the Supabase table name", () => {

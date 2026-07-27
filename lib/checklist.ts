@@ -16,6 +16,16 @@ export const CHECKLIST_FLAG_KEYS = {
 
 export type ChecklistFlagKey = keyof typeof CHECKLIST_FLAG_KEYS;
 
+/**
+ * The DOM event a mounted checklist listens for, so setting a flag updates it
+ * without a reload. A constant rather than a literal at each end: it was
+ * written out twice — dispatched here, listened for in `PlanChecklist` — and
+ * renaming one side would have left the checklist silently stale, which looks
+ * like nothing happened rather than like a bug. `identifiers.test.ts` pins it
+ * alongside the storage keys.
+ */
+export const CHECKLIST_FLAGS_EVENT = "onfire:flags";
+
 export interface ChecklistFlags {
   ranConfidence: boolean;
   viewedWithdrawals: boolean;
@@ -139,7 +149,7 @@ export function readChecklistFlags(): ChecklistFlags {
 export function setChecklistFlag(key: ChecklistFlagKey): void {
   try {
     localStorage.setItem(CHECKLIST_FLAG_KEYS[key], "1");
-    window.dispatchEvent(new Event("onfire:flags"));
+    window.dispatchEvent(new Event(CHECKLIST_FLAGS_EVENT));
   } catch {
     // no-op (SSR / storage disabled)
   }

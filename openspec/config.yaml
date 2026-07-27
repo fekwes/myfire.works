@@ -2,7 +2,7 @@ schema: spec-driven
 
 context: |
   Fireworks — a UK FIRE (Financial Independence, Retire Early) planner, live at
-  myfire.works. Repo fekwes/onfire. Also a recruiter-facing portfolio piece, so
+  myfire.works. Repo fekwes/myfire.works. Also a recruiter-facing portfolio piece, so
   code and docs are read by strangers.
 
   Tech stack: Next.js 16 (App Router, Turbopack), React 19, TypeScript,
