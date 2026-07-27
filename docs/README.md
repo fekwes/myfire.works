@@ -23,15 +23,11 @@ trust it:
 | [`REVIEW-2026-07.md`](./REVIEW-2026-07.md) | Current | Stability/performance/scalability review after PR #9. Its `R1`–`R5` recommendations are referenced from the handoff's backlog. |
 | [`MULTI-COUNTRY.md`](./MULTI-COUNTRY.md) | Design | How the planner would support more than one country. Nothing built. US figures in it are explicitly unsourced. |
 
-Everything in this directory is live. Superseded documents live one level down
-in **[`archive/`](./archive/)**, so that the list above is never padded with
-things you should not act on:
-
-| Archived | What it was |
-|---|---|
-| [`archive/HANDOFF.md`](./archive/HANDOFF.md) | The pre-rebrand OnFIRE handoff. Superseded by `HANDOFF-FIREWORKS.md`. |
-| [`archive/ONBOARDING.md`](./archive/ONBOARDING.md) | The Stage 6 brief for the quiz and landing page. Built, then changed twice — the app is the truth now. |
-| [`archive/ONBOARDING-PLAN.md`](./archive/ONBOARDING-PLAN.md) | A cold walkthrough of the live app that drove the PR #8/#9 onboarding work. |
+Everything in this directory is live. Superseded documents live one level down in
+**[`archive/`](./archive/)** — the pre-rebrand OnFIRE handoff and the two
+onboarding documents — so the list above is never padded with things you should
+not act on. [`archive/README.md`](./archive/README.md) says what each one was,
+what replaced it, and which of its statements are now false.
 
 ## Specs
 
