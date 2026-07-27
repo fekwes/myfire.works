@@ -87,8 +87,10 @@ export function LandingHeroPreview() {
   return (
     <div
       data-launch-to
-      className="landing-rise rounded-3xl border border-border bg-surface p-6 shadow-[var(--shadow-lg)] [animation-delay:120ms]"
+      className="landing-rise relative overflow-hidden rounded-3xl border border-border/50 bg-surface/80 p-6 shadow-2xl shadow-brand/5 backdrop-blur-xl [animation-delay:120ms]"
     >
+      {/* Subtle inner top highlight */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       <div className="flex items-center justify-between">
         <span className="font-mono text-[0.62rem] uppercase tracking-[0.16em] text-muted-foreground">
           Example plan
@@ -106,7 +108,7 @@ export function LandingHeroPreview() {
       <p className="mt-5 font-mono text-[0.62rem] uppercase tracking-wide text-muted-foreground">
         FIRE number
       </p>
-      <p className="mt-1 font-display text-4xl font-bold tabular tracking-tight">
+      <p className="mt-1 font-display text-4xl font-bold tabular tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-brand to-accent">
         {formatCurrency(fireNumber)}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">

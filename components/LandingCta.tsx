@@ -19,7 +19,7 @@ export function LandingCta() {
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
         {returning ? (
           <>
-            <ButtonLink href="/planner" variant="brand" className="px-6 py-3">
+            <ButtonLink href="/planner" variant="brand" className="px-6 py-3 shadow-lg shadow-brand/25 transition-all hover:-translate-y-0.5 hover:scale-105 hover:shadow-brand/40">
               Continue to your dashboard
               <ArrowRight className="size-4" />
             </ButtonLink>
@@ -28,7 +28,7 @@ export function LandingCta() {
             </ButtonLink>
           </>
         ) : (
-          <ButtonLink href="/start" variant="brand" className="px-6 py-3">
+          <ButtonLink href="/start" variant="brand" className="px-6 py-3 shadow-lg shadow-brand/25 transition-all hover:-translate-y-0.5 hover:scale-105 hover:shadow-brand/40">
             Build my plan
             <ArrowRight className="size-4" />
           </ButtonLink>

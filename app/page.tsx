@@ -84,7 +84,7 @@ export default function Landing() {
           <div className="absolute -left-20 top-20 -z-10 h-64 w-64 rounded-full bg-brand/10 blur-[80px]" />
           <div className="absolute -right-20 top-0 -z-10 h-64 w-64 rounded-full bg-accent/10 blur-[80px]" />
 
-          <span className="landing-rise inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-muted-foreground">
+          <span className="landing-rise inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 font-mono text-[0.7rem] uppercase tracking-[0.2em] text-muted-foreground">
             <span className="size-1.5 rounded-full bg-brand" />
             Free FIRE planner · tax-aware drawdown
           </span>
@@ -92,9 +92,9 @@ export default function Landing() {
             Know your number. Know when.
             <br />
             Know{" "}
-            <span className="relative whitespace-nowrap text-primary">
+            <span className="relative whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-brand to-accent">
               it&apos;ll hold
-              <span className="absolute -bottom-1 left-0 h-[3px] w-full rounded-full bg-brand/70" />
+              <span className="absolute -bottom-1 left-0 h-[3px] w-full rounded-full bg-gradient-to-r from-brand/70 to-accent/70" />
             </span>
             .
           </h1>
