@@ -33,7 +33,7 @@ function ChartTooltip({
   return (
     <div className="rounded-xl border border-border bg-surface/95 p-3 text-xs shadow-xl backdrop-blur min-w-[140px]">
       <p className="mb-2 font-display font-semibold text-foreground">Age {age}</p>
-      {payload.filter(p => p.value > 0 && p.name !== 'target' && p.name !== 'netIncome').map(p => (
+      {payload.filter(p => p.value !== 0 && p.name !== 'target' && p.name !== 'netIncome').map(p => (
         <div key={p.name} className="flex justify-between gap-4 mb-1">
           <span className="flex items-center gap-1.5 text-muted-foreground">
             <span className="inline-block size-2 rounded-sm" style={{ backgroundColor: p.color }} />
@@ -73,27 +73,20 @@ export function IncomeSafetyChart({
       const giaGross = year.potWithdrawals.gia?.gross ?? 0;
       const sippGross = year.potWithdrawals.sipp?.gross ?? 0;
       
-      const giaNet = Math.max(0, giaGross - year.capitalGainsTaxPaid);
-      
-      const subjectToIncomeTax = sippGross + year.statePensionIncome + year.rentalIncome + year.partTimeIncome;
-      const itRatio = subjectToIncomeTax > 0 ? Math.max(0, 1 - year.incomeTaxPaid / subjectToIncomeTax) : 1;
-      
-      const sippNet = sippGross * itRatio;
-      const statePensionNet = year.statePensionIncome * itRatio;
-      const rentalNet = year.rentalIncome * itRatio;
-      const workNet = year.partTimeIncome * itRatio;
+      const tax = year.incomeTaxPaid + year.capitalGainsTaxPaid;
       const propertyCash = year.propertyCashReleased ?? 0;
 
       return {
         age: year.age,
         netIncome: Math.round(year.netIncome * deflator),
         isa: Math.round(isaGross * deflator),
-        gia: Math.round(giaNet * deflator),
-        sipp: Math.round(sippNet * deflator),
-        statePension: Math.round(statePensionNet * deflator),
-        rental: Math.round(rentalNet * deflator),
-        work: Math.round(workNet * deflator),
+        gia: Math.round(giaGross * deflator),
+        sipp: Math.round(sippGross * deflator),
+        statePension: Math.round(year.statePensionIncome * deflator),
+        rental: Math.round(year.rentalIncome * deflator),
+        work: Math.round(year.partTimeIncome * deflator),
         propertyCash: Math.round(propertyCash * deflator),
+        tax: Math.round(-tax * deflator),
         target: Math.round(target),
         shortfall: year.shortfall,
       };
@@ -152,6 +145,7 @@ export function IncomeSafetyChart({
           <Bar dataKey="gia" name="GIA" stackId="a" fill="var(--color-accent)" maxBarSize={18} />
           <Bar dataKey="isa" name="ISA" stackId="a" fill="var(--color-success)" maxBarSize={18} />
           <Bar dataKey="propertyCash" name="Property Cash" stackId="a" fill="#fbbf24" maxBarSize={18} />
+          <Bar dataKey="tax" name="Tax Paid" stackId="a" fill="var(--color-danger)" maxBarSize={18} />
         </ComposedChart>
       </ResponsiveContainer>
       </div>
