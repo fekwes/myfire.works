@@ -2,10 +2,10 @@
 
 import {
   Bar,
-  BarChart,
+  ComposedChart,
+  Line,
   CartesianGrid,
   Cell,
-  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -39,25 +39,37 @@ function ChartTooltip({
 
 export function IncomeSafetyChart({
   result,
+  realTerms = false,
 }: {
   result: FireSimulationResult;
+  realTerms?: boolean;
 }) {
   const data = result.timeline
     .filter((year) => year.phase !== "accumulation")
-    .map((year) => ({
-      age: year.age,
-      netIncome: Math.round(year.netIncome),
-      shortfall: year.shortfall,
-    }));
+    .map((year) => {
+      const yearsOut = year.age - result.inputs.currentAge;
+      const inflation = result.inputs.inflationRate ?? 0;
+      const deflator = realTerms ? 1 / ((1 + inflation) ** yearsOut) : 1;
+      
+      const inflatedTarget = result.inputs.targetAnnualIncome * ((1 + inflation) ** yearsOut);
+      const target = realTerms ? result.inputs.targetAnnualIncome : inflatedTarget;
 
-  const target = result.inputs.targetAnnualIncome;
+      return {
+        age: year.age,
+        netIncome: Math.round(year.netIncome * deflator),
+        target: Math.round(target),
+        shortfall: year.shortfall,
+      };
+    });
+
   const hasShortfall = data.some((d) => d.shortfall);
+  const target = result.inputs.targetAnnualIncome;
 
   return (
     <div className="w-full">
       <div className="h-56 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart
+        <ComposedChart
           data={data}
           margin={{ top: 8, right: 16, bottom: 0, left: 0 }}
         >
@@ -81,16 +93,14 @@ export function IncomeSafetyChart({
             width={52}
           />
           <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--color-border)", opacity: 0.3 }} />
-          <ReferenceLine
-            y={target}
+          <Line
+            type="stepAfter"
+            dataKey="target"
             stroke="var(--color-muted-foreground)"
             strokeDasharray="4 4"
-            label={{
-              value: "Target",
-              position: "insideTopRight",
-              fill: "var(--color-muted-foreground)",
-              fontSize: 10,
-            }}
+            dot={false}
+            activeDot={false}
+            strokeWidth={1.5}
           />
           <Bar dataKey="netIncome" radius={[4, 4, 0, 0]} maxBarSize={18}>
             {data.map((entry) => (
@@ -102,7 +112,7 @@ export function IncomeSafetyChart({
               />
             ))}
           </Bar>
-        </BarChart>
+        </ComposedChart>
       </ResponsiveContainer>
       </div>
 

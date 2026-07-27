@@ -19,10 +19,20 @@ function MonoLabel({ children }: { children: React.ReactNode }) {
 
 export function OverviewPanel({
   result,
+  realTerms = true,
 }: {
   result: FireSimulationResult;
+  realTerms?: boolean;
 }) {
   const { inputs } = result;
+
+  const infl = inputs.inflationRate ?? 0;
+  const deflateAt = (age: number) =>
+    (realTerms && infl > 0) ? 1 / (1 + infl) ** (age - inputs.currentAge) : 1;
+  const retireDefl = deflateAt(inputs.retirementAge);
+
+  const formatReal = (val: number | null) => val === null ? null : formatCurrency(val * retireDefl);
+
 
   const fn = useMemo(() => computeFireNumber(inputs), [inputs]);
   const req = useMemo(() => requiredContributions(inputs), [inputs]);
@@ -45,24 +55,24 @@ export function OverviewPanel({
             Your FIRE Number
           </h3>
           <p className="font-display text-2xl font-bold tabular text-foreground">
-            {formatCurrency(fn.fireNumber)}
+            {formatReal(fn.fireNumber)}
           </p>
           <div className="mt-2 space-y-1.5 border-t border-border/50 pt-2 text-sm">
             {hasBridge && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Bridge (ISA/GIA)</span>
-                <span className="font-medium tabular text-foreground">{formatCurrency(fn.bridgeRequired)}</span>
+                <span className="font-medium tabular text-foreground">{formatReal(fn.bridgeRequired)}</span>
               </div>
             )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Pension (SIPP)</span>
-              <span className="font-medium tabular text-foreground">{formatCurrency(fn.pensionRequired)}</span>
+              <span className="font-medium tabular text-foreground">{formatReal(fn.pensionRequired)}</span>
             </div>
           </div>
           {fn.bridgeGap > 0 && hasBridge && (
             <p className="mt-1 text-xs text-danger">
               <Info className="inline size-3 mr-1" />
-              Bridge shortfall: {formatCurrency(fn.bridgeGap)}
+              Bridge shortfall: {formatReal(fn.bridgeGap)}
             </p>
           )}
         </div>
@@ -128,18 +138,18 @@ export function OverviewPanel({
           {income ? (
             <>
               <p className="font-display text-2xl font-bold tabular text-foreground">
-                {formatCurrency(income.headline)}/yr
+                {formatReal(income.headline)}/yr
               </p>
               <div className="mt-2 space-y-1.5 border-t border-border/50 pt-2 text-sm">
                 {hasBridge && income.bridgeIncome !== null && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Bridge pots</span>
-                    <span className="font-medium tabular text-foreground">{formatCurrency(income.bridgeIncome)}/yr</span>
+                    <span className="font-medium tabular text-foreground">{formatReal(income.bridgeIncome)}/yr</span>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Pension</span>
-                  <span className="font-medium tabular text-foreground">{formatCurrency(income.pensionIncome)}/yr</span>
+                  <span className="font-medium tabular text-foreground">{formatReal(income.pensionIncome)}/yr</span>
                 </div>
               </div>
               <p className="mt-auto pt-2 text-xs text-muted-foreground">

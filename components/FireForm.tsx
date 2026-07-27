@@ -24,11 +24,11 @@ export const DEFAULT_FIRE_FORM_VALUES: FireInputs = {
   giaMonthlyContribution: 0,
   giaGrowth: 0.05,
   rentalValue: 0,
-  rentalGrowth: 0.03,
+  rentalGrowth: 0.025,
   rentalMonthlyIncome: 0,
   rentalSaleAge: 0,
   homeValue: 0,
-  homeGrowth: 0.03,
+  homeGrowth: 0.025,
   downsizeAge: 0,
   downsizeReleaseFraction: 0,
   sippBalance: 80000,
@@ -449,6 +449,45 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
             step={500}
           />
         </Field>
+
+        <Block
+          title="Coast FIRE"
+          tooltip="Stop saving early and let your pots grow on their own."
+        >
+          <Field
+            label="Stop contributions at age"
+            tooltip="Age at which you stop adding to your pots. Leave at 0 to keep contributing until retirement."
+          >
+            <NumberInput
+              value={num(value.contributionsUntilAge, 0)}
+              onChange={(v) => set("contributionsUntilAge", v || undefined)}
+              suffix="0 = keep going"
+            />
+          </Field>
+        </Block>
+
+        <Block
+          title="Part-time transition"
+          tooltip="Go part-time in early retirement to bridge the gap to your State Pension."
+        >
+          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
+            <Field label="Part-time until age">
+              <NumberInput
+                value={num(value.partTimeUntilAge, 0)}
+                onChange={(v) => set("partTimeUntilAge", v)}
+                suffix="0 = none"
+              />
+            </Field>
+            <Field label="Part-time income">
+              <NumberInput
+                value={num(value.partTimeAnnualIncome, 0)}
+                onChange={(v) => set("partTimeAnnualIncome", v)}
+                prefix="£"
+                step={1000}
+              />
+            </Field>
+          </div>
+        </Block>
       </Section>
 
       <Section
@@ -579,7 +618,7 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
           </Field>
           <Field label="Expected growth">
             <PercentInput
-              value={num(value.rentalGrowth, 0.03)}
+              value={num(value.rentalGrowth, 0.025)}
               onChange={(v) => set("rentalGrowth", v)}
             />
           </Field>
@@ -608,7 +647,7 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
           </Field>
           <Field label="Expected growth">
             <PercentInput
-              value={num(value.homeGrowth, 0.03)}
+              value={num(value.homeGrowth, 0.025)}
               onChange={(v) => set("homeGrowth", v)}
             />
           </Field>

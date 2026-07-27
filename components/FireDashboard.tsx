@@ -107,7 +107,15 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
 
   const chartPanelId = useId();
   const chartTabsPrefix = useId();
+
   const chartTabId = (tab: ChartTab) => `${chartTabsPrefix}-${tab}`;
+
+  const [realTerms, setRealTerms] = useState(true);
+
+  const infl = inputs.inflationRate ?? 0;
+  const showRealToggle = infl > 0;
+  const real = showRealToggle && realTerms;
+
 
   useEffect(() => {
     const openFromHash = () => { if (window.location.hash === "#confidence") setHashTab("confidence"); };
@@ -171,7 +179,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
             />
             {provisional ? "Provisional" : sustainable ? "On track" : "Shortfall"}
           </span>
-          <p className="text-sm font-medium text-foreground">
+          <p className="text-sm font-medium text-foreground hidden sm:block">
             {provisional
               ? "Add your balances to see if you're on track."
               : sustainable
@@ -179,6 +187,43 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
                 : `Falls short from age ${firstShortfall}.`}
           </p>
         </div>
+        
+        {showRealToggle && (
+          <div className="flex flex-col items-end">
+            <div className="no-print inline-flex items-center gap-1 rounded-full border border-border bg-surface-muted p-1">
+              {(
+                [
+                  { v: true, label: "Today's money" },
+                  { v: false, label: "Future money" },
+                ] as const
+              ).map((o) => (
+                <button
+                  key={o.label}
+                  type="button"
+                  onClick={() => setRealTerms(o.v)}
+                  aria-pressed={realTerms === o.v}
+                  title={
+                    o.v
+                      ? "Show figures in today's money (deflated by inflation)"
+                      : "Show the actual future pounds withdrawn"
+                  }
+                  className={`rounded-full px-2.5 py-0.5 text-[0.7rem] font-semibold transition-colors ${
+                    realTerms === o.v
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <p className="no-print mt-1 text-[0.65rem] text-muted-foreground text-right max-w-[200px]">
+              {realTerms
+                ? "Adjusted for inflation — what these amounts are worth in 2026 terms"
+                : "Not adjusted — the cash amounts in each future year"}
+            </p>
+          </div>
+        )}
       </div>
 
       {!readOnly && <PlanChecklist />}
@@ -208,9 +253,9 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
           className="mt-4 focus-visible:outline-none"
         >
           {chartTab === "assets" ? (
-            <AssetTimelineChart result={plan} realTerms={true} />
+            <AssetTimelineChart result={plan} realTerms={real} />
           ) : chartTab === "income" ? (
-            <IncomeSafetyChart result={plan} />
+            <IncomeSafetyChart result={plan} realTerms={realTerms} />
           ) : (
             <ConfidencePanel inputs={inputs} />
           )}
@@ -219,7 +264,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
         <AiInsights result={plan} isProvisional={provisional} isReadOnly={readOnly} />
       </Card>
 
-      <OverviewPanel result={plan} />
+      <OverviewPanel result={plan} realTerms={real} />
 
       <p className="px-1 text-xs text-muted-foreground">
         Estimates based on simplified assumptions — not financial advice.{" "}

@@ -3,11 +3,12 @@ import {
   DEFAULT_INFLATION_RATE,
   type FireInputs,
 } from "./fire-engine";
+import { deriveMinimumPensionAge, deriveStatePensionAge } from "./pension-ages";
 
 /** Nominal growth the quiz applies to the investment pots (editable later). */
 export const QUIZ_POT_GROWTH = 0.05;
 /** Property grows more slowly than the pots by default. */
-export const QUIZ_PROPERTY_GROWTH = 0.03;
+export const QUIZ_PROPERTY_GROWTH = 0.025;
 
 /** Placeholder starting contributions so the first plan isn't flat-zero. */
 const QUIZ_DEFAULT_ISA_MONTHLY = 500;
@@ -103,31 +104,37 @@ export const DEFAULT_RETIREMENT_AGE = 55;
 
 /** The answers the quiz collects — spending target, ages, strategy, savings. */
 export interface QuizState {
+  strategy: StrategyId;
   lifestyle: LifestyleId;
   /** Only meaningful when lifestyle === "custom". */
   customIncome: number;
   currentAge: number;
+  /** When contributions stop (Coast FIRE). Undefined means they stop at retirementAge. */
+  contributionsUntilAge?: number;
   retirementAge: number;
-  strategy: StrategyId;
+  /**
+   * Part-time work until this age. Undefined means no part-time work.
+   */
+  partTimeUntilAge?: number;
+  /** Annual income from part-time work */
+  partTimeAnnualIncome: number;
   /** Rough total already saved. Only seeded when `savingsProvided` is true. */
   savings: number;
-  /**
-   * Whether the user actually gave a savings figure. The savings step is
-   * optional — skipping it must be distinguishable from entering £0, because
-   * "I haven't told you yet" and "I genuinely have nothing" lead to different
-   * honesty states in the planner (provisional vs. a real zero-balance plan).
-   */
+  /** True if user entered savings manually instead of skipping. */
   savingsProvided: boolean;
+  /** If the user used the AI import, the resulting partial inputs are stored here. */
+  importedPlan?: Partial<FireInputs>;
 }
 
 /** Initial answers — sensible middle-of-the-road defaults, all steps valid. */
 export function initialQuizState(): QuizState {
   return {
+    strategy: "standard",
     lifestyle: "moderate",
     customIncome: 40000,
     currentAge: 35,
     retirementAge: DEFAULT_RETIREMENT_AGE,
-    strategy: "standard",
+    partTimeAnnualIncome: BARISTA_ANNUAL_INCOME,
     savings: 0,
     savingsProvided: false,
   };
@@ -146,15 +153,25 @@ export function initialQuizState(): QuizState {
  */
 export function assembleQuizInputs(state: QuizState): FireInputs {
   const targetAnnualIncome = lifestyleIncome(state.lifestyle, state.customIncome);
-  const statePensionAge = DEFAULT_ASSUMPTIONS.statePensionAge;
+  const statePensionAge = deriveStatePensionAge(state.currentAge);
+  const sippAccessAge = deriveMinimumPensionAge(state.currentAge);
 
   const barista = state.strategy === "barista";
+  const partTimeAnnualIncome = barista ? state.partTimeAnnualIncome : 0;
+  const partTimeUntilAge = barista ? state.partTimeUntilAge ?? statePensionAge : 0;
+
+  const coast = state.strategy === "coast";
+  const contributionsUntilAge = coast ? state.contributionsUntilAge : undefined;
+
   const isaBalance = state.savingsProvided ? Math.max(0, state.savings) : 0;
 
   return {
     currentAge: state.currentAge,
     retirementAge: state.retirementAge,
     targetAnnualIncome,
+    contributionsUntilAge,
+    partTimeAnnualIncome,
+    partTimeUntilAge,
 
     isaBalance,
     isaMonthlyContribution: QUIZ_DEFAULT_ISA_MONTHLY,
@@ -169,10 +186,6 @@ export function assembleQuizInputs(state: QuizState): FireInputs {
     giaGrowth: QUIZ_POT_GROWTH,
     sippGrowth: QUIZ_POT_GROWTH,
 
-    // Part-time first: part-time work bridges income until the State Pension.
-    partTimeAnnualIncome: barista ? BARISTA_ANNUAL_INCOME : 0,
-    partTimeUntilAge: barista ? statePensionAge : 0,
-
     // Property — optional, added later.
     homeValue: 0,
     homeGrowth: QUIZ_PROPERTY_GROWTH,
@@ -185,8 +198,9 @@ export function assembleQuizInputs(state: QuizState): FireInputs {
 
     statePensionAnnual: DEFAULT_ASSUMPTIONS.statePensionAnnual,
     statePensionAge,
-    sippAccessAge: DEFAULT_ASSUMPTIONS.sippAccessAge,
+    sippAccessAge,
     pensionStrategy: DEFAULT_ASSUMPTIONS.pensionStrategy,
     lifeExpectancyAge: DEFAULT_ASSUMPTIONS.lifeExpectancyAge,
+    ...state.importedPlan, // override with extracted figures
   };
 }

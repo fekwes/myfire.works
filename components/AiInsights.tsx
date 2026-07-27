@@ -32,7 +32,7 @@ export function AiInsights({ result, isProvisional, isReadOnly }: { result: Fire
       sippBalance: inputs.sippBalance,
       sippMonthlyContribution: inputs.sippMonthlyContribution,
     });
-  }, [result.inputs]);
+  }, [result]);
 
   const handleAnalyze = async (force: boolean = false) => {
     if (!force && cache.has(signature)) {
