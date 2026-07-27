@@ -78,6 +78,15 @@ components/
   SavedPlans.tsx        Profiles (save/load/rename/copy/delete)
   AssetTimelineChart · IncomeSafetyChart · ConfidencePanel   the three charts
   PlanProvider.tsx      the one active plan (localStorage-backed)
+  AuthProvider.tsx  AuthButton.tsx  AccountPanel.tsx   sign-in state, popover, account
+  PlanChecklist.tsx     the 6-step "what to do next" rail; reads onfire:flag:*
+  QuickLevers.tsx       the few inputs people tweak while watching the result
+  WhatIfCard.tsx        scenario deltas. Status colour follows outcome, not position.
+  FeeDragCard.tsx       what OCFs + platform fee cost you by retirement
+  AiInsights.tsx        Gemini tips (/api/analyze). Degrades without a key.
+  PlanActions.tsx       Share / CSV / JSON / print
+  LandingCta.tsx  HeaderLogo.tsx  Glossary.tsx        landing + chrome + jargon
+  ThemeProvider.tsx  ThemeToggle.tsx                  dark default, via next-themes
   ui/                   Button · Card · Menu · Collapsible
 
 lib/

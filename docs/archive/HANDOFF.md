@@ -1,6 +1,6 @@
 # OnFIRE — handoff archive (pre-rebrand)
 
-> ## 👉 Status: Archive. Read [`HANDOFF-FIREWORKS.md`](./HANDOFF-FIREWORKS.md) instead.
+> ## 👉 Status: Archive. Read [`HANDOFF-FIREWORKS.md`](../HANDOFF-FIREWORKS.md) instead.
 >
 > That file is the current source of truth: repo map, deploy/env, the
 > identifiers that must never be renamed, known gaps and the backlog. This file

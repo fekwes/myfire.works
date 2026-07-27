@@ -5,7 +5,7 @@
 > questions before the reveal, the personas were cut down to
 > `standard | coast | barista`, and the landing "skip to the planner" was
 > removed. **The app and `lib/quiz.ts` are the truth.** Kept for the reasoning
-> behind the flow — do not update it. See [`README.md`](./README.md) for the
+> behind the flow — do not update it. See [`README.md`](../README.md) for the
 > documentation index.
 
 ## Goal
