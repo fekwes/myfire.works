@@ -134,7 +134,7 @@ export default function Landing() {
               crate to the foot of the column — the empty space becomes the
               ground it stands on rather than a gap. `lg` only: below that the
               trail doesn't exist, so neither should its origin. */}
-          <span className="mt-auto hidden pt-12 lg:flex">
+          <span className="mt-auto hidden pt-12 lg:flex w-full justify-center">
             <LaunchPad />
           </span>
         </div>
