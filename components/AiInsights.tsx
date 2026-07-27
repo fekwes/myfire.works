@@ -27,10 +27,10 @@ export function AiInsights({ result, isProvisional, isReadOnly }: { result: Fire
       currentAge: inputs.currentAge,
       retirementAge: inputs.retirementAge,
       targetAnnualIncome: inputs.targetAnnualIncome,
-      isaBalance: inputs.pots.isa?.balance ?? 0,
-      isaMonthlyContribution: inputs.pots.isa?.monthlyContribution ?? 0,
-      sippBalance: inputs.pots.sipp?.balance ?? 0,
-      sippMonthlyContribution: inputs.pots.sipp?.monthlyContribution ?? 0,
+      isaBalance: inputs.pots?.isa?.balance ?? 0,
+      isaMonthlyContribution: inputs.pots?.isa?.monthlyContribution ?? 0,
+      sippBalance: inputs.pots?.sipp?.balance ?? 0,
+      sippMonthlyContribution: inputs.pots?.sipp?.monthlyContribution ?? 0,
     });
   }, [result]);
 

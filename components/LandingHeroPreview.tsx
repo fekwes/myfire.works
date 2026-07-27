@@ -6,13 +6,13 @@ import { formatCurrency } from "@/lib/format";
 // numbers the planner would show — so the hero previews the actual product
 // rather than a mocked-up screenshot.
 const SAMPLE: FireInputs = {
-  currentAge: 45,
-  retirementAge: 56,
-  targetAnnualIncome: 25000,
-  isaBalance: 200000,
-  isaMonthlyContribution: 1000,
-  sippBalance: 250000,
-  sippMonthlyContribution: 800,
+  currentAge: 40,
+  retirementAge: 55,
+  targetAnnualIncome: 18000,
+  isaBalance: 120000,
+  isaMonthlyContribution: 600,
+  sippBalance: 180000,
+  sippMonthlyContribution: 500,
   inflationRate: 0.025,
 };
 
