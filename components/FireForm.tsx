@@ -4,13 +4,16 @@ import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { PortfolioEditor, type ReuseSource } from "@/components/PortfolioEditor";
-import { holdingsNetGrowth } from "@/lib/assets";
+import { holdingsNetGrowth, type Holding } from "@/lib/assets";
 import {
   DEFAULT_ASSUMPTIONS,
   DEFAULT_INFLATION_RATE,
   type FireInputs,
   type PensionStrategy,
+  type WrapperInput,
 } from "@/lib/fire-engine";
+import { ukPack } from "@/lib/countries/uk";
+import { usPack } from "@/lib/countries/us";
 
 export const DEFAULT_FIRE_FORM_VALUES: FireInputs = {
   currentAge: 35,
@@ -346,17 +349,66 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
   const set = <K extends keyof FireInputs>(key: K, next: FireInputs[K]) =>
     onChange({ ...value, [key]: next });
 
+  const country = value.country ?? "uk";
+  const pack = country === "us" ? usPack : ukPack;
+
+  const getPot = (id: string): WrapperInput => {
+    if (value.pots?.[id]) return value.pots[id];
+    // fallback to legacy
+    if (country === "uk") {
+      if (id === "isa") return { balance: value.isaBalance ?? 0, monthlyContribution: value.isaMonthlyContribution ?? 0, growth: value.isaGrowth ?? 0.05, holdings: value.isaHoldings ?? [] };
+      if (id === "sipp") return { balance: value.sippBalance ?? 0, monthlyContribution: value.sippMonthlyContribution ?? 0, growth: value.sippGrowth ?? 0.05, holdings: value.sippHoldings ?? [] };
+      if (id === "gia") return { balance: value.giaBalance ?? 0, monthlyContribution: value.giaMonthlyContribution ?? 0, growth: value.giaGrowth ?? 0.05, holdings: value.giaHoldings ?? [] };
+    }
+    return { balance: 0, monthlyContribution: 0, growth: 0.05, holdings: [] };
+  };
+
+  const setPot = (id: string, partial: Partial<WrapperInput>) => {
+    const current = getPot(id);
+    const nextPot = { ...current, ...partial };
+    
+    // Also sync to legacy if it's UK for backward compatibility on UI state
+    const overrides: Partial<FireInputs> = {};
+    if (country === "uk") {
+      if (id === "isa") {
+        if (partial.balance !== undefined) overrides.isaBalance = partial.balance;
+        if (partial.monthlyContribution !== undefined) overrides.isaMonthlyContribution = partial.monthlyContribution;
+        if (partial.growth !== undefined) overrides.isaGrowth = partial.growth;
+        if (partial.holdings !== undefined) overrides.isaHoldings = partial.holdings;
+      }
+      if (id === "sipp") {
+        if (partial.balance !== undefined) overrides.sippBalance = partial.balance;
+        if (partial.monthlyContribution !== undefined) overrides.sippMonthlyContribution = partial.monthlyContribution;
+        if (partial.growth !== undefined) overrides.sippGrowth = partial.growth;
+        if (partial.holdings !== undefined) overrides.sippHoldings = partial.holdings;
+      }
+      if (id === "gia") {
+        if (partial.balance !== undefined) overrides.giaBalance = partial.balance;
+        if (partial.monthlyContribution !== undefined) overrides.giaMonthlyContribution = partial.monthlyContribution;
+        if (partial.growth !== undefined) overrides.giaGrowth = partial.growth;
+        if (partial.holdings !== undefined) overrides.giaHoldings = partial.holdings;
+      }
+    }
+    
+    onChange({
+      ...value,
+      ...overrides,
+      pots: {
+        ...(value.pots || {}),
+        [id]: nextPot
+      }
+    });
+  };
+
   // The other wrappers whose portfolio can be copied into this one.
-  const reuseFor = (self: "isa" | "sipp" | "gia"): ReuseSource[] =>
-    (
-      [
-        { id: "isa", label: "ISA", holdings: value.isaHoldings },
-        { id: "sipp", label: "SIPP", holdings: value.sippHoldings },
-        { id: "gia", label: "GIA", holdings: value.giaHoldings },
-      ] as const
-    )
-      .filter((w) => w.id !== self && w.holdings && w.holdings.length > 0)
-      .map((w) => ({ id: w.id, label: w.label, holdings: w.holdings ?? [] }));
+  const reuseFor = (self: string): ReuseSource[] =>
+    pack.wrappers
+      .filter((w) => w.id !== self)
+      .map(w => {
+        const p = getPot(w.id);
+        return { id: w.id, label: w.label, holdings: p.holdings || [] };
+      })
+      .filter((w) => w.holdings && w.holdings.length > 0);
 
   // Part-time work is off unless it's earning something. The engine has always
   // read "0" as "none", so the switch stays derived from the figures rather
@@ -394,18 +446,13 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
     num(value.lifeExpectancyAge, DEFAULT_ASSUMPTIONS.lifeExpectancyAge) <
     value.currentAge;
 
-  // Set a wrapper's holdings and its derived growth in ONE update — two separate
-  // set() calls would each read the same stale `value` and clobber each other.
-  const setPortfolio = (
-    hKey: "isaHoldings" | "sippHoldings" | "giaHoldings",
-    gKey: "isaGrowth" | "sippGrowth" | "giaGrowth",
-    h: FireInputs["isaHoldings"],
-  ) =>
-    onChange({
-      ...value,
-      [hKey]: h,
-      [gKey]: h && h.length > 0 ? holdingsNetGrowth(h) : value[gKey],
+  const setPortfolio = (id: string, h: Holding[] | undefined) => {
+    const current = getPot(id);
+    setPot(id, {
+      holdings: h,
+      growth: h && h.length > 0 ? holdingsNetGrowth(h) : current.growth,
     });
+  };
 
   return (
     <div>
@@ -415,6 +462,18 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
         description="Ages and the income you're aiming for."
         hidden={activeSection !== "basics"}
       >
+        <Field label="Tax Region" tooltip="Select which country's tax rules to apply to the simulation.">
+          <div className="flex items-center rounded-lg border border-border bg-background transition-colors hover:border-muted-foreground/40 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30 p-1 mb-4">
+            <select
+              value={country}
+              onChange={(e) => set("country", e.target.value as "uk" | "us")}
+              className="w-full min-w-0 bg-transparent px-2 py-1 text-sm outline-none font-medium"
+            >
+              <option value="uk">United Kingdom</option>
+              <option value="us">United States (Federal)</option>
+            </select>
+          </div>
+        </Field>
         <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
           <Field label="Current age">
             <NumberInput
@@ -495,100 +554,45 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
         title="Balances & contributions"
         hidden={activeSection !== "balances"}
       >
-        {/* Dots match the chart's fixed account→hue binding: ISA ember,
-            SIPP violet, GIA teal. Keep these in step with AssetTimelineChart. */}
-        <Block
-          title="ISA — tax-free bridge"
-          dotClass="bg-data-1"
-          tooltip="Individual Savings Account — 100% tax-free to withdraw at any age, so it's drawn first (and bridges you until your pension unlocks)."
-          footer={
-            <WrapperPortfolio
-              label="ISA"
-              growth={value.isaGrowth}
-              holdings={value.isaHoldings}
-              onGrowth={(v) => set("isaGrowth", v)}
-              onPortfolio={(h) => setPortfolio("isaHoldings", "isaGrowth", h)}
-              reuseSources={reuseFor("isa")}
-            />
-          }
-        >
-          <Field label="Current balance">
-            <NumberInput
-              value={value.isaBalance ?? 0}
-              onChange={(v) => set("isaBalance", v)}
-              prefix="£"
-            />
-          </Field>
-          <Field label="Monthly contribution">
-            <NumberInput
-              value={value.isaMonthlyContribution ?? 0}
-              onChange={(v) => set("isaMonthlyContribution", v)}
-              prefix="£"
-            />
-          </Field>
-        </Block>
-
-        <Block
-          title="SIPP — the pension"
-          dotClass="bg-data-2"
-          tooltip="Self-Invested Personal Pension (plus any workplace pensions). Locked until your access age — 57 from 2028 — then 25% is tax-free and the rest is taxable income, topped up by your State Pension."
-          footer={
-            <WrapperPortfolio
-              label="SIPP"
-              growth={value.sippGrowth}
-              holdings={value.sippHoldings}
-              onGrowth={(v) => set("sippGrowth", v)}
-              onPortfolio={(h) => setPortfolio("sippHoldings", "sippGrowth", h)}
-              reuseSources={reuseFor("sipp")}
-            />
-          }
-        >
-          <Field label="Current balance">
-            <NumberInput
-              value={value.sippBalance ?? 0}
-              onChange={(v) => set("sippBalance", v)}
-              prefix="£"
-            />
-          </Field>
-          <Field label="Monthly contribution">
-            <NumberInput
-              value={value.sippMonthlyContribution ?? 0}
-              onChange={(v) => set("sippMonthlyContribution", v)}
-              prefix="£"
-            />
-          </Field>
-        </Block>
-
-        <Block
-          title="Other investments — GIA"
-          dotClass="bg-data-3"
-          tooltip="A General Investment Account: drawn after the ISA, with Capital Gains Tax on gains above the £3,000 exemption."
-          footer={
-            <WrapperPortfolio
-              label="GIA"
-              growth={value.giaGrowth}
-              holdings={value.giaHoldings}
-              onGrowth={(v) => set("giaGrowth", v)}
-              onPortfolio={(h) => setPortfolio("giaHoldings", "giaGrowth", h)}
-              reuseSources={reuseFor("gia")}
-            />
-          }
-        >
-          <Field label="Current balance">
-            <NumberInput
-              value={num(value.giaBalance, 0)}
-              onChange={(v) => set("giaBalance", v)}
-              prefix="£"
-            />
-          </Field>
-          <Field label="Monthly contribution">
-            <NumberInput
-              value={num(value.giaMonthlyContribution, 0)}
-              onChange={(v) => set("giaMonthlyContribution", v)}
-              prefix="£"
-            />
-          </Field>
-        </Block>
+        {pack.wrappers.map((w, idx) => {
+          const pot = getPot(w.id);
+          const dotClasses = ["bg-data-1", "bg-data-2", "bg-data-3", "bg-data-4", "bg-data-5"];
+          const dotClass = dotClasses[idx % dotClasses.length];
+          
+          return (
+            <Block
+              key={w.id}
+              title={w.label}
+              dotClass={dotClass}
+              tooltip={`Treatment: ${w.treatment}. ${w.annualContributionLimit ? 'Limit: ' + w.annualContributionLimit + '/yr.' : ''}`}
+              footer={
+                <WrapperPortfolio
+                  label={w.label}
+                  growth={pot.growth}
+                  holdings={pot.holdings}
+                  onGrowth={(v) => setPot(w.id, { growth: v })}
+                  onPortfolio={(h) => setPortfolio(w.id, h)}
+                  reuseSources={reuseFor(w.id)}
+                />
+              }
+            >
+              <Field label="Current balance">
+                <NumberInput
+                  value={pot.balance}
+                  onChange={(v) => setPot(w.id, { balance: v })}
+                  prefix={pack.currency.code === 'USD' ? '$' : '£'}
+                />
+              </Field>
+              <Field label="Monthly contribution">
+                <NumberInput
+                  value={pot.monthlyContribution}
+                  onChange={(v) => setPot(w.id, { monthlyContribution: v })}
+                  prefix={pack.currency.code === 'USD' ? '$' : '£'}
+                />
+              </Field>
+            </Block>
+          );
+        })}
       </Section>
 
       <Section

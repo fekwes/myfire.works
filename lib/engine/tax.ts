@@ -47,7 +47,7 @@ export function calculateTax(
       allowance = base.allowance(totalIncome); 
     }
 
-    let taxable = Math.max(0, baseIncome - allowance);
+    const taxable = Math.max(0, baseIncome - allowance);
     let tax = 0;
 
     // Apply the schedule

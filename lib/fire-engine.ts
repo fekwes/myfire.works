@@ -338,7 +338,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
   } = inputs;
 
   const pack = country === "us" ? usPack : ukPack;
-  const taxSystem = pack.taxSystem(undefined as any, undefined as any);
+  const taxSystem = pack.taxSystem(undefined, undefined);
 
   let stateBalances: Record<string, number> = {};
   let stateBases: Record<string, number> = {};
@@ -357,7 +357,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
   const rentalMonthlyIncome = inputs.rentalMonthlyIncome;
   let rentalSold = false;
   const rentalSaleAge = inputs.rentalSaleAge;
-  let rentalBasis = inputs.rentalValue;
+  const rentalBasis = inputs.rentalValue;
 
   let homeValue = inputs.homeValue;
   const homeGrowth = inputs.homeGrowth;
@@ -369,8 +369,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
   const partTimeUntilAge = inputs.partTimeUntilAge;
 
   let lumpSumTaken = false;
-  let lumpSumAge = inputs.sippAccessAge ?? 57; // This is a bit UK specific, maybe configure via WrapperSpec? 
-  let lsaUsed = 0;
+  const lumpSumAge = inputs.sippAccessAge ?? 57; // This is a bit UK specific, maybe configure via WrapperSpec? 
   
   // Actually, we can use the pack's taxFreeLifetimeCap
   const taxFreeCap = pack.wrappers.find(w => w.treatment === "tax-deferred")?.taxFreeLifetimeCap || 0;
@@ -378,7 +377,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
   let totalLumpSumTaken = 0;
   let lumpThisYear = 0;
 
-  let bridgeToSippTransitionAge: number | null = null;
+  const bridgeToSippTransitionAge: number | null = null;
   const depletedAges: Record<string, number | null> = {};
   const startBalances: Record<string, number> = { ...stateBalances };
   
@@ -465,7 +464,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       const rentalIncomeCurrent = rentalMonthlyIncome * 12;
       const partTimeIncomeCurrent = partTimeAnnualIncome > 0 && age < partTimeUntilAge ? partTimeAnnualIncome * inflationFactor : 0;
       
-      const combinedIncomes: Partial<Record<any, number>> = {
+      const combinedIncomes: Partial<Record<string, number>> = {
         "employment": statePensionIncome + rentalIncomeCurrent + partTimeIncomeCurrent,
         "realised-gains": gain,
       };
@@ -584,7 +583,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
 
     timeline.push({
       age,
-      phase: phase as any,
+      phase: phase as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       pots: potsSnap,
       potWithdrawals: finalPotWithdrawals,
       statePensionIncome,

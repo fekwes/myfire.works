@@ -31,7 +31,7 @@ export function executeDrawdownSequence(
 ): DrawdownResult {
   const steps = sequence.split(/->|,/).map(s => s.trim());
   let currentTarget = targetNet;
-  let currentState = {
+  const currentState = {
     balances: { ...initialState.balances },
     bases: { ...initialState.bases }
   };

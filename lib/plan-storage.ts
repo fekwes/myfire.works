@@ -212,6 +212,24 @@ export function sanitisePlanInput(parsed: unknown): FireInputs | null {
     if (holdings) clean[key] = holdings;
     else delete clean[key];
   }
+  if (typeof source.country === "string" && (source.country === "uk" || source.country === "us")) {
+    clean.country = source.country;
+  }
+  if (typeof source.pots === "object" && source.pots !== null) {
+    const safePots: Record<string, any> = {};
+    for (const [potId, pot] of Object.entries(source.pots)) {
+      if (typeof pot === "object" && pot !== null) {
+        safePots[potId] = {
+          balance: typeof pot.balance === "number" ? pot.balance : 0,
+          monthlyContribution: typeof pot.monthlyContribution === "number" ? pot.monthlyContribution : 0,
+          growth: typeof pot.growth === "number" ? pot.growth : 0.05,
+        };
+        const holdings = sanitiseHoldings(pot.holdings);
+        if (holdings) safePots[potId].holdings = holdings;
+      }
+    }
+    clean.pots = safePots;
+  }
   clampRanges(clean);
   return clean as unknown as FireInputs;
 }

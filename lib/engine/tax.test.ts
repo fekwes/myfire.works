@@ -4,7 +4,7 @@ import { ukPack } from "../countries/uk";
 import { calculateUkIncomeTax, calculateCapitalGainsTax, BASIC_RATE_CEILING } from "../fire-engine";
 
 describe("Generic Tax Engine vs UK Hardcoded Engine", () => {
-  const taxSys = ukPack.taxSystem(undefined as any, undefined as any);
+  const taxSys = ukPack.taxSystem(undefined, undefined);
 
   it("matches income tax exactly for various incomes", () => {
     const incomesToTest = [12000, 30000, 60000, 110000, 125140, 200000];
