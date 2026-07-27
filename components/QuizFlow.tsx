@@ -1,10 +1,11 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Spark } from "@/components/Logo";
 import { usePlan } from "@/components/PlanProvider";
+import type { FireInputs } from "@/lib/fire-engine";
 import {
   MiniAssetChart,
   ProgressBar,
@@ -13,6 +14,7 @@ import {
   StepShell,
   useCountUp,
 } from "@/components/quiz/QuizPrimitives";
+import { PlanImport } from "@/components/quiz/PlanImport";
 import { Button } from "@/components/ui";
 import { simulateFire } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
@@ -65,6 +67,15 @@ export function QuizFlow() {
       )}
 
       {step === 0 && (
+        <StepStrategy
+          key="strategy"
+          strategy={state.strategy}
+          retirementAge={state.retirementAge}
+          onPick={(strategy) => setState((s) => ({ ...s, strategy }))}
+          onNext={next}
+        />
+      )}
+      {step === 1 && (
         <StepLifestyle
           key="lifestyle"
           lifestyle={state.lifestyle}
@@ -74,24 +85,14 @@ export function QuizFlow() {
             setState((s) => ({ ...s, customIncome, lifestyle: "custom" }))
           }
           onNext={next}
-        />
-      )}
-      {step === 1 && (
-        <StepAges
-          key="ages"
-          currentAge={state.currentAge}
-          retirementAge={state.retirementAge}
-          onChange={(patch) => setState((s) => ({ ...s, ...patch }))}
-          onNext={next}
           onBack={back}
         />
       )}
       {step === 2 && (
-        <StepStrategy
-          key="strategy"
-          strategy={state.strategy}
-          retirementAge={state.retirementAge}
-          onPick={(strategy) => setState((s) => ({ ...s, strategy }))}
+        <StepAges
+          key="ages"
+          state={state}
+          onChange={(patch) => setState((s) => ({ ...s, ...patch }))}
           onNext={next}
           onBack={back}
         />
@@ -101,10 +102,14 @@ export function QuizFlow() {
           key="savings"
           savings={state.savings}
           onChange={(savings) =>
-            setState((s) => ({ ...s, savings, savingsProvided: true }))
+            setState((s) => ({ ...s, savings, savingsProvided: true, importedPlan: undefined }))
           }
+          onImport={(plan) => {
+            setState((s) => ({ ...s, importedPlan: plan, savingsProvided: true }));
+            next();
+          }}
           onSkip={() => {
-            setState((s) => ({ ...s, savings: 0, savingsProvided: false }));
+            setState((s) => ({ ...s, savings: 0, savingsProvided: false, importedPlan: undefined }));
             next();
           }}
           onNext={next}
@@ -128,12 +133,14 @@ function StepLifestyle({
   onPickLifestyle,
   onCustomIncome,
   onNext,
+  onBack,
 }: {
   lifestyle: LifestyleId;
   customIncome: number;
   onPickLifestyle: (id: LifestyleId) => void;
   onCustomIncome: (amount: number) => void;
   onNext: () => void;
+  onBack?: () => void;
 }) {
   return (
     <StepShell
@@ -141,6 +148,7 @@ function StepLifestyle({
       helper="Take-home spending per year, in today's money. Benchmarks are the UK PLSA Retirement Living Standards (single, excluding housing) — this one number drives your FIRE target."
       why="Your yearly spending is the biggest lever on your FIRE number — everything else in the plan sizes around it."
       onContinue={onNext}
+      onBack={onBack}
     >
       <div className="grid gap-2.5">
         {PLSA_LIFESTYLES.map((l) => {
@@ -198,14 +206,12 @@ function StepLifestyle({
 // ------------------------------------------------------------------ //
 
 function StepAges({
-  currentAge,
-  retirementAge,
+  state,
   onChange,
   onNext,
   onBack,
 }: {
-  currentAge: number;
-  retirementAge: number;
+  state: QuizState;
   onChange: (patch: Partial<QuizState>) => void;
   onNext: () => void;
   onBack: () => void;
@@ -221,21 +227,51 @@ function StepAges({
       <div className="grid grid-cols-2 gap-4">
         <QuizField label="Current age">
           <QuizNumberInput
-            value={currentAge}
+            value={state.currentAge}
             onChange={(v) => onChange({ currentAge: v })}
             suffix="yrs"
             min={18}
             autoFocus
           />
         </QuizField>
-        <QuizField label="Retire at">
+        {state.strategy === "coast" && (
+          <QuizField label="Stop adding at">
+            <QuizNumberInput
+              value={state.contributionsUntilAge ?? state.retirementAge}
+              onChange={(v) => onChange({ contributionsUntilAge: v })}
+              suffix="yrs"
+              min={state.currentAge}
+            />
+          </QuizField>
+        )}
+        <QuizField label={state.strategy === "barista" ? "Go part-time at" : "Retire at"}>
           <QuizNumberInput
-            value={retirementAge}
+            value={state.retirementAge}
             onChange={(v) => onChange({ retirementAge: v })}
             suffix="yrs"
-            min={currentAge}
+            min={state.currentAge}
           />
         </QuizField>
+        {state.strategy === "barista" && (
+          <>
+            <QuizField label="Until age">
+              <QuizNumberInput
+                value={state.partTimeUntilAge ?? 67}
+                onChange={(v) => onChange({ partTimeUntilAge: v })}
+                suffix="yrs"
+                min={state.retirementAge}
+              />
+            </QuizField>
+            <QuizField label="Part-time income">
+              <QuizNumberInput
+                value={state.partTimeAnnualIncome}
+                onChange={(v) => onChange({ partTimeAnnualIncome: v })}
+                prefix="£"
+                step={1000}
+              />
+            </QuizField>
+          </>
+        )}
       </div>
     </StepShell>
   );
@@ -256,7 +292,7 @@ function StepStrategy({
   retirementAge: number;
   onPick: (id: StrategyId) => void;
   onNext: () => void;
-  onBack: () => void;
+  onBack?: () => void;
 }) {
   return (
     <StepShell
@@ -302,19 +338,31 @@ function StepStrategy({
 function StepSavings({
   savings,
   onChange,
+  onImport,
   onSkip,
   onNext,
   onBack,
 }: {
   savings: number;
   onChange: (amount: number) => void;
+  onImport: (plan: FireInputs) => void;
   onSkip: () => void;
   onNext: () => void;
   onBack: () => void;
 }) {
+  const [importing, setImporting] = useState(false);
+
+  if (importing) {
+    return (
+      <StepShell heading="Import your plan" onBack={() => setImporting(false)}>
+        <PlanImport onImport={onImport} onCancel={() => setImporting(false)} />
+      </StepShell>
+    );
+  }
+
   return (
     <StepShell
-      heading="Roughly what have you saved so far?"
+      heading="Paste or drop everything you've got"
       helper="A ballpark total across your ISAs, pensions and other savings is fine. This is the one number that turns your result from a guess into a real verdict — but you can skip it."
       why="Without a starting balance we can only project from your contributions — a rough figure is what makes the verdict actually about you."
       onContinue={onNext}
@@ -322,6 +370,24 @@ function StepSavings({
       continueLabel="See my number"
       continueIcon={<ArrowRight className="size-4" />}
     >
+      <div className="mb-4 text-center">
+        <button
+          type="button"
+          onClick={() => setImporting(true)}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand/10 px-4 py-3 text-sm font-semibold text-brand transition-colors hover:bg-brand/20"
+        >
+          <Sparkles className="size-4" />
+          Import with AI
+        </button>
+      </div>
+
+      <div className="relative my-6 flex items-center justify-center">
+        <span className="absolute bg-background px-3 text-xs uppercase tracking-wide text-muted-foreground">
+          Or single figure
+        </span>
+        <div className="h-px w-full bg-border" />
+      </div>
+
       <QuizField
         label="Total saved so far"
         hint="We'll add this to your ISA to start — you can split it across your pension in the planner."
@@ -331,16 +397,15 @@ function StepSavings({
           onChange={onChange}
           prefix="£"
           step={1000}
-          autoFocus
         />
       </QuizField>
 
       <button
         type="button"
         onClick={onSkip}
-        className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+        className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline mt-4"
       >
-        I&apos;m not sure — skip for now
+        Skip for now
       </button>
     </StepShell>
   );

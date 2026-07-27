@@ -370,8 +370,8 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
               <div className="no-print inline-flex items-center gap-1 rounded-full border border-border bg-surface-muted p-1">
                 {(
                   [
-                    { v: true, label: "Today's £" },
-                    { v: false, label: "Future £" },
+                    { v: true, label: "Today's money" },
+                    { v: false, label: "Future money" },
                   ] as const
                 ).map((o) => (
                   <button
@@ -394,6 +394,13 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
                   </button>
                 ))}
               </div>
+            )}
+            {showRealToggle && (
+              <p className="no-print mt-1 text-[0.65rem] text-muted-foreground text-right max-w-[200px]">
+                {realTerms
+                  ? "Adjusted for inflation — what these amounts are worth in 2026 terms"
+                  : "Not adjusted — the cash amounts in each future year"}
+              </p>
             )}
           </div>
         </div>
@@ -493,7 +500,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
           {chartTab === "assets" ? (
             <AssetTimelineChart result={plan} realTerms={real} />
           ) : chartTab === "income" ? (
-            <IncomeSafetyChart result={plan} />
+            <IncomeSafetyChart result={plan} realTerms={realTerms} />
           ) : (
             <ConfidencePanel inputs={inputs} />
           )}

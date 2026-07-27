@@ -62,6 +62,11 @@ export interface FireInputs {
   retirementAge: number;
   targetAnnualIncome: number;
   /**
+   * Stop adding contributions at this age (Coast FIRE).
+   * If omitted, contributions continue until retirementAge.
+   */
+  contributionsUntilAge?: number;
+  /**
    * Annual price inflation. The spending target is quoted in today's money and
    * grown by this each year (so the nominal amount withdrawn rises over time).
    * Pots grow at their nominal `growthRate`; tax bands and the State Pension
@@ -191,6 +196,7 @@ function resolveInputs(inputs: FireInputs): ResolvedFireInputs {
   const growthRate = inputs.growthRate ?? DEFAULT_ASSUMPTIONS.growthRate;
   return {
     ...inputs,
+    contributionsUntilAge: inputs.contributionsUntilAge ?? inputs.retirementAge,
     inflationRate: inputs.inflationRate ?? 0,
     giaBalance: inputs.giaBalance ?? 0,
     giaMonthlyContribution: inputs.giaMonthlyContribution ?? 0,
@@ -437,12 +443,15 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     const sippBalanceStart = sippBalance;
 
     if (age < retirementAge) {
-      isaBalance = isaBalance * (1 + isaGrowth) + inputs.isaMonthlyContribution * 12;
-      const giaContribution = inputs.giaMonthlyContribution * 12;
-      giaBalance = giaBalance * (1 + giaGrowth) + giaContribution;
-      giaBasis += giaContribution;
-      sippBalance =
-        sippBalance * (1 + sippGrowth) + inputs.sippMonthlyContribution * 12;
+      const isContributing = age < inputs.contributionsUntilAge;
+      const isaContrib = isContributing ? inputs.isaMonthlyContribution * 12 : 0;
+      const giaContrib = isContributing ? inputs.giaMonthlyContribution * 12 : 0;
+      const sippContrib = isContributing ? inputs.sippMonthlyContribution * 12 : 0;
+
+      isaBalance = isaBalance * (1 + isaGrowth) + isaContrib;
+      giaBalance = giaBalance * (1 + giaGrowth) + giaContrib;
+      giaBasis += giaContrib;
+      sippBalance = sippBalance * (1 + sippGrowth) + sippContrib;
       rentalValue *= 1 + rentalGrowth;
       homeValue *= 1 + homeGrowth;
 

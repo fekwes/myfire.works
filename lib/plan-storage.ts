@@ -73,6 +73,7 @@ const AGE_FIELDS = [
   "rentalSaleAge",
   "partTimeUntilAge",
   "downsizeAge",
+  "contributionsUntilAge",
 ] as const;
 
 const MONEY_FIELDS = [

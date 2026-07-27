@@ -69,7 +69,8 @@ describe("assembleQuizInputs", () => {
     });
     expect(inputs.currentAge).toBe(42);
     expect(inputs.retirementAge).toBe(58);
-    expect(inputs.sippAccessAge).toBe(DEFAULT_ASSUMPTIONS.sippAccessAge);
+    expect(inputs.sippAccessAge).toBe(58);
+    expect(inputs.statePensionAge).toBe(68);
     expect(inputs.statePensionAnnual).toBe(DEFAULT_ASSUMPTIONS.statePensionAnnual);
     expect(inputs.pensionStrategy).toBe(DEFAULT_ASSUMPTIONS.pensionStrategy);
     expect(inputs.isaGrowth).toBe(QUIZ_POT_GROWTH);
@@ -119,7 +120,7 @@ describe("assembleQuizInputs", () => {
   it("gives the part-time strategy income to State Pension age", () => {
     const inputs = assembleQuizInputs({ ...base, strategy: "barista" });
     expect(inputs.partTimeAnnualIncome).toBe(BARISTA_ANNUAL_INCOME);
-    expect(inputs.partTimeUntilAge).toBe(DEFAULT_ASSUMPTIONS.statePensionAge);
+    expect(inputs.partTimeUntilAge).toBe(68);
   });
 
   it("gives the other strategies no part-time income", () => {
