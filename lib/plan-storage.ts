@@ -216,7 +216,7 @@ export function sanitisePlanInput(parsed: unknown): FireInputs | null {
     clean.country = source.country;
   }
   if (typeof source.pots === "object" && source.pots !== null) {
-    const safePots: Record<string, any> = {};
+    const safePots: NonNullable<FireInputs["pots"]> = {};
     for (const [potId, pot] of Object.entries(source.pots)) {
       if (typeof pot === "object" && pot !== null) {
         safePots[potId] = {

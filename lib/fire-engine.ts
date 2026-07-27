@@ -4,11 +4,7 @@ import { usPack } from "./countries/us";
 import { executeDrawdownSequence } from "./engine/drawdown";
 
 import { calculateTax } from "./engine/tax";
-import {
-  solveGrossIncomeForNetGeneric,
-  solveGrossForNetWithTaxFreeFraction,
-  solveGainGrossForNet,
-} from "./engine/solver";
+
 import {
   type UkIncomeTaxBands,
   UK_INCOME_TAX_BANDS_2026_27,

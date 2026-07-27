@@ -143,7 +143,7 @@ export default function Landing() {
         </div>
 
         <ul className="lg:col-span-7 flex flex-col gap-4">
-          {FEATURES.map((f, i) => (
+          {FEATURES.map((f) => (
             <li
               key={f.title}
               className="group flex gap-5 rounded-3xl border border-border/50 bg-surface-muted/30 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/30 hover:bg-surface-muted/50 hover:shadow-xl hover:shadow-brand/5"

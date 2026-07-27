@@ -91,7 +91,7 @@ export const ukPack: CountryPack = {
       }
     };
   },
-  statePension: (history, claimAge) => {
+  statePension: () => {
     // UK is simple, just the scalar configured by the user
     return 12547.60;
   },

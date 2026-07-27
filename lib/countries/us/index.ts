@@ -1,4 +1,4 @@
-import { CountryPack, Region, TaxSystem, FilingStatus, WrapperSpec, TaxBase } from "../types";
+import { CountryPack, Region, WrapperSpec, TaxBase } from "../types";
 import { US_TAX_BANDS_2024, SS_BEND_POINTS_2024 } from "./constants";
 
 export const usRegion: Region = {
@@ -36,7 +36,7 @@ const WRAPPERS: WrapperSpec[] = [
 
 export const usPack: CountryPack = {
   id: "us",
-  currency: { code: "USD", locale: "en-US" },
+  currency: { code: "USD", locale: "en-US", symbol: "$" },
   regions: [usRegion],
   wrappers: WRAPPERS,
   disposalPolicy: "specific-id",
