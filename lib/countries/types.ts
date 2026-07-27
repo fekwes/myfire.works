@@ -69,7 +69,7 @@ export interface Region {
 
 export interface CountryPack {
   id: string;
-  currency: { code: string; locale: string };
+  currency: { code: string; locale: string; symbol?: string };
   regions: Region[];
   wrappers: WrapperSpec[];
   taxSystem: (region: Region | undefined, filing: FilingStatus | undefined) => TaxSystem;
