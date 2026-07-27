@@ -2,13 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   buildChecklist,
   checklistProgress,
-  type ChecklistFlags,
   nextChecklistStep,
 } from "./checklist";
 import type { FireInputs } from "./fire-engine";
 import { FUND_BY_ID, fundToHolding } from "./vanguard-funds";
-
-const noFlags: ChecklistFlags = { ranConfidence: false, viewedWithdrawals: false };
 
 const fresh: FireInputs = {
   currentAge: 35,
@@ -25,47 +22,42 @@ const fresh: FireInputs = {
 };
 
 describe("buildChecklist", () => {
-  it("marks only 'Plan created' done for a fresh quiz plan", () => {
-    const steps = buildChecklist(fresh, noFlags, false);
-    expect(steps.find((s) => s.id === "created")?.done).toBe(true);
-    expect(steps.filter((s) => s.done)).toHaveLength(1);
+  it("starts empty for a fresh quiz plan", () => {
+    const steps = buildChecklist(fresh, false, true);
+    expect(steps.filter((s) => s.done)).toHaveLength(0);
   });
 
   it("completes 'balances' once any pot has a balance", () => {
-    const steps = buildChecklist({ ...fresh, isaBalance: 20000 }, noFlags, false);
+    const steps = buildChecklist({ ...fresh, isaBalance: 20000 }, false, true);
     expect(steps.find((s) => s.id === "balances")?.done).toBe(true);
   });
 
   it("completes 'funds' once a wrapper has a portfolio", () => {
     const steps = buildChecklist(
       { ...fresh, isaHoldings: [fundToHolding(FUND_BY_ID.vwrp, 1)] },
-      noFlags,
       false,
+      true,
     );
     expect(steps.find((s) => s.id === "funds")?.done).toBe(true);
   });
 
-  it("completes 'confidence' and 'withdrawals' from engagement flags", () => {
-    const steps = buildChecklist(
-      fresh,
-      { ranConfidence: true, viewedWithdrawals: true },
-      false,
-    );
-    expect(steps.find((s) => s.id === "confidence")?.done).toBe(true);
-    expect(steps.find((s) => s.id === "withdrawals")?.done).toBe(true);
-  });
-
   it("completes 'save' only when signed in", () => {
     expect(
-      buildChecklist(fresh, noFlags, true).find((s) => s.id === "save")?.done,
+      buildChecklist(fresh, true, true).find((s) => s.id === "save")?.done,
     ).toBe(true);
+  });
+
+  it("omits 'save' when auth is not configured", () => {
+    const steps = buildChecklist(fresh, false, false);
+    expect(steps.find((s) => s.id === "save")).toBeUndefined();
+    expect(steps.length).toBe(2);
   });
 });
 
 describe("progress + next step", () => {
   it("counts completed steps", () => {
-    const p = checklistProgress(buildChecklist({ ...fresh, isaBalance: 1 }, noFlags, false));
-    expect(p).toEqual({ done: 2, total: 6, complete: false });
+    const p = checklistProgress(buildChecklist({ ...fresh, isaBalance: 1 }, false, true));
+    expect(p).toEqual({ done: 1, total: 3, complete: false });
   });
 
   it("is complete when everything is done", () => {
@@ -75,7 +67,7 @@ describe("progress + next step", () => {
         isaBalance: 1,
         isaHoldings: [fundToHolding(FUND_BY_ID.vwrp, 1)],
       },
-      { ranConfidence: true, viewedWithdrawals: true },
+      true,
       true,
     );
     expect(checklistProgress(done).complete).toBe(true);
@@ -83,7 +75,7 @@ describe("progress + next step", () => {
   });
 
   it("points at the first incomplete step", () => {
-    const steps = buildChecklist(fresh, noFlags, false);
+    const steps = buildChecklist(fresh, false, true);
     expect(nextChecklistStep(steps)?.id).toBe("balances");
   });
 });

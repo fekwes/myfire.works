@@ -1,5 +1,6 @@
 import { smallestPassing } from "./bisect";
 import { type FireInputs, simulateFire } from "./fire-engine";
+import { computeFireNumber } from "./fire-number";
 
 /**
  * Minimum total monthly contribution (ISA + SIPP, split in the plan's current
@@ -7,7 +8,7 @@ import { type FireInputs, simulateFire } from "./fire-engine";
  * retirement age. `simulateFire` is monotonic in contributions, so we bisect.
  * Returns `Infinity` if no amount of saving can make that age work.
  */
-function minMonthlyForSustainable(
+export function minMonthlyForSustainable(
   inputs: FireInputs,
   retireAge: number,
 ): number {
@@ -31,6 +32,52 @@ function minMonthlyForSustainable(
       maxHi: 1e6,
     }) ?? Infinity
   );
+}
+
+export interface RequiredContributions {
+  total: number;
+  extraNeeded: number;
+  extraIsaGia: number;
+  extraSipp: number;
+}
+
+export function requiredContributions(inputs: FireInputs): RequiredContributions | null {
+  const currentTotal = inputs.isaMonthlyContribution + (inputs.giaMonthlyContribution ?? 0) + inputs.sippMonthlyContribution;
+  const needed = minMonthlyForSustainable(inputs, inputs.retirementAge);
+  
+  if (!Number.isFinite(needed)) {
+    return null; // unreachable
+  }
+
+  const extraNeeded = Math.max(0, needed - currentTotal);
+  if (extraNeeded === 0) {
+    return { total: needed, extraNeeded: 0, extraIsaGia: 0, extraSipp: 0 };
+  }
+
+  // Split the extra.
+  const fnRes = computeFireNumber(inputs);
+  const bridgeGap = fnRes.bridgeGap;
+
+  let extraIsaGia = 0;
+  let extraSipp = 0;
+
+  if (bridgeGap > 0) {
+    extraIsaGia = extraNeeded; // Direct the extra to the bridge pots first
+  } else {
+    const currentTotalIsaSipp = inputs.isaMonthlyContribution + inputs.sippMonthlyContribution;
+    const isaFrac = currentTotalIsaSipp > 0 ? inputs.isaMonthlyContribution / currentTotalIsaSipp : 0.5;
+    extraIsaGia = extraNeeded * isaFrac;
+    extraSipp = extraNeeded * (1 - isaFrac);
+  }
+
+  const sippAccessAge = inputs.sippAccessAge ?? 57;
+  // Handle zero-length bridge case
+  if (inputs.retirementAge >= sippAccessAge) {
+    extraIsaGia = 0;
+    extraSipp = extraNeeded;
+  }
+
+  return { total: needed, extraNeeded, extraIsaGia, extraSipp };
 }
 
 export interface RetirementSensitivity {

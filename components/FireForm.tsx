@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { PortfolioEditor, type ReuseSource } from "@/components/PortfolioEditor";
 import { holdingsNetGrowth } from "@/lib/assets";
-import { setChecklistFlag } from "@/lib/checklist";
 import {
   DEFAULT_ASSUMPTIONS,
   DEFAULT_INFLATION_RATE,
@@ -647,7 +646,6 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
             value={value.pensionStrategy ?? DEFAULT_ASSUMPTIONS.pensionStrategy}
             onChange={(v) => {
               set("pensionStrategy", v);
-              setChecklistFlag("withdrawals");
             }}
           />
         </Field>

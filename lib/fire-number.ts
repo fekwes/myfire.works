@@ -6,17 +6,12 @@ import {
 } from "./fire-engine";
 
 export interface FireNumberResult {
-  /** Projected invested pot (ISA + GIA + SIPP) at the start of retirement. */
   projectedAtRetirement: number;
-  /**
-   * Minimum invested pot at retirement age — held in the user's current pot
-   * proportions, with no further contributions — that sustains the target to
-   * life expectancy. The classic "FIRE number".
-   */
   fireNumber: number;
-  /** projectedAtRetirement − fireNumber. Negative means a shortfall. */
+  bridgeRequired: number;
+  pensionRequired: number;
+  bridgeGap: number;
   surplus: number;
-  /** True when the projection reaches retirement with at least the FIRE number. */
   onTrack: boolean;
 }
 
@@ -29,13 +24,6 @@ function zeroContributions(inputs: FireInputs): FireInputs {
   };
 }
 
-/**
- * The pot needed at retirement to fund the plan without further saving. Because
- * `simulateFire` is monotonic in the starting balance, we bisect: re-run the
- * plan *from retirement age* with a candidate pot (split across ISA/GIA/SIPP in
- * the projected proportions) and no contributions, and find the smallest pot
- * that still sustains to life expectancy.
- */
 export function computeFireNumber(inputs: FireInputs): FireNumberResult {
   const retirementAge = Math.max(inputs.retirementAge, inputs.currentAge);
   const full = simulateFire(inputs);
@@ -53,33 +41,90 @@ export function computeFireNumber(inputs: FireInputs): FireNumberResult {
       ? { isa: isa / total, gia: gia / total, sipp: sipp / total }
       : { isa: 0.4, gia: 0, sipp: 0.6 };
 
-  // A candidate pot at retirement sustains the plan? Re-run from retirement.
-  // The target must carry the inflation already accrued by retirement, else
-  // shifting `currentAge` forward would reset the inflation baseline.
   const targetAtRetirement = inflatedTargetAt(inputs, retirementAge);
-  const sustainsAt = (amount: number) =>
-    simulateFire(
-      zeroContributions({
-        ...inputs,
-        currentAge: retirementAge,
-        targetAnnualIncome: targetAtRetirement,
-        isaBalance: amount * weights.isa,
-        giaBalance: amount * weights.gia,
-        sippBalance: amount * weights.sipp,
-      }),
-    ).sustainableToLifeExpectancy;
 
-  // No pot makes an impossible plan work — cap rather than loop forever. The
-  // caller shows a shortfall against it either way.
-  const fireNumber =
-    smallestPassing(sustainsAt, {
-      initialHi: Math.max(total * 2, inputs.targetAnnualIncome * 40, 1e6),
-      maxHi: 1e9,
-    }) ?? 1e9;
+  let bridgeRequired = 0;
+  let pensionRequired = 0;
+  const sippAccessAge = inputs.sippAccessAge ?? 57;
+
+  if (retirementAge >= sippAccessAge) {
+    const sustainsPension = (amount: number) =>
+      simulateFire(
+        zeroContributions({
+          ...inputs,
+          currentAge: retirementAge,
+          targetAnnualIncome: targetAtRetirement,
+          isaBalance: 0,
+          giaBalance: 0,
+          sippBalance: amount,
+        })
+      ).sustainableToLifeExpectancy;
+
+    pensionRequired =
+      smallestPassing(sustainsPension, {
+        initialHi: Math.max(total * 2, inputs.targetAnnualIncome * 40, 1e6),
+        maxHi: 1e9,
+      }) ?? 1e9;
+  } else {
+    // Stage 1: Bridge
+    const bridgeRatio = weights.isa + weights.gia > 0 ? weights.isa / (weights.isa + weights.gia) : 1;
+    const giaRatio = 1 - bridgeRatio;
+
+    const sustainsBridge = (amount: number) => {
+      const sim = simulateFire(
+        zeroContributions({
+          ...inputs,
+          currentAge: retirementAge,
+          targetAnnualIncome: targetAtRetirement,
+          isaBalance: amount * bridgeRatio,
+          giaBalance: amount * giaRatio,
+          sippBalance: 0,
+        })
+      );
+      return !sim.timeline
+        .filter((y) => y.age >= retirementAge && y.age < sippAccessAge)
+        .some((y) => y.shortfall);
+    };
+
+    bridgeRequired =
+      smallestPassing(sustainsBridge, {
+        initialHi: Math.max(total, inputs.targetAnnualIncome * 10, 1e5),
+        maxHi: 1e9,
+      }) ?? 0;
+
+    // Stage 2: Pension
+    // Calculate the total required using the fixed proportions, 
+    // to avoid the 45% SIPP tax overshoot caused by forcing the pension leg into 100% SIPP.
+    const sustainsTotal = (amount: number) =>
+      simulateFire(
+        zeroContributions({
+          ...inputs,
+          currentAge: retirementAge,
+          targetAnnualIncome: targetAtRetirement,
+          isaBalance: amount * weights.isa,
+          giaBalance: amount * weights.gia,
+          sippBalance: amount * weights.sipp,
+        })
+      ).sustainableToLifeExpectancy;
+
+    const baseFireNumber =
+      smallestPassing(sustainsTotal, {
+        initialHi: Math.max(total * 2, inputs.targetAnnualIncome * 40, 1e6),
+        maxHi: 1e9,
+      }) ?? 1e9;
+    
+    pensionRequired = Math.max(0, baseFireNumber - bridgeRequired);
+  }
+
+  const fireNumber = bridgeRequired + pensionRequired;
+  const bridgeGap = Math.max(0, bridgeRequired - (isa + gia));
 
   return {
     projectedAtRetirement,
     fireNumber,
+    bridgeRequired,
+    pensionRequired,
+    bridgeGap,
     surplus: projectedAtRetirement - fireNumber,
     onTrack: projectedAtRetirement >= fireNumber,
   };
