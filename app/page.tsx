@@ -3,6 +3,7 @@ import { Receipt, Route, ShieldCheck } from "lucide-react";
 import { Term } from "@/components/Glossary";
 import { LandingCta } from "@/components/LandingCta";
 import { LandingHeroPreview } from "@/components/LandingHeroPreview";
+import { LaunchPad, LaunchTrail } from "@/components/LaunchTrail";
 import { siteUrl } from "@/lib/site-url";
 
 // Self-referencing canonical. Vercel serves identical content on the production
@@ -62,23 +63,6 @@ const FEATURES = [
   },
 ];
 
-// The signature firework. A launch trail arcs up from lower-left and bursts in
-// open sky above the hero — the burst centre sits high enough (y≈92 of 560) to
-// clear the top of the preview card, so it reads instead of hiding behind it.
-const BURST = { x: 838, y: 66 };
-const SPARK_RAYS = Array.from({ length: 12 }, (_, i) => {
-  const angle = (i / 12) * Math.PI * 2;
-  const inner = 15;
-  const outer = 30 + (i % 3) * 11;
-  return {
-    x1: +(BURST.x + Math.cos(angle) * inner).toFixed(1),
-    y1: +(BURST.y + Math.sin(angle) * inner).toFixed(1),
-    x2: +(BURST.x + Math.cos(angle) * outer).toFixed(1),
-    y2: +(BURST.y + Math.sin(angle) * outer).toFixed(1),
-    tip: i % 2 === 0,
-    violet: i % 3 === 0,
-  };
-});
 
 export default function Landing() {
   return (
@@ -87,83 +71,18 @@ export default function Landing() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-6 sm:py-16">
+      {/* `relative` so the measured launch trail can span the whole landing —
+          lit at the foot of the page, arriving at the hero's preview card. */}
+      <div className="relative mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-6 sm:py-16">
+      <LaunchTrail />
       {/* Hero — asymmetric: copy left, a real computed plan preview right.
           A single ember "launch trail" draws in behind it on load. */}
       <section className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
-        <svg
-          aria-hidden
-          className="pointer-events-none absolute inset-0 z-0 hidden h-full w-full lg:block"
-          viewBox="0 0 1200 560"
-          preserveAspectRatio="xMidYMid slice"
-        >
-          <defs>
-            <linearGradient id="hero-trail-stroke" x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0%" stopColor="var(--accent)" stopOpacity={0} />
-              <stop offset="45%" stopColor="var(--accent)" stopOpacity={0.4} />
-              <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.7} />
-            </linearGradient>
-            <radialGradient id="hero-burst-glow">
-              <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.5} />
-              <stop offset="45%" stopColor="var(--primary)" stopOpacity={0.16} />
-              <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
-            </radialGradient>
-          </defs>
-
-          {/* Soft bloom behind the burst so it reads even over the preview. */}
-          <circle
-            className="spark-pop"
-            cx={BURST.x}
-            cy={BURST.y}
-            r={96}
-            fill="url(#hero-burst-glow)"
-          />
-
-          {/* Launch trail — the growth curve rising to the burst. */}
-          <path
-            className="hero-trail"
-            d={`M-40 540 C 220 512, 470 452, 632 336 C 730 266, 792 178, ${BURST.x} ${BURST.y}`}
-            fill="none"
-            stroke="url(#hero-trail-stroke)"
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            pathLength={1}
-          />
-
-          {/* The burst — radiating spark rays, glinting tips, a bright core. */}
-          <g className="spark-pop">
-            {SPARK_RAYS.map((r, i) => (
-              <g key={i}>
-                <line
-                  x1={r.x1}
-                  y1={r.y1}
-                  x2={r.x2}
-                  y2={r.y2}
-                  stroke={r.violet ? "var(--accent)" : "var(--brand)"}
-                  strokeWidth={1.6}
-                  strokeLinecap="round"
-                  opacity={0.85}
-                />
-                {r.tip && <circle cx={r.x2} cy={r.y2} r={1.7} fill="var(--brand)" />}
-              </g>
-            ))}
-            <circle cx={BURST.x} cy={BURST.y} r={4.5} fill="var(--brand)" />
-            <circle
-              cx={BURST.x}
-              cy={BURST.y}
-              r={8.5}
-              fill="none"
-              stroke="var(--primary)"
-              strokeWidth={1}
-              opacity={0.5}
-            />
-          </g>
-        </svg>
 
         <div className="relative z-10 lg:col-span-7">
           <span className="landing-rise inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-muted-foreground">
             <span className="size-1.5 rounded-full bg-brand" />
-            FIRE planner · tax-aware drawdown
+            Free FIRE planner · tax-aware drawdown
           </span>
           <h1 className="landing-rise mt-5 font-display text-4xl font-extrabold leading-[1.02] tracking-tight text-balance [animation-delay:60ms] sm:text-[3.5rem]">
             Know your number. Know when.
@@ -204,6 +123,11 @@ export default function Landing() {
             when you can actually access the money, and what the taxman takes on
             the way out. Fireworks models the mechanics.
           </p>
+          {/* Where the firework is lit. The trail climbs from here to the hero's
+              preview card — only from `lg`, where there's room for the arc. */}
+          <span className="mt-10 hidden text-xs lg:flex">
+            <LaunchPad />
+          </span>
         </div>
 
         <ul className="lg:col-span-7">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { siteUrl } from "@/lib/site-url";
 import { AuthButton } from "@/components/AuthButton";
 import { AuthProvider } from "@/components/AuthProvider";
+import { FooterCredit } from "@/components/FooterCredit";
 import { HeaderLogo } from "@/components/HeaderLogo";
 import { MobileNav, Nav } from "@/components/Nav";
 import { PlanProvider } from "@/components/PlanProvider";
@@ -80,7 +81,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        {/* Dark is the showcase theme (docs/DESIGN.md) — a visitor with no stored
+            preference gets it regardless of their OS setting, so a first visit
+            always lands on the night sky. `enableSystem` is off deliberately:
+            ThemeToggle only ever sets "light" or "dark", so a reachable "system"
+            state would be one no control can produce or describe. */}
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <AuthProvider>
             <PlanProvider>
             <div aria-hidden className="app-backdrop" />
@@ -126,6 +132,7 @@ export default function RootLayout({
                     Contact
                   </a>
                 </div>
+                <FooterCredit />
               </div>
             </footer>
             </PlanProvider>

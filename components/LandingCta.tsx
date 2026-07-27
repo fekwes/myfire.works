@@ -38,7 +38,7 @@ export function LandingCta() {
       <p className="mt-4 text-xs text-muted-foreground">
         {returning
           ? "Welcome back — pick up right where you left off."
-          : "Takes about two minutes. No account needed to see your result."}
+          : "Free — no cost, no account needed to see your result. Takes about two minutes."}
       </p>
     </>
   );
