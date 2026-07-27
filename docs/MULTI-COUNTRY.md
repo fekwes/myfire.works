@@ -1,5 +1,8 @@
 # Multi-country architecture
 
+> **Status: Design.** Nothing here is built. See [`README.md`](./README.md) for
+> the documentation index.
+
 How Fireworks becomes a planner that can model more than one country, with the
 US and Spain as the two target markets.
 

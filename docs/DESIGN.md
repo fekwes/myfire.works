@@ -1,5 +1,8 @@
 # Fireworks design system — "Night & Ember"
 
+> **Status: Current.** The design system in force. See [`README.md`](./README.md)
+> for the documentation index.
+
 The visual language and the primitives that implement it. The goal is a product
 that reads as **precise, trustworthy and made with care** — which is what both
 the UK FIRE audience (analytical, evidence-driven, allergic to marketing fluff)

@@ -1,6 +1,12 @@
 # Onboarding quiz + landing page — design spec (Stage 6)
 
-Status: **designed, not yet built.** This is the implementation brief.
+> **Status: Archive.** This was the brief. It was built, and then changed twice
+> (PR #8 and PR #9), so it no longer describes the app: the quiz asks four
+> questions before the reveal, the personas were cut down to
+> `standard | coast | barista`, and the landing "skip to the planner" was
+> removed. **The app and `lib/quiz.ts` are the truth.** Kept for the reasoning
+> behind the flow — do not update it. See [`README.md`](./README.md) for the
+> documentation index.
 
 ## Goal
 
