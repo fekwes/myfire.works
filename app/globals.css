@@ -20,8 +20,11 @@
   --surface-muted: #f4eee2;
   --border: #eae3d6;
 
-  /* Signature accent — burnt ember, readable on warm-paper surfaces */
-  --primary: #c2560a;
+  /* Signature accent — burnt ember, readable on warm-paper surfaces. Darkened
+   * from #c2560a so small text still clears AA on a `bg-brand/10` tint (the
+   * beta badge), not just on bare paper. This is the *UI* ember; the chart
+   * ramp's `--data-1` is a separate token and is deliberately unchanged. */
+  --primary: #b04e08;
   --primary-foreground: #ffffff;
 
   /* Bright ember for highlight fills / badges */
@@ -32,8 +35,13 @@
 
   --muted-foreground: #6a6480;
 
-  --danger: #dc2626;
-  --success: #17803d;
+  /* Status colours, darkened for AA on light's tinted grounds. Status text is
+   * small and often sits on a 15% wash of its own hue ("Shortfall", "On track")
+   * or on `--surface-muted` ("Age 56"), where the originals (#dc2626 / #17803d)
+   * landed at 3.8–4.3. These match the print palette's reds and greens, so the
+   * system carries one darker pair rather than two near-identical ones. */
+  --danger: #b91c1c;
+  --success: #157637;
 
   /* Chart data ramp — ember · violet · teal. These are the *mark* colours, a
    * step apart from the UI accents above (which are tuned for text on this
@@ -182,6 +190,15 @@ body {
   }
 }
 
+/* Recharts paints legend labels with their series colour via an inline style.
+ * The design system reserves colour for the *mark* — text always wears a text
+ * token (docs/DESIGN.md, Data-viz). Left alone, the SIPP violet label measured
+ * 3.55:1 on the night surface, under AA. `!important` because the offending
+ * declaration is inline. */
+.recharts-legend-item-text {
+  color: var(--foreground) !important;
+}
+
 /* Utility: tabular figures for money/stat readouts */
 .tabular {
   font-variant-numeric: tabular-nums;
@@ -252,8 +269,12 @@ body {
   animation: landing-rise 0.6s var(--ease-out) both;
 }
 
-/* Signature brand moment — a single ember "launch trail" draws itself in once
- * as the hero loads (the growth curve rising to a burst), then the spark pops.
+/* Signature brand moment — one continuous gesture told in three beats. The
+ * decorative launch trail draws itself from the lower-left and slips behind the
+ * preview card (beat 1); the card's own sparkline — real engine output — picks
+ * the arc up and carries it to the top-right (beat 2); the burst goes off at
+ * its end (beat 3). The beats are timed to hand over, so the eye reads one
+ * unbroken line rather than three elements animating near each other.
  * Path length is normalised via pathLength="1" so it's geometry-independent.
  * Fully disabled under reduced-motion (drawn state shown statically). */
 @keyframes trail-draw {
@@ -265,6 +286,27 @@ body {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
   animation: trail-draw 1.5s var(--ease-out) 0.25s both;
+}
+
+/* Beat 2 — starts as the trail lands behind the card (0.25s + 1.5s). */
+.hero-chart-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: trail-draw 0.9s var(--ease-out) 1.7s both;
+}
+
+/* The area fill has no line to draw, so it simply arrives with it. */
+.hero-chart-fill {
+  animation: chart-fill-in 0.9s var(--ease-out) 1.7s both;
+}
+
+@keyframes chart-fill-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes spark-pop {
@@ -281,17 +323,20 @@ body {
     transform: scale(1);
   }
 }
+/* Beat 3 — fires as the sparkline reaches its final point (1.7s + 0.9s). */
 .spark-pop {
   transform-box: fill-box;
   transform-origin: center;
-  animation: spark-pop 0.5s var(--ease-spring) 1.55s both;
+  animation: spark-pop 0.5s var(--ease-spring) 2.5s both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-trail {
+  .hero-trail,
+  .hero-chart-draw {
     stroke-dashoffset: 0;
     animation: none;
   }
+  .hero-chart-fill,
   .spark-pop {
     opacity: 1;
     animation: none;
@@ -314,8 +359,8 @@ body {
  *      and a warm ember wash, over the night/paper ground;
  *   2. a faint financial-blueprint grid, finer than before and masked to
  *      a soft dome so it frames the hero rather than wallpapering;
- *   3. (dark only) a drift of firework sparks up in the sky, gently
- *      twinkling, with a whisper of grain for depth.
+ *   3. a drift of firework sparks up in the sky, gently twinkling — tuned
+ *      per theme rather than gated to one (see below).
  * Purely decorative, non-interactive, and reduced-motion aware.
  * ------------------------------------------------------------------ */
 .app-backdrop {
@@ -359,18 +404,30 @@ body {
   );
 }
 
-/* Firework sparks — night sky only. A drift of embers, top-weighted so they
- * read as sky, gently twinkling. */
-.dark .app-backdrop::after {
+/* Firework sparks. A drift of embers, top-weighted so they read as sky, gently
+ * twinkling. Both themes carry the layer — the product is called Fireworks, and
+ * having the sparks only at night made light a composition-by-omission rather
+ * than a decision. The two differ in more than hue: on the night ground the
+ * specks are *lighter* than their surroundings and read as sparks immediately,
+ * whereas anything darker than cream reads as dust. So the light drift is
+ * fewer, larger, warmer and softer — embers hanging in a bright sky. */
+.app-backdrop::after {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.7;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cg fill='%23ffc24b'%3E%3Ccircle cx='40' cy='60' r='1.2' opacity='0.9'/%3E%3Ccircle cx='120' cy='34' r='0.8' opacity='0.6'/%3E%3Ccircle cx='214' cy='78' r='1' opacity='0.8'/%3E%3Ccircle cx='286' cy='42' r='0.7' opacity='0.5'/%3E%3Ccircle cx='70' cy='150' r='0.9' opacity='0.7'/%3E%3Ccircle cx='176' cy='132' r='1.3' opacity='0.85'/%3E%3Ccircle cx='300' cy='176' r='0.8' opacity='0.6'/%3E%3Ccircle cx='30' cy='240' r='1' opacity='0.75'/%3E%3Ccircle cx='150' cy='274' r='0.7' opacity='0.5'/%3E%3Ccircle cx='240' cy='244' r='1.1' opacity='0.8'/%3E%3Ccircle cx='104' cy='206' r='0.6' opacity='0.45'/%3E%3Ccircle cx='262' cy='120' r='0.6' opacity='0.5'/%3E%3C/g%3E%3Cg fill='%239e8cff'%3E%3Ccircle cx='96' cy='96' r='0.8' opacity='0.55'/%3E%3Ccircle cx='198' cy='208' r='0.7' opacity='0.5'/%3E%3Ccircle cx='320' cy='300' r='0.6' opacity='0.45'/%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.55;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cg fill='%23e07a1f'%3E%3Ccircle cx='44' cy='58' r='1.9' opacity='0.5'/%3E%3Ccircle cx='214' cy='78' r='1.6' opacity='0.42'/%3E%3Ccircle cx='176' cy='132' r='2.1' opacity='0.46'/%3E%3Ccircle cx='300' cy='176' r='1.5' opacity='0.34'/%3E%3Ccircle cx='30' cy='240' r='1.7' opacity='0.38'/%3E%3Ccircle cx='240' cy='244' r='1.8' opacity='0.36'/%3E%3C/g%3E%3Cg fill='%236f5cd8'%3E%3Ccircle cx='96' cy='96' r='1.6' opacity='0.3'/%3E%3Ccircle cx='262' cy='120' r='1.3' opacity='0.26'/%3E%3Ccircle cx='150' cy='274' r='1.4' opacity='0.24'/%3E%3C/g%3E%3C/svg%3E");
   background-size: 320px 320px;
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 86%);
   mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 86%);
   animation: spark-twinkle 7s var(--ease-out) infinite;
+}
+
+/* The night drift — denser and brighter, because light specks on a dark ground
+ * carry much further than dark specks on a light one. */
+.dark .app-backdrop::after {
+  opacity: 0.7;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cg fill='%23ffc24b'%3E%3Ccircle cx='40' cy='60' r='1.2' opacity='0.9'/%3E%3Ccircle cx='120' cy='34' r='0.8' opacity='0.6'/%3E%3Ccircle cx='214' cy='78' r='1' opacity='0.8'/%3E%3Ccircle cx='286' cy='42' r='0.7' opacity='0.5'/%3E%3Ccircle cx='70' cy='150' r='0.9' opacity='0.7'/%3E%3Ccircle cx='176' cy='132' r='1.3' opacity='0.85'/%3E%3Ccircle cx='300' cy='176' r='0.8' opacity='0.6'/%3E%3Ccircle cx='30' cy='240' r='1' opacity='0.75'/%3E%3Ccircle cx='150' cy='274' r='0.7' opacity='0.5'/%3E%3Ccircle cx='240' cy='244' r='1.1' opacity='0.8'/%3E%3Ccircle cx='104' cy='206' r='0.6' opacity='0.45'/%3E%3Ccircle cx='262' cy='120' r='0.6' opacity='0.5'/%3E%3C/g%3E%3Cg fill='%239e8cff'%3E%3Ccircle cx='96' cy='96' r='0.8' opacity='0.55'/%3E%3Ccircle cx='198' cy='208' r='0.7' opacity='0.5'/%3E%3Ccircle cx='320' cy='300' r='0.6' opacity='0.45'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 @keyframes spark-twinkle {
@@ -384,7 +441,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dark .app-backdrop::after {
+  .app-backdrop::after {
     animation: none;
   }
 }

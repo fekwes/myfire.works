@@ -207,8 +207,11 @@ advisors after any DDL — that is what caught this.
 - **Quality gate on every commit:** `npm test`, `npx tsc --noEmit`,
   `npx eslint .`, `npm run build`. CI runs exactly these (note: CI uses
   `npm run lint`).
-- **Verify in the browser, both themes**, before claiming something works.
-  Several bugs in this project were invisible until measured — see §8.
+- **Verify in the browser** before claiming something works. Several bugs in
+  this project were invisible until measured — see §8. Themes are **tiered**
+  (see "Theme support tiers" in `docs/DESIGN.md`): dark is the showcase and gets
+  verified every UI change; light is verified when tokens or layout change, and
+  before a release — not on every commit.
 - **Verify UK tax figures against real 2026/27 guidance.** Never invent
   numbers. Keep `/methodology` and `docs/ARCHITECTURE.md` in step with the
   engine.
@@ -412,9 +415,11 @@ Paste this in:
 >
 > Work on a new branch off `main`; never push to `main` directly. Keep the
 > quality gate green on **every** commit: `npm test`, `npx tsc --noEmit`,
-> `npx eslint .`, `npm run build`. Verify in the browser in **both themes** and
-> at mobile width before saying something works — this codebase has a history
-> of bugs that are invisible until measured (see §8 of the handoff). Never
+> `npx eslint .`, `npm run build`. Verify in the browser at desktop **and**
+> mobile width before saying something works — in dark always, and in light too
+> whenever tokens or layout changed (see "Theme support tiers" in
+> `docs/DESIGN.md`). This codebase has a history of bugs that are invisible
+> until measured (see §8 of the handoff). Never
 > commit secrets. Don't open a PR unless I ask.
 >
 > **Your task:** <describe it here>
