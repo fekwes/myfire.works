@@ -169,7 +169,6 @@ export function LandingHeroPreview() {
           strokeWidth={2.25}
           strokeLinecap="round"
           strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
           pathLength={1}
         />
 

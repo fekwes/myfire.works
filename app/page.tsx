@@ -120,11 +120,11 @@ export default function Landing() {
       {/* Differentiators — editorial, not three identical cards. */}
       <section className="mt-24 grid grid-cols-1 gap-10 border-t border-border pt-14 lg:grid-cols-12 lg:gap-12">
         <div className="flex flex-col lg:col-span-5">
-          <h2 className="font-display text-2xl font-bold tracking-tight text-balance sm:text-3xl">
+          <h2 data-launch-quiet className="font-display text-2xl font-bold tracking-tight text-balance sm:text-3xl">
             Most calculators stop at a pot size.
             <span className="text-muted-foreground"> This one keeps going.</span>
           </h2>
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
+          <p data-launch-quiet className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
             A single &ldquo;you need £1.2M&rdquo; hides everything that matters —
             when you can actually access the money, and what the taxman takes on
             the way out. Fireworks models the mechanics.
