@@ -18,11 +18,11 @@ export function AiInsights({ result, isProvisional, isReadOnly }: { result: Fire
   const [tips, setTips] = useState<Tip[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fire = useMemo(() => computeFireNumber(result.inputs), [result]);
+  const fire = useMemo(() => computeFireNumber(result.inputs), [result.inputs]);
 
   // Compute a simple signature of the inputs to use as a cache key
+  const { inputs } = result;
   const signature = useMemo(() => {
-    const { inputs } = result;
     return JSON.stringify({
       currentAge: inputs.currentAge,
       retirementAge: inputs.retirementAge,
@@ -32,7 +32,7 @@ export function AiInsights({ result, isProvisional, isReadOnly }: { result: Fire
       sippBalance: inputs.sippBalance,
       sippMonthlyContribution: inputs.sippMonthlyContribution,
     });
-  }, [result.inputs]);
+  }, [inputs]);
 
   const handleAnalyze = async (force: boolean = false) => {
     if (!force && cache.has(signature)) {
