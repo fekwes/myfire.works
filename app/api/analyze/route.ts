@@ -10,9 +10,9 @@ export const runtime = "nodejs";
 // (a short burst window + a daily cap) plus a global daily backstop so a single
 // instance can't run away with the AI provider's quota. In-memory per instance —
 // swap for a shared store (Upstash/KV) behind the same interface in production.
-const perMinute = createRateLimiter({ windowMs: 60_000, max: 5 });
-const perDay = createRateLimiter({ windowMs: 86_400_000, max: 40 });
-const globalPerDay = createRateLimiter({ windowMs: 86_400_000, max: 500 });
+const perMinute = createRateLimiter({ windowMs: 60_000, max: 10 });
+const perDay = createRateLimiter({ windowMs: 86_400_000, max: 50 });
+const globalPerDay = createRateLimiter({ windowMs: 86_400_000, max: 1000 });
 
 function limited(request: Request): number | null {
   const ip = clientIp(request);

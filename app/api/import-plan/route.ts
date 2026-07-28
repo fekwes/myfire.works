@@ -6,9 +6,9 @@ import { ASSET_CLASSES } from "@/lib/portfolio-import";
 
 export const runtime = "nodejs";
 
-const perMinute = createRateLimiter({ windowMs: 60_000, max: 2 });
-const perDay = createRateLimiter({ windowMs: 86_400_000, max: 10 });
-const globalPerDay = createRateLimiter({ windowMs: 86_400_000, max: 200 });
+const perMinute = createRateLimiter({ windowMs: 60_000, max: 10 });
+const perDay = createRateLimiter({ windowMs: 86_400_000, max: 50 });
+const globalPerDay = createRateLimiter({ windowMs: 86_400_000, max: 1000 });
 
 function limited(request: Request): number | null {
   const ip = clientIp(request);

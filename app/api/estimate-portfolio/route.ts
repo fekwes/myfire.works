@@ -13,9 +13,9 @@ export const runtime = "nodejs";
 // Paid, abusable endpoint — same limiter shape as the tips route: a short burst
 // window + a daily per-IP cap + a global daily backstop. Narrowest first, so a
 // blocked caller doesn't spend the global budget on its way to a 429.
-const perMinute = createRateLimiter({ windowMs: 60_000, max: 5 });
-const perDay = createRateLimiter({ windowMs: 86_400_000, max: 40 });
-const globalPerDay = createRateLimiter({ windowMs: 86_400_000, max: 500 });
+const perMinute = createRateLimiter({ windowMs: 60_000, max: 10 });
+const perDay = createRateLimiter({ windowMs: 86_400_000, max: 50 });
+const globalPerDay = createRateLimiter({ windowMs: 86_400_000, max: 1000 });
 
 function limited(request: Request): number | null {
   const ip = clientIp(request);
