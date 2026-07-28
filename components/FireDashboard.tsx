@@ -12,6 +12,7 @@ import { usePlan } from "@/components/PlanProvider";
 import { QuickLevers } from "@/components/QuickLevers";
 import { Button, Card } from "@/components/ui";
 import { OverviewPanel } from "@/components/OverviewPanel";
+import { useFormat } from "@/hooks/useFormat";
 import { simulateFire } from "@/lib/fire-engine";
 import { decodePlan } from "@/lib/share";
 
@@ -91,7 +92,8 @@ function Segmented({
 }
 
 export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
-  const { inputs: ownInputs, setInputs, restoreError, activePack } = usePlan();
+  const { inputs: ownInputs, setInputs, restoreError } = usePlan();
+  const { format } = useFormat();
   const router = useRouter();
   const shared = useMemo(() => decodePlan(sharedParam), [sharedParam]);
   const readOnly = shared !== null;
@@ -161,7 +163,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
             {provisional
               ? "Add your balances to see if you're on track."
               : sustainable
-                ? `Funds ${activePack.currency.symbol}${plan.inputs.targetAnnualIncome.toLocaleString()}/yr to age ${horizon}.`
+                ? `Funds ${format(plan.inputs.targetAnnualIncome)}/yr to age ${horizon}.`
                 : `Falls short from age ${firstShortfall}.`}
           </p>
         </div>

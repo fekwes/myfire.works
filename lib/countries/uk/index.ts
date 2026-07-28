@@ -29,7 +29,7 @@ export const ukTaxSystem: TaxSystem = {
 
 export const ukPack: CountryPack = {
   id: "uk",
-  currency: { code: "GBP", locale: "en-GB" },
+  currency: { code: "GBP", locale: "en-GB", symbol: "£" },
   regions: [ukRegion],
   wrappers: [
     {

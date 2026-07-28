@@ -130,7 +130,7 @@ export interface PackLabels {
 
 export interface CountryPack {
   id: string;
-  currency: { code: string; locale: string; symbol?: string };
+  currency: { code: string; locale: string; symbol: string };
   regions: Region[];
   wrappers: WrapperSpec[];
   labels: PackLabels;

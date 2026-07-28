@@ -37,7 +37,7 @@ export function FeeDragCard() {
           </h2>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             That&apos;s the growth your pot forgoes to fund OCFs plus Vanguard&apos;s
-            0.15% platform fee (capped at {activePack.currency.symbol}375/yr). Cheaper trackers keep more of
+            0.15% platform fee (capped at {format(375)}/yr). Cheaper trackers keep more of
             it — compare the funds above.
           </p>
         </div>
