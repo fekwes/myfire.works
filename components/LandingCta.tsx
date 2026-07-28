@@ -1,16 +1,21 @@
 "use client";
 
-import { ArrowRight, Lock, ShieldCheck, Zap } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Lock, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { usePlan } from "@/components/PlanProvider";
-import { ButtonLink } from "@/components/ui";
+import { Button, ButtonLink } from "@/components/ui";
+import { isCountryEnabled } from "@/lib/config/feature-flags";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 
 /**
  * Landing call-to-action with refined, professional microcopy.
  */
 export function LandingCta() {
-  const { hasStoredPlan, hydrated, activeRegion } = usePlan();
+  const { hasStoredPlan, hydrated, activeRegion, setActiveRegion } = usePlan();
   const returning = hydrated && hasStoredPlan;
+  const [showNotice, setShowNotice] = useState(false);
+
+  const regionEnabled = isCountryEnabled(activeRegion);
 
   const handleCtaClick = (label: string) => {
     trackEvent(ANALYTICS_EVENTS.PRIMARY_CONVERSION_CTA_CLICKED, {
@@ -20,10 +25,46 @@ export function LandingCta() {
     });
   };
 
+  const isEs = activeRegion === "es";
+
   return (
     <>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        {returning ? (
+        {!regionEnabled ? (
+          <div className="flex flex-col gap-2.5">
+            <Button
+              variant="brand"
+              onClick={() => {
+                handleCtaClick(isEs ? "Spain Coming Soon CTA" : "US Coming Soon CTA");
+                setShowNotice(true);
+              }}
+              className="px-6 py-3 shadow-lg shadow-amber-500/20 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold transition-all hover:-translate-y-0.5"
+            >
+              <Sparkles className="size-4 text-white" />
+              {isEs ? "🇪🇸 Próximamente en España" : "🇺🇸 US — Coming Soon"}
+              <ArrowRight className="size-4" />
+            </Button>
+            {showNotice && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-200 leading-relaxed max-w-md space-y-2">
+                <p>
+                  {isEs
+                    ? "🇪🇸 La versión adaptada a España (IRPF 2026, Planes de Pensiones y PIAS) estará disponible muy pronto."
+                    : "🇺🇸 The US version is under active development and launching soon."}
+                </p>
+                <div className="flex items-center justify-between pt-1 border-t border-amber-500/20">
+                  <span className="text-muted-foreground text-[11px]">¿Quieres probar la versión activa?</span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveRegion("uk")}
+                    className="text-amber-400 font-semibold hover:underline"
+                  >
+                    Ir a versión UK →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : returning ? (
           <>
             <ButtonLink
               href="/planner"

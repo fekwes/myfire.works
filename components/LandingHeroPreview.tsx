@@ -18,6 +18,19 @@ const UK_SAMPLE: FireInputs = {
   inflationRate: 0.025,
 };
 
+const ES_SAMPLE: FireInputs = {
+  country: "es",
+  currentAge: 40,
+  retirementAge: 55,
+  targetAnnualIncome: 24000,
+  pots: {
+    pias: { balance: 80000, monthlyContribution: 400, growth: 0.05 },
+    "plan-pensiones": { balance: 60000, monthlyContribution: 125, growth: 0.05 },
+    "cuenta-valores": { balance: 40000, monthlyContribution: 200, growth: 0.05 },
+  },
+  inflationRate: 0.025,
+};
+
 const US_SAMPLE: FireInputs = {
   country: "us",
   currentAge: 40,
@@ -74,7 +87,8 @@ export function LandingHeroPreview() {
   const { activeRegion, activePack } = usePlan();
   const { format } = useFormat();
 
-  const sample = activeRegion === "us" ? US_SAMPLE : UK_SAMPLE;
+  const sample =
+    activeRegion === "us" ? US_SAMPLE : activeRegion === "es" ? ES_SAMPLE : UK_SAMPLE;
   const plan = simulateFire(sample);
   const { fireNumber } = computeFireNumber(sample);
   const sustainable = plan.sustainableToLifeExpectancy;
@@ -101,7 +115,11 @@ export function LandingHeroPreview() {
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       <div className="flex items-center justify-between">
         <span className="font-mono text-[0.62rem] uppercase tracking-[0.16em] text-muted-foreground">
-          {activeRegion === "us" ? "🇺🇸 Sample US Plan" : "🇬🇧 Sample UK Plan"}
+          {activeRegion === "us"
+            ? "🇺🇸 Sample US Plan"
+            : activeRegion === "es"
+            ? "🇪🇸 Plan Ejemplo España"
+            : "🇬🇧 Sample UK Plan"}
         </span>
         <span
           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-medium ${
@@ -217,7 +235,7 @@ export function LandingHeroPreview() {
             {activePack.labels.taxDeferredWrapper} unlock age
           </p>
           <p className="mt-0.5 font-display text-sm font-bold text-success">
-            Age {sample.country === "us" ? "59½" : "57"}
+            Age {sample.country === "us" ? "59½" : sample.country === "es" ? "65" : "57"}
           </p>
         </div>
       </div>
