@@ -8,7 +8,7 @@ import { isCountryEnabled } from "@/lib/config/feature-flags";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 
 /**
- * Landing call-to-action with refined, professional microcopy.
+ * Landing call-to-action with strict single-language microcopy.
  */
 export function LandingCta() {
   const { hasStoredPlan, hydrated, activeRegion, setActiveRegion } = usePlan();
@@ -52,13 +52,15 @@ export function LandingCta() {
                     : "🇺🇸 The US version is under active development and launching soon."}
                 </p>
                 <div className="flex items-center justify-between pt-1 border-t border-amber-500/20">
-                  <span className="text-muted-foreground text-[11px]">¿Quieres probar la versión activa?</span>
+                  <span className="text-muted-foreground text-[11px]">
+                    {isEs ? "¿Quieres probar la versión activa?" : "Want to try the active version?"}
+                  </span>
                   <button
                     type="button"
                     onClick={() => setActiveRegion("uk")}
                     className="text-amber-400 font-semibold hover:underline"
                   >
-                    Ir a versión UK →
+                    {isEs ? "Ir a la versión UK →" : "Go to UK version →"}
                   </button>
                 </div>
               </div>
@@ -72,7 +74,7 @@ export function LandingCta() {
               onClick={() => handleCtaClick("Continue to dashboard")}
               className="px-6 py-3 shadow-lg shadow-brand/25 transition-all hover:-translate-y-0.5 hover:scale-105 hover:shadow-brand/40"
             >
-              Continue to your dashboard
+              {isEs ? "Continuar a mi panel" : "Continue to your dashboard"}
               <ArrowRight className="size-4" />
             </ButtonLink>
             <ButtonLink
@@ -81,7 +83,7 @@ export function LandingCta() {
               onClick={() => handleCtaClick("Start over")}
               className="px-6 py-3"
             >
-              Start over
+              {isEs ? "Empezar de nuevo" : "Start over"}
             </ButtonLink>
           </>
         ) : (
@@ -91,7 +93,7 @@ export function LandingCta() {
             onClick={() => handleCtaClick("Build your retirement plan")}
             className="px-6 py-3 shadow-lg shadow-brand/25 transition-all hover:-translate-y-0.5 hover:scale-105 hover:shadow-brand/40"
           >
-            Build your retirement plan
+            {isEs ? "Crear mi plan de jubilación" : "Build your retirement plan"}
             <ArrowRight className="size-4" />
           </ButtonLink>
         )}
@@ -101,19 +103,23 @@ export function LandingCta() {
         <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
           <Zap className="size-3.5 text-brand" />
           {returning
-            ? "Welcome back — pick up right where you left off."
+            ? isEs
+              ? "Bienvenido de nuevo — continúa desde donde lo dejaste."
+              : "Welcome back — pick up right where you left off."
+            : isEs
+            ? "Gratis y privado · Lleva unos 2 minutos"
             : "Free & private · Takes about 2 minutes"}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <Lock className="size-3.5 text-success" />
-          No registration required
+          {isEs ? "Sin registro obligatorio" : "No registration required"}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <ShieldCheck className="size-3.5 text-primary" />
           {activeRegion === "us"
             ? "IRS 2026 Engine"
             : activeRegion === "es"
-            ? "IRPF 2026 España Engine"
+            ? "Motor IRPF 2026 España"
             : "HMRC 2026/27 Engine"}
         </span>
       </div>

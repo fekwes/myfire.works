@@ -7,80 +7,121 @@ import { usePlan } from "@/components/PlanProvider";
 export function LandingFeatures() {
   const { activeRegion } = usePlan();
   const isUs = activeRegion === "us";
+  const isEs = activeRegion === "es";
 
   const features = [
     {
       Icon: Receipt,
-      tag: "Yearly Tax Solver",
+      tag: isEs ? "Cálculo IRPF Anual" : "Yearly Tax Solver",
       badgeColor: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-      title: "Exact Net Take-Home",
+      title: isEs ? "Renta Neta Exacta" : "Exact Net Take-Home",
       body: isUs
         ? "Solves year-by-year federal & state tax brackets so you know your true spendable cashflow."
+        : isEs
+        ? "Resuelve la escala del IRPF año a año y la tributación del ahorro para calcular tu renta neta real disponible."
         : "Solves year-by-year HMRC tax bands and CGT exemptions so you know your true spendable cashflow.",
     },
     {
       Icon: Route,
-      tag: "Access Age Bridge",
+      tag: isEs ? "Puente a la Jubilación" : "Access Age Bridge",
       badgeColor: "border-sky-500/30 bg-sky-500/10 text-sky-400",
-      title: "Penalty-Free Unlock",
+      title: isEs ? "Rescate Eficiente" : "Penalty-Free Unlock",
       body: isUs
         ? "Funds early retirement via Roth IRA and brokerage until your 401(k) unlocks penalty-free at age 59½."
+        : isEs
+        ? "Financia la jubilación temprana con tus PIAS y fondos hasta que desbloquees tu Plan de Pensiones."
         : "Funds early retirement via ISA and GIA until your SIPP unlocks penalty-free at statutory age 57.",
     },
     {
       Icon: ShieldCheck,
-      tag: "Sequence Risk",
+      tag: isEs ? "Riesgo de Secuencia" : "Sequence Risk",
       badgeColor: "border-indigo-500/30 bg-indigo-500/10 text-indigo-400",
-      title: "2,000 Market Runs",
-      body: "Stress-tests your portfolio against market crashes so one bad decade won't break your plan.",
+      title: isEs ? "2.000 Escenarios de Mercado" : "2,000 Market Runs",
+      body: isEs
+        ? "Pon a prueba tu cartera ante caídas de mercado para garantizar que una mala década no rompa tu plan."
+        : "Stress-tests your portfolio against market crashes so one bad decade won't break your plan.",
     },
     {
       Icon: Sparkles,
-      tag: "Statutory Offsets",
+      tag: isEs ? "Ingresos Públicos" : "Statutory Offsets",
       badgeColor: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-      title: isUs ? "Social Security & Part-Time" : "State Pension & Part-Time",
+      title: isUs
+        ? "Social Security & Part-Time"
+        : isEs
+        ? "Pensión Pública y Trabajo Parcial"
+        : "State Pension & Part-Time",
       body: isUs
         ? "Layers Social Security benefits and part-time earnings to lower your required pot size."
+        : isEs
+        ? "Suma la Pensión Pública de Jubilación e ingresos parciales para reducir el capital objetivo necesario."
         : "Layers triple-lock State Pension income and part-time earnings to lower your required pot size.",
     },
   ];
 
   const comparison = [
     {
-      feature: "Year-by-year progressive tax solver",
+      feature: isEs
+        ? "Resolución progresiva del IRPF año a año"
+        : "Year-by-year progressive tax solver",
       fireworks: true,
       standard: false,
-      note: "Computes net take-home spending, not gross pot guesses",
+      note: isEs
+        ? "Calcula el gasto neto real, no estimaciones brutas"
+        : "Computes net take-home spending, not gross pot guesses",
     },
     {
-      feature: isUs ? "401(k) & IRA 59½ penalty-free bridge" : "SIPP age 57 unlock bridge",
+      feature: isUs
+        ? "401(k) & IRA 59½ penalty-free bridge"
+        : isEs
+        ? "Puente de rescate para Plan de Pensiones"
+        : "SIPP age 57 unlock bridge",
       fireworks: true,
       standard: false,
-      note: "Models exact statutory penalty-free access ages",
+      note: isEs
+        ? "Modela edades y tramos fiscales reales"
+        : "Models exact statutory penalty-free access ages",
     },
     {
-      feature: isUs ? "Social Security benefit offset" : "State Pension triple-lock offset",
+      feature: isUs
+        ? "Social Security benefit offset"
+        : isEs
+        ? "Compensación por Pensión Pública de Jubilación"
+        : "State Pension triple-lock offset",
       fireworks: true,
       standard: false,
-      note: "Reduces pot drawdown once statutory benefits start",
+      note: isEs
+        ? "Reduce la necesidad de rescate al activarse la pensión"
+        : "Reduces pot drawdown once statutory benefits start",
     },
     {
-      feature: "Downsizing & real estate sale proceeds",
+      feature: isEs
+        ? "Reventa e ingresos inmobiliarios"
+        : "Downsizing & real estate sale proceeds",
       fireworks: true,
       standard: false,
-      note: "Primary residence exemption & capital gains tax",
+      note: isEs
+        ? "Exención por vivienda habitual e impuestos de plusvalía"
+        : "Primary residence exemption & capital gains tax",
     },
     {
-      feature: "Monte Carlo sequence-of-returns testing",
+      feature: isEs
+        ? "Simulación Monte Carlo de secuencia de retornos"
+        : "Monte Carlo sequence-of-returns testing",
       fireworks: true,
       standard: false,
-      note: "2,000 market simulations with guardrail rules",
+      note: isEs
+        ? "2.000 simulaciones de mercado con reglas de seguridad"
+        : "2,000 market simulations with guardrail rules",
     },
     {
-      feature: "Free & Private Client-Side Engine",
+      feature: isEs
+        ? "Motor gratuito y privado en cliente"
+        : "Free & Private Client-Side Engine",
       fireworks: true,
       standard: false,
-      note: "No paywalls, zero accounts required, local browser storage only",
+      note: isEs
+        ? "Sin muros de pago, sin cuenta obligatoria, almacenamiento local"
+        : "No paywalls, zero accounts required, local browser storage only",
     },
   ];
 
@@ -91,14 +132,25 @@ export function LandingFeatures() {
         <div className="flex flex-col justify-between lg:col-span-5">
           <div>
             <span className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-brand font-semibold mb-2 block">
-              Why Standard Rules Fail
+              {isEs ? "Por Qué Fallan las Reglas Básicas" : "Why Standard Rules Fail"}
             </span>
             <h2 data-launch-quiet className="font-display text-2xl font-bold tracking-tight text-balance sm:text-3xl">
-              Most calculators stop at a pot size.
-              <span className="text-muted-foreground"> This one models the journey.</span>
+              {isEs ? (
+                <>
+                  La mayoría de calculadoras solo dan una cifra objetivo.
+                  <span className="text-muted-foreground"> Esta modela todo el camino.</span>
+                </>
+              ) : (
+                <>
+                  Most calculators stop at a pot size.
+                  <span className="text-muted-foreground"> This one models the journey.</span>
+                </>
+              )}
             </h2>
             <p data-launch-quiet className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Static 4% calculators ignore taxes and access ages. Fireworks models exact drawdown mechanics so your plan actually holds.
+              {isEs
+                ? "Las calculadoras estáticas del 4% ignoran impuestos y edades de rescate. Fireworks modela la mecánica exacta de retirada para que tu plan sea real."
+                : "Static 4% calculators ignore taxes and access ages. Fireworks models exact drawdown mechanics so your plan actually holds."}
             </p>
           </div>
 
@@ -106,19 +158,23 @@ export function LandingFeatures() {
           <div className="mt-6 rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/10 via-surface/80 to-surface-muted/50 p-5 backdrop-blur-xl shadow-lg">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[0.65rem] font-bold uppercase tracking-wider text-brand">
-                Model Advantage
+                {isEs ? "Ventaja del Modelo" : "Model Advantage"}
               </span>
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 font-mono text-[0.65rem] text-emerald-400 font-semibold">
-                Tax-Aware Engine
+                {isEs ? "Motor Fiscal Eficiente" : "Tax-Aware Engine"}
               </span>
             </div>
             
             <div className="mt-3 flex items-baseline gap-2">
               <span className="font-display text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-brand to-accent">
-                {isUs ? "+$140,000+" : "+£110,000+"}
+                {isUs ? "+$140,000+" : isEs ? "+120.000 €+" : "+£110,000+"}
               </span>
               <span className="text-xs text-muted-foreground font-medium">
-                {isUs ? "in tax savings & bridge optimization" : "in ISA & pension tax savings"}
+                {isUs
+                  ? "in tax savings & bridge optimization"
+                  : isEs
+                  ? "en optimización fiscal del IRPF y fondos"
+                  : "in ISA & pension tax savings"}
               </span>
             </div>
 
@@ -126,8 +182,8 @@ export function LandingFeatures() {
             <div className="mt-4 space-y-2.5">
               <div>
                 <div className="flex justify-between text-[0.68rem] text-muted-foreground mb-1 font-mono">
-                  <span>Static 4% Calculator</span>
-                  <span className="text-danger/80 font-semibold">Ran out at age 74 ⚠️</span>
+                  <span>{isEs ? "Calculadora Estática 4%" : "Static 4% Calculator"}</span>
+                  <span className="text-danger/80 font-semibold">{isEs ? "Agotado a los 74 años ⚠️" : "Ran out at age 74 ⚠️"}</span>
                 </div>
                 <div className="h-2 w-full rounded-full bg-surface-muted overflow-hidden">
                   <div className="h-full w-[65%] rounded-full bg-danger/60" />
@@ -136,8 +192,8 @@ export function LandingFeatures() {
 
               <div>
                 <div className="flex justify-between text-[0.68rem] text-foreground mb-1 font-mono font-medium">
-                  <span>Fireworks Tax Engine</span>
-                  <span className="text-success font-semibold">Sustainable to Age 95+ ✓</span>
+                  <span>{isEs ? "Motor Fiscal Fireworks" : "Fireworks Tax Engine"}</span>
+                  <span className="text-success font-semibold">{isEs ? "Sostenible hasta los 95+ años ✓" : "Sustainable to Age 95+ ✓"}</span>
                 </div>
                 <div className="h-2 w-full rounded-full bg-surface-muted overflow-hidden">
                   <div className="h-full w-[95%] rounded-full bg-gradient-to-r from-brand via-primary to-emerald-400" />
@@ -174,17 +230,19 @@ export function LandingFeatures() {
         </ul>
       </section>
 
-      {/* Comparison table — CRO high-converting feature grid */}
+      {/* Comparison table */}
       <section className="rounded-3xl border border-border/60 bg-surface/60 p-6 sm:p-8 backdrop-blur-xl">
         <div className="text-center">
           <span className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-brand font-semibold">
-            Feature Comparison
+            {isEs ? "Comparativa de Funcionalidades" : "Feature Comparison"}
           </span>
           <h2 className="mt-2 font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
-            Fireworks vs. Standard 4% Rule Calculators
+            {isEs ? "Fireworks vs. Calculadoras Estáticas del 4%" : "Fireworks vs. Standard 4% Rule Calculators"}
           </h2>
           <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-            Static calculators assume fixed withdrawal rates and ignore real tax brackets. Here is how Fireworks solves the actual mechanics.
+            {isEs
+              ? "Las calculadoras estáticas suponen un porcentaje fijo e ignoran los tramos del IRPF. Así resuelve Fireworks el proceso real."
+              : "Static calculators assume fixed withdrawal rates and ignore real tax brackets. Here is how Fireworks solves the actual mechanics."}
           </p>
         </div>
 
@@ -192,10 +250,10 @@ export function LandingFeatures() {
           <table className="w-full min-w-[32rem] border-collapse text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-border text-left">
-                <th className="pb-3 pr-4 font-semibold text-foreground">Feature</th>
+                <th className="pb-3 pr-4 font-semibold text-foreground">{isEs ? "Funcionalidad" : "Feature"}</th>
                 <th className="pb-3 px-4 font-semibold text-brand text-center">Fireworks</th>
-                <th className="pb-3 px-4 font-semibold text-muted-foreground text-center">Basic 4% Calculators</th>
-                <th className="pb-3 pl-4 font-semibold text-muted-foreground hidden md:table-cell">Why It Matters</th>
+                <th className="pb-3 px-4 font-semibold text-muted-foreground text-center">{isEs ? "Calculadoras Básicas" : "Basic 4% Calculators"}</th>
+                <th className="pb-3 pl-4 font-semibold text-muted-foreground hidden md:table-cell">{isEs ? "Por Qué Importa" : "Why It Matters"}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
@@ -220,26 +278,28 @@ export function LandingFeatures() {
         </div>
       </section>
 
-      {/* Sleek, Non-Intrusive Statutory Legal Disclaimer Notice */}
+      {/* Statutory Legal Disclaimer Notice */}
       <footer className="border-t border-border/40 pt-6 text-xs text-muted-foreground">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-3xl leading-relaxed">
-            <strong className="font-semibold text-foreground">Statutory Disclosure:</strong>{" "}
-            Fireworks is an educational simulation tool, not a regulated financial adviser, broker-dealer, or fiduciary under US (SEC/FINRA) or UK (FCA) standards; all market projections, stochastic distributions, and tax estimates are hypothetical, illustrative, and non-guaranteed. Outputs do not constitute personalized investment, legal, or tax advice—please consult a licensed professional before making financial decisions.
+            <strong className="font-semibold text-foreground">{isEs ? "Aviso Legal:" : "Statutory Disclosure:"}</strong>{" "}
+            {isEs
+              ? "Fireworks es una herramienta de simulación educativa, no un asesor financiero o gestor regulado (CNMV/FCA/SEC). Todas las proyecciones son ilustrativas e hipotéticas. Consulta con un profesional cualificado antes de tomar decisiones financieras."
+              : "Fireworks is an educational simulation tool, not a regulated financial adviser, broker-dealer, or fiduciary under US (SEC/FINRA) or UK (FCA) standards; all market projections, stochastic distributions, and tax estimates are hypothetical, illustrative, and non-guaranteed. Outputs do not constitute personalized investment, legal, or tax advice—please consult a licensed professional before making financial decisions."}
           </p>
           <div className="flex shrink-0 items-center gap-4 font-medium">
             <Link
               href="/disclaimer"
               className="inline-flex items-center gap-1 text-foreground hover:text-brand transition-colors underline decoration-border underline-offset-4"
             >
-              <span>Disclaimer</span>
+              <span>{isEs ? "Aviso Legal" : "Disclaimer"}</span>
               <ArrowRight className="size-3" />
             </Link>
             <Link
               href="/privacy"
               className="text-muted-foreground hover:text-foreground transition-colors underline decoration-border underline-offset-4"
             >
-              <span>Privacy policy</span>
+              <span>{isEs ? "Política de Privacidad" : "Privacy policy"}</span>
             </Link>
           </div>
         </div>
