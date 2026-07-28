@@ -94,7 +94,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey =
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GOOGLE_GEMINI_API_KEY ||
+    process.env.GEMINI_KEY ||
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY;
   if (!apiKey) {
     // Not configured is a deliberate deployment state, not a fault — and the
     // name of the missing secret is nobody's business but the operator's.
