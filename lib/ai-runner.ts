@@ -3,14 +3,23 @@ import { isQuotaExhausted } from "./ai-errors";
 
 const DEFAULT_MODELS = [
   "gemini-2.0-flash",
-  "gemini-1.5-flash",
+  "gemini-2.5-flash",
   "gemini-2.0-flash-lite",
-  "gemini-flash-latest",
 ];
+
+/** Returns true for errors where we should try the next model (quota, not-found). */
+function isRetryable(error: unknown): boolean {
+  if (isQuotaExhausted(error)) return true;
+  // Model removed / renamed → 404
+  const status = (error as { status?: number } | null)?.status;
+  if (status === 404) return true;
+  return false;
+}
 
 /**
  * Generate content using the primary model, automatically falling back to alternative
- * Gemini models if the primary model hits a daily quota / rate limit (429).
+ * Gemini models if the primary model hits a daily quota / rate limit (429) or is
+ * no longer available (404).
  */
 export async function generateContentWithFallback(
   ai: GoogleGenAI,
@@ -33,8 +42,8 @@ export async function generateContentWithFallback(
       return response;
     } catch (error) {
       lastError = error;
-      if (isQuotaExhausted(error)) {
-        console.warn(`Gemini model ${model} quota exhausted, attempting fallback model...`);
+      if (isRetryable(error)) {
+        console.warn(`Gemini model ${model} unavailable (${(error as { status?: number })?.status}), trying next…`);
         continue;
       }
       throw error;
