@@ -3,6 +3,7 @@
 import { ArrowRight, Lock, ShieldCheck, Zap } from "lucide-react";
 import { usePlan } from "@/components/PlanProvider";
 import { ButtonLink } from "@/components/ui";
+import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 
 /**
  * Landing call-to-action with refined, professional microcopy.
@@ -10,6 +11,14 @@ import { ButtonLink } from "@/components/ui";
 export function LandingCta() {
   const { hasStoredPlan, hydrated, activeRegion } = usePlan();
   const returning = hydrated && hasStoredPlan;
+
+  const handleCtaClick = (label: string) => {
+    trackEvent(ANALYTICS_EVENTS.PRIMARY_CONVERSION_CTA_CLICKED, {
+      label,
+      region: activeRegion,
+      returning,
+    });
+  };
 
   return (
     <>
@@ -19,12 +28,18 @@ export function LandingCta() {
             <ButtonLink
               href="/planner"
               variant="brand"
+              onClick={() => handleCtaClick("Continue to dashboard")}
               className="px-6 py-3 shadow-lg shadow-brand/25 transition-all hover:-translate-y-0.5 hover:scale-105 hover:shadow-brand/40"
             >
               Continue to your dashboard
               <ArrowRight className="size-4" />
             </ButtonLink>
-            <ButtonLink href="/start" variant="secondary" className="px-6 py-3">
+            <ButtonLink
+              href="/start"
+              variant="secondary"
+              onClick={() => handleCtaClick("Start over")}
+              className="px-6 py-3"
+            >
               Start over
             </ButtonLink>
           </>
@@ -32,6 +47,7 @@ export function LandingCta() {
           <ButtonLink
             href="/start"
             variant="brand"
+            onClick={() => handleCtaClick("Build your retirement plan")}
             className="px-6 py-3 shadow-lg shadow-brand/25 transition-all hover:-translate-y-0.5 hover:scale-105 hover:shadow-brand/40"
           >
             Build your retirement plan
@@ -53,7 +69,11 @@ export function LandingCta() {
         </span>
         <span className="inline-flex items-center gap-1.5">
           <ShieldCheck className="size-3.5 text-primary" />
-          {activeRegion === "us" ? "IRS 2026 Engine" : "HMRC 2026/27 Engine"}
+          {activeRegion === "us"
+            ? "IRS 2026 Engine"
+            : activeRegion === "es"
+            ? "IRPF 2026 España Engine"
+            : "HMRC 2026/27 Engine"}
         </span>
       </div>
     </>

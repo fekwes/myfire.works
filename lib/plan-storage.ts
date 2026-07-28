@@ -7,19 +7,19 @@ import type { FireInputs } from "./fire-engine";
  */
 export const PLAN_STORAGE_KEY = "onfire:plan";
 
-export function getActiveRegionLocal(): "uk" | "us" {
+export function getActiveRegionLocal(): "uk" | "es" | "us" {
   if (typeof window === "undefined") return "uk";
   
   const saved = window.localStorage.getItem("onfire:region");
-  if (saved === "uk" || saved === "us") return saved;
+  if (saved === "uk" || saved === "es" || saved === "us") return saved;
   
   try {
     const raw = window.localStorage.getItem(PLAN_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.country === "us") {
-        window.localStorage.setItem("onfire:region", "us");
-        return "us";
+      if (parsed.country === "us" || parsed.country === "es") {
+        window.localStorage.setItem("onfire:region", parsed.country);
+        return parsed.country;
       }
     }
   } catch {}
@@ -31,19 +31,23 @@ export function getActiveRegionLocal(): "uk" | "us" {
       window.localStorage.setItem("onfire:region", "us");
       return "us";
     }
+    if (tz && (tz.startsWith("Europe/Madrid") || tz.startsWith("Atlantic/Canary"))) {
+      window.localStorage.setItem("onfire:region", "es");
+      return "es";
+    }
   } catch {}
 
   window.localStorage.setItem("onfire:region", "uk");
   return "uk";
 }
 
-export function setActiveRegionLocal(region: "uk" | "us"): void {
+export function setActiveRegionLocal(region: "uk" | "es" | "us"): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem("onfire:region", region);
 }
 
 /** Persist an assembled plan so the planner can pick it up. Safe on the server. */
-export function savePlanLocal(region: "uk" | "us", inputs: FireInputs): void {
+export function savePlanLocal(region: "uk" | "es" | "us", inputs: FireInputs): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(`${PLAN_STORAGE_KEY}:${region}`, JSON.stringify(inputs));
@@ -247,7 +251,7 @@ export function sanitisePlanInput(parsed: unknown): FireInputs | null {
     if (holdings) clean[key] = holdings;
     else delete clean[key];
   }
-  if (typeof source.country === "string" && (source.country === "uk" || source.country === "us")) {
+  if (typeof source.country === "string" && (source.country === "uk" || source.country === "es" || source.country === "us")) {
     clean.country = source.country;
   }
   if (typeof source.pots === "object" && source.pots !== null) {
@@ -270,7 +274,7 @@ export function sanitisePlanInput(parsed: unknown): FireInputs | null {
 }
 
 /** Read a previously-saved plan, or `null` if none/invalid. Safe on the server. */
-export function loadPlanLocal(region: "uk" | "us"): FireInputs | null {
+export function loadPlanLocal(region: "uk" | "es" | "us"): FireInputs | null {
   if (typeof window === "undefined") return null;
   try {
     let raw = window.localStorage.getItem(`${PLAN_STORAGE_KEY}:${region}`);
@@ -280,7 +284,7 @@ export function loadPlanLocal(region: "uk" | "us"): FireInputs | null {
       const legacyRaw = window.localStorage.getItem(PLAN_STORAGE_KEY);
       if (legacyRaw) {
         const parsed = JSON.parse(legacyRaw);
-        const legacyRegion = parsed.country === "us" ? "us" : "uk";
+        const legacyRegion = parsed.country === "us" ? "us" : parsed.country === "es" ? "es" : "uk";
         if (legacyRegion === region) {
           raw = legacyRaw;
           // Clean up by saving to the new key and optionally deleting the old one
@@ -298,13 +302,14 @@ export function loadPlanLocal(region: "uk" | "us"): FireInputs | null {
 }
 
 /** Forget any stored plan. Safe on the server. */
-export function clearPlanLocal(region?: "uk" | "us"): void {
+export function clearPlanLocal(region?: "uk" | "es" | "us"): void {
   if (typeof window === "undefined") return;
   try {
     if (region) {
       window.localStorage.removeItem(`${PLAN_STORAGE_KEY}:${region}`);
     } else {
       window.localStorage.removeItem(`${PLAN_STORAGE_KEY}:uk`);
+      window.localStorage.removeItem(`${PLAN_STORAGE_KEY}:es`);
       window.localStorage.removeItem(`${PLAN_STORAGE_KEY}:us`);
       window.localStorage.removeItem(PLAN_STORAGE_KEY);
       window.localStorage.removeItem("onfire:region");

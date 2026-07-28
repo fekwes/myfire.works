@@ -166,12 +166,12 @@ export default function MethodologyPage() {
         <Section
           id="income-tax"
           eyebrow="Tax"
-          title="Income Tax (UK & US)"
+          title="Income Tax (UK, Spain & US)"
         >
           <p>
-            Taxable pension withdrawals, 401(k) distributions, and government pensions/benefits are taxed as income year by year against progressive tax bands.
+            Taxable pension withdrawals, 401(k) distributions, Plan de Pensiones rescues, and government pensions/benefits are taxed as income year by year against statutory progressive tax bands.
           </p>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             <div>
               <h3 className="mb-2 font-display text-base font-semibold text-foreground">UK System (2026/27)</h3>
               <ul className="list-disc space-y-1 pl-4 text-xs">
@@ -183,11 +183,22 @@ export default function MethodologyPage() {
               </ul>
             </div>
             <div>
+              <h3 className="mb-2 font-display text-base font-semibold text-foreground">Spain System (IRPF 2026)</h3>
+              <ul className="list-disc space-y-1 pl-4 text-xs">
+                <li>Mínimo Personal: 5.550 € (19% de bonificación)</li>
+                <li>Tramo 1: 0 € a 12.450 € (19%)</li>
+                <li>Tramo 2: 12.450 € a 20.200 € (24%)</li>
+                <li>Tramo 3: 20.200 € a 35.200 € (30%)</li>
+                <li>Tramo 4: 35.200 € a 60.000 € (37%)</li>
+                <li>Tramo 5: 60.000 € a 300.000 € (45%) / &gt;300k € (47%)</li>
+              </ul>
+            </div>
+            <div>
               <h3 className="mb-2 font-display text-base font-semibold text-foreground">US Federal & State</h3>
               <ul className="list-disc space-y-1 pl-4 text-xs">
                 <li>Standard Deduction: $15,000 (Single) / $30,000 (Joint)</li>
                 <li>Federal Brackets: 10%, 12%, 22%, 24%, 32%, 35%, 37%</li>
-                <li>State Income Tax: Selectable (0% for TX/FL/NV, up to 13.3% CA / 10.9% NY)</li>
+                <li>State Income Tax: Selectable (0% for TX/FL/NV, up to 13.3% CA)</li>
                 <li>Filing Status: Single vs Married Filing Jointly</li>
               </ul>
             </div>

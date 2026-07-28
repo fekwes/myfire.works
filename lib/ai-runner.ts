@@ -1,9 +1,10 @@
 import { GoogleGenAI, type GenerateContentParameters } from "@google/genai";
 import { isQuotaExhausted } from "./ai-errors";
 
+/** Current models in priority order — only active, non-deprecated models. */
 const DEFAULT_MODELS = [
-  "gemini-2.0-flash",
   "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
   "gemini-2.0-flash-lite",
 ];
 
@@ -24,7 +25,7 @@ function isRetryable(error: unknown): boolean {
 export async function generateContentWithFallback(
   ai: GoogleGenAI,
   params: Omit<GenerateContentParameters, "model">,
-  primaryModel = "gemini-2.0-flash",
+  primaryModel = "gemini-2.5-flash",
 ) {
   const modelsToTry = [
     primaryModel,

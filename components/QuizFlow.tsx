@@ -29,31 +29,29 @@ import {
   type StrategyId,
 } from "@/lib/quiz";
 
+import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
+
 /** The four questions. The reveal that follows is a payoff, not a question. */
 const TOTAL_QUESTIONS = 4;
 const REVEAL_STEP = TOTAL_QUESTIONS; // index 4, shown after the last question
 
-/**
- * Four questions, in the order they build on each other: what you'll spend,
- * when you want to stop, how you plan to get there, and what you've saved so
- * far. Nothing a later step asks is silently overwritten by an earlier one.
- * Then a reveal screen — the one earned, celebratory beat — before the planner.
- */
 export function QuizFlow() {
   const router = useRouter();
   const { setInputs, activePack } = usePlan();
   const [step, setStep] = useState(0);
   const [state, setState] = useState<QuizState>(initialQuizState);
 
-  const next = () => setStep((s) => Math.min(REVEAL_STEP, s + 1));
+  const next = () => {
+    if (step === 0) {
+      trackEvent(ANALYTICS_EVENTS.FORM_STARTED);
+    }
+    setStep((s) => Math.min(REVEAL_STEP, s + 1));
+  };
   const back = () => setStep((s) => Math.max(0, s - 1));
 
   const finish = () => {
-    // Go through the provider, not straight to localStorage. PlanProvider
-    // lives in the root layout and reads storage once on mount, so a
-    // client-side push to /planner never re-read it — the planner rendered
-    // its defaults and every quiz answer was silently discarded until a hard
-    // reload. setInputs updates the live state *and* persists.
+    trackEvent(ANALYTICS_EVENTS.FORM_SUBMITTED);
+    trackEvent(ANALYTICS_EVENTS.SUCCESSFUL_COMPLETION);
     setInputs(assembleQuizInputs(state, activePack));
     router.push("/planner");
   };

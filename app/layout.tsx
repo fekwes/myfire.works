@@ -152,6 +152,11 @@ export default function RootLayout({
           </AuthProvider>
         </ThemeProvider>
         <SpeedInsights />
+        <script
+          defer
+          src="https://cloud.umami.is/script.js"
+          data-website-id="c1a65f1a-72cf-45d5-b239-e5ca4eea5d4c"
+        />
       </body>
     </html>
   );

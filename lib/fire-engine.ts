@@ -1,6 +1,7 @@
 import { type Holding, holdingsNetGrowth } from "./assets";
 import { ukPack } from "./countries/uk";
 import { usPack } from "./countries/us";
+import { esPack } from "./countries/es";
 import { executeDrawdownSequence } from "./engine/drawdown";
 
 import { calculateTax } from "./engine/tax";
@@ -56,7 +57,7 @@ export interface WrapperInput {
 
 export interface FireInputs {
   schemaVersion?: number;
-  country?: "uk" | "us";
+  country?: "uk" | "es" | "us";
   region?: string;
   filingStatus?: "single" | "married-joint";
   
@@ -125,7 +126,7 @@ type BaseResolvedFireInputs = Required<
 
 export interface ResolvedFireInputs extends BaseResolvedFireInputs {
   schemaVersion?: number;
-  country: "uk" | "us";
+  country: "uk" | "es" | "us";
   region: string;
   filingStatus: "single" | "married-joint";
   pensionStrategy?: PensionStrategy;
@@ -341,7 +342,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     pots
   } = inputs;
 
-  const pack = country === "us" ? usPack : ukPack;
+  const pack = country === "us" ? usPack : country === "es" ? esPack : ukPack;
   const regionObj = pack.regions.find(r => r.id === inputs.region);
   const taxSystem = pack.taxSystem(regionObj, inputs.filingStatus);
 

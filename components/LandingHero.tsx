@@ -1,13 +1,20 @@
 "use client";
 
-import { ShieldCheck, Sparkles } from "lucide-react";
+import { useEffect } from "react";
+import { ShieldCheck, Sparkles, Globe } from "lucide-react";
 import { LandingCta } from "@/components/LandingCta";
 import { LandingHeroPreview } from "@/components/LandingHeroPreview";
 import { usePlan } from "@/components/PlanProvider";
+import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 
 export function LandingHero() {
   const { activeRegion } = usePlan();
   const isUs = activeRegion === "us";
+  const isEs = activeRegion === "es";
+
+  useEffect(() => {
+    trackEvent(ANALYTICS_EVENTS.LANDING_PAGE_VIEWED, { region: activeRegion });
+  }, [activeRegion]);
 
   return (
     <section className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
@@ -26,9 +33,9 @@ export function LandingHero() {
             <ShieldCheck className="size-3 text-emerald-400" />
             100% Private Client Engine
           </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/80 px-3 py-1 font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground backdrop-blur-md">
-            <span className="size-1.5 rounded-full bg-primary" />
-            {isUs ? "US 2026 Engine" : "UK 2026/27 Engine"}
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 font-mono text-[0.7rem] font-semibold tracking-[0.14em] text-amber-400 backdrop-blur-md">
+            <Globe className="size-3 text-amber-400" />
+            🇬🇧 UK Active · 🇪🇸 España Próximamente
           </span>
         </div>
 
@@ -55,6 +62,8 @@ export function LandingHero() {
           <strong className="font-semibold text-foreground">
             {isUs
               ? "401(k)s, IRAs, brokerages, Social Security, and property"
+              : isEs
+              ? "Planes de Pensiones, PIAS, Cuentas de Valores, Pensión Pública y propiedad"
               : "ISAs, SIPPs, GIAs, State Pension, and property"}
           </strong>{" "}
           with exact statutory tax rules and market stress testing to calculate your exact retirement timeline.

@@ -16,8 +16,8 @@ import { CountryPack } from "@/lib/countries/types";
 import { getPack } from "@/lib/countries";
 
 interface PlanState {
-  activeRegion: "uk" | "us";
-  setActiveRegion: (region: "uk" | "us") => void;
+  activeRegion: "uk" | "es" | "us";
+  setActiveRegion: (region: "uk" | "es" | "us") => void;
   activePack: CountryPack;
   /** The single active plan, shared across the Planner and Your Finances tabs. */
   inputs: FireInputs;
@@ -51,7 +51,7 @@ export function usePlan(): PlanState {
  * fresh sign-up flows straight through.
  */
 export function PlanProvider({ children }: { children: React.ReactNode }) {
-  const [activeRegion, setActiveRegionState] = useState<"uk" | "us">("uk");
+  const [activeRegion, setActiveRegionState] = useState<"uk" | "es" | "us">("uk");
   const [inputs, setInputsState] = useState<FireInputs>(DEFAULT_FIRE_FORM_VALUES);
   const [hydrated, setHydrated] = useState(false);
   const [hasStoredPlan, setHasStoredPlan] = useState(false);
@@ -162,7 +162,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     savePlanLocal(activeRegion, next);
   };
   
-  const setActiveRegion = (region: "uk" | "us") => {
+  const setActiveRegion = (region: "uk" | "es" | "us") => {
     if (region === activeRegion) return;
     setActiveRegionState(region);
     setActiveRegionLocal(region);

@@ -5,16 +5,17 @@ import {
   Database,
   UserCheck,
   Sparkles,
-  Share2,
   ShieldOff,
   Trash2,
   ShieldCheck,
+  BarChart3,
+  Globe,
 } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "Plain-English explanation of how Fireworks protects your data: local-first browser storage, optional Supabase cloud backup, self-serve data deletion, zero-tracking guarantee, and Gemini AI data isolation.",
+    "Plain-English explanation of how Fireworks protects your data: local-first browser storage, optional Supabase cloud backup, cookieless Umami analytics, zero-tracking guarantee, and international availability.",
   alternates: { canonical: "/privacy" },
 };
 
@@ -65,14 +66,14 @@ export default function PrivacyPage() {
         <strong className="font-semibold block text-brand mb-1 text-sm">
           Core Privacy Guarantee
         </strong>
-        By default, your financial numbers never leave your web browser. We do not sell your data, we do not deploy advertising trackers, and optional AI features run with strict zero-PII data isolation guarantees.
+        By default, your financial numbers never leave your web browser. We do not sell your data, we use cookieless aggregate analytics without personal identifiers, and optional AI features run with strict zero-PII data isolation guarantees.
       </div>
 
       <div className="mt-8 space-y-6">
         {/* Section 1 */}
         <PrivacySection title="1. Local-First Browser Storage" icon={Database}>
           <p>
-            Everything you enter into the Fireworks planner—including ages, salary, asset pot balances (ISA/GIA/SIPP, 401k/IRA), contribution schedules, and spending targets—is saved locally on your device in your browser&apos;s client storage (<code className="rounded bg-surface-muted px-1.5 py-0.5 text-xs font-mono text-foreground">localStorage</code> and <code className="rounded bg-surface-muted px-1.5 py-0.5 text-xs font-mono text-foreground">indexedDB</code>).
+            Everything you enter into the Fireworks planner—including ages, salary, asset pot balances (ISA/GIA/SIPP, Plan de Pensiones/PIAS, 401k/IRA), contribution schedules, and spending targets—is saved locally on your device in your browser&apos;s client storage (<code className="rounded bg-surface-muted px-1.5 py-0.5 text-xs font-mono text-foreground">localStorage</code> and <code className="rounded bg-surface-muted px-1.5 py-0.5 text-xs font-mono text-foreground">indexedDB</code>).
           </p>
           <p>
             Your numbers do not transmit to our servers by default. Clearing your web browser cache or local application data completely purges all plan figures from your device.
@@ -80,7 +81,19 @@ export default function PrivacyPage() {
         </PrivacySection>
 
         {/* Section 2 */}
-        <PrivacySection title="2. Optional Account Sync & Complete Data Deletion" icon={UserCheck}>
+        <PrivacySection title="2. Cookieless Privacy-First Analytics (Umami Analytics)" icon={BarChart3}>
+          <p>
+            Fireworks uses <span className="text-foreground font-medium">Umami Analytics</span> to collect aggregate, anonymous statistics about site usage (such as page views, region selector interaction, and plan creation flow starts).
+          </p>
+          <ul className="list-disc pl-5 space-y-1.5 text-xs sm:text-sm">
+            <li><strong className="text-foreground">Zero Cookies & Zero Storage Identifiers:</strong> Umami operates without setting any HTTP cookies, localStorage keys, or sessionStorage identifiers.</li>
+            <li><strong className="text-foreground">No Fingerprinting or Re-identification:</strong> We do not track unique user sessions, run browser fingerprinting, or attempt user re-identification.</li>
+            <li><strong className="text-foreground">Anonymized Processing:</strong> IP addresses are never stored in a personally identifiable form. Aggregate metrics are measured based on legitimate interests (Art. 6(1)(f) GDPR / UK GDPR) to improve product performance without intrusive consent banners.</li>
+          </ul>
+        </PrivacySection>
+
+        {/* Section 3 */}
+        <PrivacySection title="3. Optional Account Sync & Complete Data Deletion" icon={UserCheck}>
           <p>
             Creating an account is entirely optional. If you choose to sign up so you can access your financial plans across multiple devices, authentication and cloud data storage are securely powered by <span className="text-foreground font-medium">Supabase</span> (using encrypted connections and database Row-Level Security).
           </p>
@@ -96,8 +109,8 @@ export default function PrivacyPage() {
           </p>
         </PrivacySection>
 
-        {/* Section 3 */}
-        <PrivacySection title="3. Third-Party AI Data Isolation (Google Gemini)" icon={Sparkles}>
+        {/* Section 4 */}
+        <PrivacySection title="4. Third-Party AI Data Isolation (Google Gemini)" icon={Sparkles}>
           <p>
             Fireworks offers two optional AI-assisted tools powered by Google Gemini API:
           </p>
@@ -114,18 +127,18 @@ export default function PrivacyPage() {
           </p>
         </PrivacySection>
 
-        {/* Section 4 */}
-        <PrivacySection title="4. Share Links & URL Encoding" icon={Share2}>
+        {/* Section 5 */}
+        <PrivacySection title="5. International Availability & Regional Expansion" icon={Globe}>
           <p>
-            Generating a share link creates a URL that encodes your plan&apos;s parameters directly into the URL hash fragment.
+            Fireworks is currently publicly available and operational for the <span className="text-foreground font-medium">United Kingdom</span>.
           </p>
           <p>
-            Share links do not store your data on a central database server to function. Anyone who opens the link can view a read-only preview of the encoded figures—so only share generated links with trusted individuals or financial advisors.
+            A tailored <span className="text-foreground font-medium">Spain (Spanish / es-ES)</span> implementation—configured for IRPF tax scale, Planes de Pensiones, PIAS, and local retirement regulations—is built into the codebase and currently feature-gated while undergoing final pre-launch testing.
           </p>
         </PrivacySection>
 
-        {/* Section 5 */}
-        <PrivacySection title="5. Zero-Tracking Guarantee & No Ad Networks" icon={ShieldOff}>
+        {/* Section 6 */}
+        <PrivacySection title="6. Zero-Tracking Guarantee & No Ad Networks" icon={ShieldOff}>
           <p>
             Fireworks is committed to zero commercial data monetization:
           </p>
@@ -136,8 +149,8 @@ export default function PrivacyPage() {
           </ul>
         </PrivacySection>
 
-        {/* Section 6 */}
-        <PrivacySection title="6. Your Statutory Data Rights (GDPR / UK DPA / CCPA)" icon={ShieldCheck}>
+        {/* Section 7 */}
+        <PrivacySection title="7. Your Statutory Data Rights (GDPR / UK DPA / CCPA)" icon={ShieldCheck}>
           <p>
             Under applicable data protection laws (including the UK General Data Protection Regulation / Data Protection Act 2018, EU GDPR, and California CCPA/CPRA), you have statutory rights regarding your personal data:
           </p>
@@ -148,8 +161,8 @@ export default function PrivacyPage() {
           </ul>
         </PrivacySection>
 
-        {/* Section 7 */}
-        <PrivacySection title="7. Contact & Data Privacy Inquiries" icon={Trash2}>
+        {/* Section 8 */}
+        <PrivacySection title="8. Contact & Data Privacy Inquiries" icon={Trash2}>
           <p>
             If you have questions, feedback, or data privacy requests regarding Fireworks, you can contact the project maintainers directly:
           </p>

@@ -1,0 +1,93 @@
+import { Translations } from "../types";
+
+export const esES: Translations = {
+  nav: {
+    planner: "Planificador",
+    finances: "Mis Finanzas",
+    methodology: "Metodología",
+    privacy: "Privacidad",
+    disclaimer: "Aviso Legal",
+    contact: "Contacto",
+    signIn: "Iniciar sesión",
+    signOut: "Cerrar sesión",
+    selectRegion: "Seleccionar región",
+    comingSoon: "Próximamente",
+    spainComingSoon: "España (Próximamente)",
+    ukActive: "Reino Unido",
+  },
+  hero: {
+    badge: "Motor FIRE y Jubilación Anticipada en España",
+    titlePrefix: "Planifica tu jubilación anticipada con ",
+    titleHighlight: "fiscalidad real (IRPF)",
+    titleSuffix: " — sin cálculos aproximados.",
+    subtitle:
+      "Modela la retirada de tus fondos entre Planes de Pensiones, PIAS, Cuentas de Valores, Pensión Pública y propiedad con precisión fiscal, objetivos Coast FIRE y simulación Monte Carlo.",
+    ctaStart: "Empezar a planificar gratis",
+    ctaExplore: "Explorar metodología",
+    liveInUk: "Disponible actualmente en el Reino Unido",
+    spainLaunchingSoon: "Próximamente disponible en España",
+  },
+  features: {
+    title: "Todo lo que necesitas para jubilarte antes con total tranquilidad",
+    subtitle: "Diseñado específicamente para modelos reales de retirada por fases.",
+    bridgeTitle: "Puente PIAS y Fondos",
+    bridgeDesc: "Usa tus PIAS y fondos de inversión para cubrir la etapa previa a la pensión.",
+    pensionTitle: "Planes de Pensiones",
+    pensionDesc: "Modela las aportaciones deducibles y la tributación del rescate en la escala del IRPF.",
+    statePensionTitle: "Pensión Pública de Jubilación",
+    statePensionDesc: "Visualiza exactamente cuándo se activa la pensión pública para reducir la necesidad de rescate.",
+    monteCarloTitle: "Pruebas de Estrés Monte Carlo",
+    monteCarloDesc: "Pon a prueba tu plan frente a 1.000 escenarios simulados de los mercados.",
+  },
+  quiz: {
+    stepLabel: "Paso",
+    next: "Siguiente",
+    back: "Anterior",
+    finish: "Calcular mi plan",
+    skip: "Omitir cuestionario",
+    currentAgeTitle: "¿Cuál es tu edad actual?",
+    retireAgeTitle: "¿A qué edad deseas jubilarte?",
+    targetIncomeTitle: "¿Qué ingreso neto anual deseas durante la jubilación?",
+    currentSavingsTitle: "¿Cuál es el total de tus ahorros e inversiones actuales?",
+    monthlySavingsTitle: "¿Cuánto ahorras mensualmente?",
+    seeMyPlan: "Ver mi plan FIRE",
+  },
+  finances: {
+    title: "Edita tu plan financiero",
+    subtitle: "Ajusta tus cuentas, rentabilidades esperadas, aportaciones y patrimonio inmobiliario.",
+    savePlan: "Guardar plan",
+    saved: "Guardado",
+    export: "Exportar plan",
+    importAi: "Importar con IA",
+  },
+  dashboard: {
+    fireNumber: "Objetivo FIRE",
+    netWorth: "Patrimonio Neto Proyectado",
+    bridgeDuration: "Duración de la Etapa Puente",
+    confidenceScore: "Confianza Monte Carlo",
+    coastFire: "Objetivo Coast FIRE",
+    timelineTitle: "Evolución de Fondos y Patrimonio",
+    incomeSafetyTitle: "Cascada de Ingresos e Impuestos",
+  },
+  comingSoon: {
+    badge: "Expansión",
+    title: "¡España estará disponible muy pronto!",
+    description:
+      "Estamos preparando la versión completa de Fireworks para España, adaptada a la escala del IRPF, tributación del ahorro, Planes de Pensiones, PIAS y normativa local.",
+    note: "La versión del Reino Unido es actualmente la única versión activa pública. ¡Permanece atento al lanzamiento en España!",
+    button: "Entendido — volver a la versión del Reino Unido",
+  },
+  legal: {
+    analyticsNoticeTitle: "Analítica respetuosa con la privacidad sin cookies",
+    analyticsNoticeDesc:
+      "Utilizamos Umami Analytics sin cookies para medir el uso agregado del sitio sin almacenar cookies, identificadores de usuario ni datos personales.",
+    disclaimerTitle: "Aviso Legal y Exención de Responsabilidad",
+    disclaimerBody:
+      "Fireworks es una herramienta de simulación y planificación financiera con fines exclusivamente educativos. No constituye asesoramiento financiero ni fiscal regulado.",
+  },
+  errors: {
+    generic: "Ha ocurrido un error inesperado. Por favor, inténtalo de nuevo.",
+    invalidNumber: "Por favor, introduce un número válido.",
+    planSaveFailed: "No se pudo guardar el plan. Por favor, inténtalo de nuevo.",
+  },
+};

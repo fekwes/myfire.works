@@ -132,7 +132,7 @@ export async function POST(request: Request) {
           temperature: 0,
         },
       },
-      "gemini-2.0-flash",
+      "gemini-2.5-flash",
     );
 
     const text = response.text;
@@ -143,18 +143,9 @@ export async function POST(request: Request) {
     if (isQuotaExhausted(err)) {
       return NextResponse.json({ error: AI_QUOTA_MESSAGE }, { status: 429 });
     }
-    // Surface enough to diagnose without leaking secrets.
-    const status = (err as { status?: number } | null)?.status;
-    const code = (err as { code?: string } | null)?.code;
-    const brief =
-      err instanceof Error
-        ? err.message.slice(0, 200)
-        : typeof err === "string"
-          ? err.slice(0, 200)
-          : JSON.stringify(err).slice(0, 200);
-    console.error("AI import failed:", brief, err);
+    console.error("AI import failed:", err);
     return NextResponse.json(
-      { error: `AI import error${status ? ` (${status})` : ""}${code ? ` [${code}]` : ""}: ${brief}` },
+      { error: "Failed to extract plan from the input." },
       { status: 500 },
     );
   }
