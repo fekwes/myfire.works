@@ -28,18 +28,30 @@ export function LandingCta() {
             </ButtonLink>
           </>
         ) : (
-          <ButtonLink href="/start" variant="brand" className="px-6 py-3">
+          <ButtonLink href="/start" variant="brand" className="px-6 py-3 shadow-sm hover:shadow-md transition-shadow">
             Build my plan
             <ArrowRight className="size-4" />
           </ButtonLink>
         )}
       </div>
 
-      <p className="mt-4 text-xs text-muted-foreground">
-        {returning
-          ? "Welcome back — pick up right where you left off."
-          : "Takes about two minutes. No account needed to see your result."}
-      </p>
+      <div className="mt-4 flex flex-col gap-1 text-xs text-muted-foreground">
+        <p className="font-medium text-foreground/90">
+          {returning
+            ? "Welcome back — pick up right where you left off."
+            : "Takes about 2 minutes. Free & instant result — no registration or bank account link needed."}
+        </p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.72rem] text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <span className="size-1.5 rounded-full bg-success" />
+            100% Client-side privacy
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="size-1.5 rounded-full bg-brand" />
+            Updated for 2026/27 UK tax rules
+          </span>
+        </div>
+      </div>
     </>
   );
 }
