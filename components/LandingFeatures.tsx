@@ -13,35 +13,35 @@ export function LandingFeatures() {
       Icon: Receipt,
       tag: "Yearly Tax Solver",
       badgeColor: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-      title: "The tax you'll actually pay",
+      title: "Exact Net Take-Home",
       body: isUs
-        ? "Federal & state tax brackets (10%–37%), standard deductions ($15k/$30k), Long-Term Capital Gains, and NIIT (3.8%) — computed year by year."
-        : "HMRC tax bands (20%/40%/45%), personal allowance taper, CGT exemptions, and tax-free pension lump sums — computed year by year.",
+        ? "Solves year-by-year federal & state tax brackets so you know your true spendable cashflow."
+        : "Solves year-by-year HMRC tax bands and CGT exemptions so you know your true spendable cashflow.",
     },
     {
       Icon: Route,
       tag: "Access Age Bridge",
       badgeColor: "border-sky-500/30 bg-sky-500/10 text-sky-400",
-      title: "The bridge years",
+      title: "Penalty-Free Unlock",
       body: isUs
-        ? "Model how your Roth IRA and Taxable Brokerage fund early retirement until your 401(k) unlocks penalty-free at age 59½."
-        : "Model how your ISA and GIA fund early retirement until your SIPP unlocks penalty-free at statutory age 57.",
+        ? "Funds early retirement via Roth IRA and brokerage until your 401(k) unlocks penalty-free at age 59½."
+        : "Funds early retirement via ISA and GIA until your SIPP unlocks penalty-free at statutory age 57.",
     },
     {
       Icon: ShieldCheck,
       tag: "Sequence Risk",
       badgeColor: "border-indigo-500/30 bg-indigo-500/10 text-indigo-400",
-      title: "Monte Carlo stress testing",
-      body: "2,000 randomized market simulations test your portfolio against sequence-of-returns risk, ensuring one poor decade won't break your plan.",
+      title: "2,000 Market Runs",
+      body: "Stress-tests your portfolio against market crashes so one bad decade won't break your plan.",
     },
     {
       Icon: Sparkles,
       tag: "Statutory Offsets",
       badgeColor: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-      title: isUs ? "Social Security & Barista FIRE" : "State Pension & Barista FIRE",
+      title: isUs ? "Social Security & Part-Time" : "State Pension & Part-Time",
       body: isUs
-        ? "Seamlessly layer Social Security benefits starting at age 67, or add part-time work earnings to reduce portfolio drawdown."
-        : "Seamlessly layer triple-lock State Pension income starting at age 67, or add part-time work earnings to reduce portfolio drawdown.",
+        ? "Layers Social Security benefits and part-time earnings to lower your required pot size."
+        : "Layers triple-lock State Pension income and part-time earnings to lower your required pot size.",
     },
   ];
 
@@ -97,12 +97,12 @@ export function LandingFeatures() {
               Most calculators stop at a pot size.
               <span className="text-muted-foreground"> This one models the journey.</span>
             </h2>
-            <p data-launch-quiet className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Static 4% calculators assume constant returns and ignore taxes. Fireworks models exact drawdown mechanics so you know your plan will hold.
+            <p data-launch-quiet className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Static 4% calculators ignore taxes and access ages. Fireworks models exact drawdown mechanics so your plan actually holds.
             </p>
           </div>
 
-          {/* Visual Model Advantage Graphic — Fills bottom-left space */}
+          {/* Visual Model Advantage Graphic */}
           <div className="mt-6 rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/10 via-surface/80 to-surface-muted/50 p-5 backdrop-blur-xl shadow-lg">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[0.65rem] font-bold uppercase tracking-wider text-brand">
@@ -165,7 +165,7 @@ export function LandingFeatures() {
                 <h3 className="font-display text-base font-bold tracking-tight text-foreground">
                   {f.title}
                 </h3>
-                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                   {f.body}
                 </p>
               </div>
