@@ -19,8 +19,8 @@ export function LandingHero() {
   }, [activeRegion]);
 
   return (
-    <section className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
-      <div className="relative z-10 lg:col-span-7">
+    <section className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-8 xl:gap-12">
+      <div className="relative z-10 min-w-0 lg:col-span-7">
         {/* Ambient background glow highlights */}
         <div className="absolute -left-20 top-20 -z-10 h-72 w-72 rounded-full bg-brand/15 blur-[100px] pointer-events-none" />
         <div className="absolute -right-20 top-0 -z-10 h-72 w-72 rounded-full bg-accent/15 blur-[100px] pointer-events-none" />
@@ -37,17 +37,17 @@ export function LandingHero() {
           </span>
         </div>
 
-        {/* Core Headline — Clean, Direct & Universal */}
-        <h1 className="landing-rise mt-5 font-display text-4xl font-extrabold leading-[1.03] tracking-tight text-balance [animation-delay:60ms] sm:text-[3.5rem] lg:text-[3.75rem]">
+        {/* Core Headline — Responsive, Bulletproof Non-Overlapping Layout */}
+        <h1 className="landing-rise mt-5 font-display text-3xl font-extrabold leading-[1.06] tracking-tight text-balance [animation-delay:60ms] sm:text-4xl lg:text-[2.65rem] xl:text-[3.25rem] 2xl:text-[3.5rem]">
           {isEs ? (
             <>
               Calcula cuándo
               <br />
-              <span className="relative inline-block whitespace-nowrap">
+              <span className="relative inline">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-brand to-accent drop-shadow-[0_2px_12px_rgba(255,194,75,0.25)]">
                   podrías dejar de trabajar
                 </span>
-                <span className="absolute -bottom-1 left-0 h-[3.5px] w-full rounded-full bg-gradient-to-r from-amber-400 via-brand to-accent opacity-90 shadow-sm" />
+                <span className="absolute -bottom-1 left-0 h-[3px] w-full rounded-full bg-gradient-to-r from-amber-400 via-brand to-accent opacity-90 shadow-sm" />
               </span>
               .
             </>
@@ -56,7 +56,7 @@ export function LandingHero() {
               Know exactly when
               <br />
               you can{" "}
-              <span className="relative inline-block whitespace-nowrap">
+              <span className="relative inline">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-brand to-accent drop-shadow-[0_2px_12px_rgba(255,194,75,0.25)]">
                   stop working
                 </span>
@@ -67,7 +67,7 @@ export function LandingHero() {
           )}
         </h1>
 
-        {/* Value Proposition — Concise & Professional */}
+        {/* Value Proposition */}
         <p
           data-launch-quiet
           className="landing-rise mt-5 max-w-xl text-base leading-relaxed text-muted-foreground [animation-delay:120ms] sm:text-lg"
@@ -81,7 +81,7 @@ export function LandingHero() {
         </div>
       </div>
 
-      <div className="relative z-10 lg:col-span-5">
+      <div className="relative z-10 min-w-0 lg:col-span-5">
         <LandingHeroPreview />
       </div>
     </section>

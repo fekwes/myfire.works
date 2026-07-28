@@ -26,21 +26,27 @@ function testInputsWithPots(inputs: FireInputs, isa: number, gia: number, sipp: 
 
   if (newInputs.pots) {
     newInputs.pots = { ...newInputs.pots };
-    // Zero out ALL pots first to ensure we don't accidentally leave US or other country pots with their full balances
+    // Zero out ALL pots first to ensure we don't accidentally leave US, ES or other country pots with their full balances
     for (const key of Object.keys(newInputs.pots)) {
       newInputs.pots[key] = { ...newInputs.pots[key], balance: 0, monthlyContribution: 0 };
     }
     
-    // Then assign the test amounts to the UK aliases (simulateFire will map them properly if the country is UK, 
-    // or if US, we should ideally map them to the US equivalents, but for now this fixes the "0 FIRE number" bug)
+    // Then assign the test amounts to the UK aliases
     if (newInputs.pots.isa) newInputs.pots.isa.balance = isa;
     if (newInputs.pots.gia) newInputs.pots.gia.balance = gia;
     if (newInputs.pots.sipp) newInputs.pots.sipp.balance = sipp;
     
-    // Quick fix for US pots to ensure they get the test amounts too
+    // US pots
     if (newInputs.country === "us") {
       if (newInputs.pots.brokerage) newInputs.pots.brokerage.balance = isa + gia;
       if (newInputs.pots["401k"]) newInputs.pots["401k"].balance = sipp;
+    }
+
+    // Spain pots
+    if (newInputs.country === "es") {
+      if (newInputs.pots.pias) newInputs.pots.pias.balance = isa;
+      if (newInputs.pots["cuenta-valores"]) newInputs.pots["cuenta-valores"].balance = gia;
+      if (newInputs.pots["plan-pensiones"]) newInputs.pots["plan-pensiones"].balance = sipp;
     }
   }
   return newInputs;
@@ -63,10 +69,10 @@ export function computeFireNumber(inputs: FireInputs): FireNumberResult {
   const total = projectedAtRetirement;
   
   // Weights for bridge vs pension split when testing requirements
-  // Calculate dynamically based on whatever pots are bridge (tax-free/taxable) vs pension (tax-deferred)
   const isUS = inputs.country === "us";
-  const bridgePots = isUS ? ["brokerage"] : ["isa", "gia"];
-  const pensionPots = isUS ? ["401k", "roth"] : ["sipp"];
+  const isES = inputs.country === "es";
+  const bridgePots = isUS ? ["brokerage"] : isES ? ["pias", "cuenta-valores"] : ["isa", "gia"];
+  const pensionPots = isUS ? ["401k", "roth"] : isES ? ["plan-pensiones"] : ["sipp"];
   
   let bridgeBalance = 0;
   let pensionBalance = 0;
@@ -89,7 +95,7 @@ export function computeFireNumber(inputs: FireInputs): FireNumberResult {
 
   let bridgeRequired = 0;
   let pensionRequired = 0;
-  const sippAccessAge = inputs.sippAccessAge ?? 57;
+  const sippAccessAge = inputs.sippAccessAge ?? (isES ? 65 : 57);
 
   if (retirementAge >= sippAccessAge) {
     const sustainsPension = (amount: number) =>
@@ -133,8 +139,6 @@ export function computeFireNumber(inputs: FireInputs): FireNumberResult {
       }) ?? 0;
 
     // Stage 2: Pension
-    // Calculate the total required using the fixed proportions, 
-    // to avoid the 45% SIPP tax overshoot caused by forcing the pension leg into 100% SIPP.
     const sustainsTotal = (amount: number) =>
       simulateFire(
         testInputsWithPots(

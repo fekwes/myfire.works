@@ -84,7 +84,7 @@ function sparklinePath(values: number[], width: number) {
 }
 
 export function LandingHeroPreview() {
-  const { activeRegion, activePack } = usePlan();
+  const { activeRegion } = usePlan();
   const { format } = useFormat();
 
   const sample =
@@ -106,39 +106,43 @@ export function LandingHeroPreview() {
 
   const { line, area, end } = sparklinePath(values, 320);
 
+  const isEs = activeRegion === "es";
+
   return (
     <div
       data-launch-to
-      className="landing-rise relative overflow-hidden rounded-3xl border border-border/50 bg-surface/80 p-6 shadow-2xl shadow-brand/5 backdrop-blur-xl [animation-delay:120ms]"
+      className="landing-rise relative w-full max-w-lg mx-auto lg:max-w-none overflow-hidden rounded-3xl border border-border/50 bg-surface/80 p-6 shadow-2xl shadow-brand/5 backdrop-blur-xl [animation-delay:120ms]"
     >
       {/* Inner top glow highlight */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[0.62rem] uppercase tracking-[0.16em] text-muted-foreground">
+        <span className="font-mono text-[0.62rem] uppercase tracking-[0.16em] text-muted-foreground truncate max-w-[180px]">
           {activeRegion === "us"
             ? "🇺🇸 Sample US Plan"
             : activeRegion === "es"
-            ? "🇪🇸 Plan Ejemplo España"
+            ? "🇪🇸 Ejemplo Plan España"
             : "🇬🇧 Sample UK Plan"}
         </span>
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-medium ${
+          className={`inline-flex items-center gap-1.5 shrink-0 rounded-full px-2.5 py-1 text-[0.7rem] font-medium ${
             sustainable ? "bg-brand/15 text-success" : "bg-danger/15 text-danger"
           }`}
         >
           <span className={`size-1.5 rounded-full ${sustainable ? "bg-success" : "bg-danger"}`} />
-          {sustainable ? "On track" : "Shortfall"}
+          {sustainable ? (isEs ? "En objetivo" : "On track") : (isEs ? "Déficit" : "Shortfall")}
         </span>
       </div>
 
       <p className="mt-5 font-mono text-[0.62rem] uppercase tracking-wide text-muted-foreground">
-        Target retirement pot
+        {isEs ? "Objetivo de capital FIRE" : "Target retirement pot"}
       </p>
-      <p className="mt-1 font-display text-4xl font-bold tabular tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-brand to-accent">
+      <p className="mt-1 font-display text-3xl sm:text-4xl font-bold tabular tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-brand to-accent truncate">
         {format(fireNumber)}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
-        pot needed by age {sample.retirementAge} to spend {format(sample.targetAnnualIncome)}/yr in today&apos;s money.
+        {isEs
+          ? `capital necesario a los ${sample.retirementAge} para gastar ${format(sample.targetAnnualIncome)}/año netos.`
+          : `pot needed by age ${sample.retirementAge} to spend ${format(sample.targetAnnualIncome)}/yr in today's money.`}
       </p>
 
       <svg
@@ -223,19 +227,23 @@ export function LandingHeroPreview() {
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div className="rounded-xl border border-border bg-surface-muted p-3">
-          <p className="font-mono text-[0.58rem] uppercase tracking-wide text-muted-foreground">
-            Target retirement age
+          <p className="font-mono text-[0.58rem] uppercase tracking-wide text-muted-foreground truncate">
+            {isEs ? "Edad de jubilación" : "Target retirement age"}
           </p>
           <p className="mt-0.5 font-display text-sm font-bold">
-            Age {sample.retirementAge}
+            {isEs ? `${sample.retirementAge} años` : `Age ${sample.retirementAge}`}
           </p>
         </div>
         <div className="rounded-xl border border-border bg-surface-muted p-3">
-          <p className="font-mono text-[0.58rem] uppercase tracking-wide text-muted-foreground">
-            {activePack.labels.taxDeferredWrapper} unlock age
+          <p className="font-mono text-[0.58rem] uppercase tracking-wide text-muted-foreground truncate">
+            {isEs ? "Rescate Plan Pensiones" : sample.country === "us" ? "401(k) unlock age" : "SIPP unlock age"}
           </p>
           <p className="mt-0.5 font-display text-sm font-bold text-success">
-            Age {sample.country === "us" ? "59½" : sample.country === "es" ? "65" : "57"}
+            {isEs
+              ? "65 años"
+              : sample.country === "us"
+              ? "Age 59½"
+              : "Age 57"}
           </p>
         </div>
       </div>
