@@ -29,38 +29,36 @@ export function LandingHero() {
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/80 px-3 py-1 font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground backdrop-blur-md">
             <span className="size-1.5 rounded-full bg-primary" />
-            {isUs ? "IRS 2026 Tax Rules" : "HMRC 2026/27 Tax Rules"}
+            {isUs ? "US 2026 Engine" : "UK 2026/27 Engine"}
           </span>
         </div>
 
-        {/* Core Headline */}
+        {/* Core Headline — Iconic, Sexy & Crystal Clear */}
         <h1 className="landing-rise mt-5 font-display text-4xl font-extrabold leading-[1.03] tracking-tight text-balance [animation-delay:60ms] sm:text-[3.5rem] lg:text-[3.75rem]">
-          Know your number. Know when.
+          Retire on your terms.
           <br />
-          Know{" "}
+          Know exactly when{" "}
           <span className="relative inline-block whitespace-nowrap">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand via-primary to-accent">
-              it&apos;ll hold
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-brand to-accent drop-shadow-[0_2px_12px_rgba(255,194,75,0.25)]">
+              work becomes optional
             </span>
-            <span className="absolute -bottom-1 left-0 h-[3.5px] w-full rounded-full bg-gradient-to-r from-brand via-primary to-accent opacity-80" />
+            <span className="absolute -bottom-1 left-0 h-[3.5px] w-full rounded-full bg-gradient-to-r from-amber-400 via-brand to-accent opacity-90 shadow-sm" />
           </span>
           .
         </h1>
 
-        {/* Region-Specific Value Proposition — Clean & Typo-Free */}
+        {/* Value Proposition — Punchy, Aspirational & Clear */}
         <p
           data-launch-quiet
           className="landing-rise mt-5 max-w-xl text-base leading-relaxed text-muted-foreground [animation-delay:120ms] sm:text-lg"
         >
-          <Term term="FIRE">FIRE</Term> — financial independence, retire early —
-          is having enough invested that work becomes optional. Fireworks is a free,
-          private modeling tool that solves drawdown across{" "}
+          Fireworks is a free, private financial modeling engine. Simulate your{" "}
           <strong className="font-semibold text-foreground">
             {isUs
-              ? "401(k)s, Roth IRAs, Taxable Brokerages, Social Security, and property"
-              : "ISAs, SIPPs, GIAs, triple-lock State Pension, and property"}
+              ? "401(k)s, IRAs, brokerages, Social Security, and property"
+              : "ISAs, SIPPs, GIAs, State Pension, and property"}
           </strong>{" "}
-          with the exact {isUs ? "federal & state tax rules " : "HMRC tax bands "}you&apos;ll actually pay.
+          to see your exact timeline to <Term term="FIRE">financial independence</Term>.
         </p>
 
         {/* CTA Section */}
