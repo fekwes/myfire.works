@@ -1,17 +1,16 @@
+"use client";
+
+import { usePlan } from "@/components/PlanProvider";
+import { useFormat } from "@/hooks/useFormat";
 import { simulateFire, type FireInputs } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
-import { formatCurrency } from "@/lib/format";
 
-// Landing page hero uses an explicit GBP sample plan — not region-aware.
-// The landing page itself will be localized separately (server-side).
-
-// A representative on-track plan. These are real engine outputs — the same
-// numbers the planner would show — so the hero previews the actual product
-// rather than a mocked-up screenshot.
-const SAMPLE: FireInputs = {
+// Sample plans tailored to each country pack so the hero card reflects local numbers
+const UK_SAMPLE: FireInputs = {
+  country: "uk",
   currentAge: 40,
   retirementAge: 55,
-  targetAnnualIncome: 18000,
+  targetAnnualIncome: 24000,
   isaBalance: 120000,
   isaMonthlyContribution: 600,
   sippBalance: 180000,
@@ -19,10 +18,19 @@ const SAMPLE: FireInputs = {
   inflationRate: 0.025,
 };
 
-// The burst that ends the arc. Rays are struck in the sparkline's own user
-// units; the SVG is `overflow-visible` so the longest ones and the bloom spill
-// past the plot into the card's padding, which is the point — the FI moment
-// escapes the chart.
+const US_SAMPLE: FireInputs = {
+  country: "us",
+  currentAge: 40,
+  retirementAge: 55,
+  targetAnnualIncome: 50000,
+  pots: {
+    "roth-ira": { balance: 150000, monthlyContribution: 600, growth: 0.06 },
+    "401k": { balance: 250000, monthlyContribution: 1000, growth: 0.06 },
+    brokerage: { balance: 50000, monthlyContribution: 200, growth: 0.06 },
+  },
+  inflationRate: 0.025,
+};
+
 function burstRays(cx: number, cy: number) {
   return Array.from({ length: 12 }, (_, i) => {
     const angle = (i / 12) * Math.PI * 2;
@@ -39,16 +47,11 @@ function burstRays(cx: number, cy: number) {
   });
 }
 
-// The plot is inset inside the viewBox rather than filling it. The final point
-// is the burst, and a burst in the very corner gets guillotined — the line, the
-// area's closing edge and the bloom all hit the boundary at once, which is what
-// made the old chart look cut off. Leaving room right and above lets the climax
-// sit *in* the frame with its glow spilling past.
 const PLOT = { right: 288, top: 14, baseline: 60 };
 
 function sparklinePath(values: number[], width: number) {
   const max = Math.max(...values, 1);
-  const stepX = PLOT.right / (values.length - 1);
+  const stepX = PLOT.right / Math.max(1, values.length - 1);
   const span = PLOT.baseline - PLOT.top;
   const y = (v: number) => PLOT.baseline - (v / max) * span;
   const point = (v: number, i: number) => ({ x: i * stepX, y: y(v) });
@@ -68,23 +71,25 @@ function sparklinePath(values: number[], width: number) {
 }
 
 export function LandingHeroPreview() {
-  const plan = simulateFire(SAMPLE);
-  const { fireNumber } = computeFireNumber(SAMPLE);
+  const { activeRegion, activePack } = usePlan();
+  const { format } = useFormat();
+
+  const sample = activeRegion === "us" ? US_SAMPLE : UK_SAMPLE;
+  const plan = simulateFire(sample);
+  const { fireNumber } = computeFireNumber(sample);
   const sustainable = plan.sustainableToLifeExpectancy;
 
-  // Total pot over time, in today's money, for the sparkline shape — the
-  // *accumulation* only. The burst at the end of this line is the FI moment, so
-  // the line has to stop there. Running on to life expectancy (as it did) drew
-  // forty flat years of drawdown after the climax, which both contradicted the
-  // chart's own label and left the curve arriving at the burst dead level.
-  const infl = SAMPLE.inflationRate ?? 0;
+  const infl = sample.inflationRate ?? 0;
   const values = plan.timeline
-    .filter((y) => y.age <= SAMPLE.retirementAge)
-    .map(
-      (y) =>
-        (y.pots.isa.end + y.pots.gia.end + y.pots.sipp.end) /
-        (1 + infl) ** (y.age - SAMPLE.currentAge),
-    );
+    .filter((y) => y.age <= sample.retirementAge)
+    .map((y) => {
+      let totalEnd = 0;
+      for (const pot of Object.values(y.pots)) {
+        totalEnd += pot.end;
+      }
+      return totalEnd / (1 + infl) ** (y.age - sample.currentAge);
+    });
+
   const { line, area, end } = sparklinePath(values, 320);
 
   return (
@@ -92,11 +97,11 @@ export function LandingHeroPreview() {
       data-launch-to
       className="landing-rise relative overflow-hidden rounded-3xl border border-border/50 bg-surface/80 p-6 shadow-2xl shadow-brand/5 backdrop-blur-xl [animation-delay:120ms]"
     >
-      {/* Subtle inner top highlight */}
+      {/* Inner top glow highlight */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       <div className="flex items-center justify-between">
         <span className="font-mono text-[0.62rem] uppercase tracking-[0.16em] text-muted-foreground">
-          Example plan
+          {activeRegion === "us" ? "🇺🇸 Sample US Plan" : "🇬🇧 Sample UK Plan"}
         </span>
         <span
           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-medium ${
@@ -109,14 +114,13 @@ export function LandingHeroPreview() {
       </div>
 
       <p className="mt-5 font-mono text-[0.62rem] uppercase tracking-wide text-muted-foreground">
-        FIRE number
+        FIRE target pot
       </p>
       <p className="mt-1 font-display text-4xl font-bold tabular tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-brand to-accent">
-        {formatCurrency(fireNumber)}
+        {format(fireNumber)}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
-        the pot this example needs by age {SAMPLE.retirementAge}, in today&apos;s
-        money.
+        pot needed by age {sample.retirementAge} to spend {format(sample.targetAnnualIncome)}/yr in today&apos;s money.
       </p>
 
       <svg
@@ -136,8 +140,6 @@ export function LandingHeroPreview() {
             <stop offset="45%" stopColor="var(--primary)" stopOpacity={0.18} />
             <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
           </radialGradient>
-          {/* The area has to stop somewhere, and a vertical edge directly under
-              the burst reads as a cut. Dissolve the last stretch instead. */}
           <linearGradient id="hero-fill-fade" x1="0" y1="0" x2="1" y2="0">
             <stop offset="78%" stopColor="#fff" stopOpacity={1} />
             <stop offset="100%" stopColor="#fff" stopOpacity={0} />
@@ -146,7 +148,6 @@ export function LandingHeroPreview() {
             <rect x="0" y="0" width="320" height="70" fill="url(#hero-fill-fade)" />
           </mask>
         </defs>
-        {/* faint baseline — sits on the plot's floor, not the viewBox's */}
         <line
           x1={0}
           y1={PLOT.baseline}
@@ -162,9 +163,6 @@ export function LandingHeroPreview() {
           fill="url(#hero-preview-fill)"
           mask="url(#hero-fill-mask)"
         />
-        {/* This line is the second half of the hero's launch trail — the
-            decorative arc runs under the card and re-emerges here as real
-            engine output, so it draws itself once the trail has finished. */}
         <path
           data-launch-join
           className="hero-chart-draw"
@@ -177,7 +175,6 @@ export function LandingHeroPreview() {
           pathLength={1}
         />
 
-        {/* The burst — the FI moment, where the trail finally goes off. */}
         <circle
           className="spark-pop"
           cx={end.x}
@@ -209,18 +206,18 @@ export function LandingHeroPreview() {
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div className="rounded-xl border border-border bg-surface-muted p-3">
           <p className="font-mono text-[0.58rem] uppercase tracking-wide text-muted-foreground">
-            Retire at
+            Target retirement age
           </p>
           <p className="mt-0.5 font-display text-sm font-bold">
-            Age {SAMPLE.retirementAge}
+            Age {sample.retirementAge}
           </p>
         </div>
         <div className="rounded-xl border border-border bg-surface-muted p-3">
           <p className="font-mono text-[0.58rem] uppercase tracking-wide text-muted-foreground">
-            Plan lasts to
+            {activePack.labels.taxDeferredWrapper} unlock age
           </p>
           <p className="mt-0.5 font-display text-sm font-bold text-success">
-            Age {plan.inputs.lifeExpectancyAge}+
+            Age {sample.country === "us" ? "59½" : "57"}
           </p>
         </div>
       </div>
