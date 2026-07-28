@@ -143,11 +143,18 @@ export async function POST(request: Request) {
     if (isQuotaExhausted(err)) {
       return NextResponse.json({ error: AI_QUOTA_MESSAGE }, { status: 429 });
     }
-    const msg =
-      err instanceof Error ? err.message : typeof err === "string" ? err : JSON.stringify(err);
-    console.error("AI import failed:", msg, err);
+    // Surface enough to diagnose without leaking secrets.
+    const status = (err as { status?: number } | null)?.status;
+    const code = (err as { code?: string } | null)?.code;
+    const brief =
+      err instanceof Error
+        ? err.message.slice(0, 200)
+        : typeof err === "string"
+          ? err.slice(0, 200)
+          : JSON.stringify(err).slice(0, 200);
+    console.error("AI import failed:", brief, err);
     return NextResponse.json(
-      { error: `Failed to extract plan from the input.` },
+      { error: `AI import error${status ? ` (${status})` : ""}${code ? ` [${code}]` : ""}: ${brief}` },
       { status: 500 },
     );
   }
