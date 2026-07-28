@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { ShieldCheck, Sparkles, Globe } from "lucide-react";
+import { ShieldCheck, Sparkles } from "lucide-react";
 import { LandingCta } from "@/components/LandingCta";
 import { LandingHeroPreview } from "@/components/LandingHeroPreview";
 import { usePlan } from "@/components/PlanProvider";
@@ -10,7 +10,6 @@ import { getTranslations } from "@/lib/i18n";
 
 export function LandingHero() {
   const { activeRegion } = usePlan();
-  const isUs = activeRegion === "us";
   const isEs = activeRegion === "es";
 
   const t = getTranslations(isEs ? "es-ES" : "en-GB");
@@ -35,14 +34,6 @@ export function LandingHero() {
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-emerald-400 backdrop-blur-md">
             <ShieldCheck className="size-3 text-emerald-400" />
             {isEs ? "Motor 100% Privado en Cliente" : "100% Private Client Engine"}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 font-mono text-[0.7rem] font-semibold tracking-[0.14em] text-amber-400 backdrop-blur-md">
-            <Globe className="size-3 text-amber-400" />
-            {isEs
-              ? "🇬🇧 Reino Unido Activo · 🇪🇸 España Próximamente"
-              : isUs
-              ? "🇬🇧 UK Active · 🇺🇸 US Coming Soon"
-              : "🇬🇧 UK Active · 🇪🇸 Spain Coming Soon"}
           </span>
         </div>
 
