@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Check, Receipt, Route, ShieldAlert, ShieldCheck, Sparkles, X } from "lucide-react";
+import { ArrowRight, Check, Lock, Receipt, Route, ShieldAlert, ShieldCheck, Sparkles, X, Zap } from "lucide-react";
 import { usePlan } from "@/components/PlanProvider";
 
 export function LandingFeatures() {
@@ -69,10 +69,10 @@ export function LandingFeatures() {
       note: "2,000 market simulations with guardrail rules",
     },
     {
-      feature: "100% Private (No account required)",
+      feature: "100% Free Forever & Private Client-Side",
       fireworks: true,
       standard: false,
-      note: "All calculations stay stored locally in your browser",
+      note: "No paywalls, zero accounts required, local browser storage only",
     },
   ];
 
@@ -112,6 +112,79 @@ export function LandingFeatures() {
             </li>
           ))}
         </ul>
+      </section>
+
+      {/* 100% FREE TRUST BADGES SECTION — "100% Free — For Real Free!" */}
+      <section className="relative overflow-hidden rounded-3xl border border-brand/30 bg-gradient-to-b from-brand/10 via-surface/70 to-surface/90 p-6 sm:p-10 backdrop-blur-2xl shadow-xl shadow-brand/5">
+        <div className="absolute -right-16 -top-16 -z-10 h-64 w-64 rounded-full bg-brand/15 blur-[90px] pointer-events-none" />
+        <div className="text-center max-w-2xl mx-auto">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/10 px-3.5 py-1 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-brand font-bold shadow-sm">
+            <Sparkles className="size-3.5 text-brand animate-pulse" />
+            100% Free — For Real Free!
+          </span>
+          <h2 className="mt-3 font-display text-2xl font-extrabold tracking-tight sm:text-3xl text-balance">
+            No catches. No paywalls. Built for planners.
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+            Fireworks is engineered with zero compromise: full-fidelity retirement modeling with absolute privacy and zero fee barriers.
+          </p>
+        </div>
+
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Badge 1: 100% Free Forever */}
+          <div className="flex flex-col gap-3 rounded-2xl border border-brand/30 bg-surface/80 dark:bg-surface-muted/50 p-6 backdrop-blur-xl transition-all duration-300 hover:border-brand/60 hover:-translate-y-1 shadow-md">
+            <div className="flex size-11 items-center justify-center rounded-xl border border-brand/40 bg-brand/10 text-brand">
+              <Sparkles className="size-5" />
+            </div>
+            <div>
+              <span className="font-mono text-[0.65rem] uppercase tracking-wider text-brand font-semibold">
+                Pillar #1
+              </span>
+              <h3 className="font-display text-lg font-bold tracking-tight text-foreground">
+                100% Free Forever
+              </h3>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                Zero subscription fees, zero premium tiers, and zero locked features. Model your complete FIRE trajectory across all tax wrappers without ever paying a dime.
+              </p>
+            </div>
+          </div>
+
+          {/* Badge 2: No Paywalls · No Credit Card · No Required Sign-up */}
+          <div className="flex flex-col gap-3 rounded-2xl border border-emerald-500/30 bg-surface/80 dark:bg-surface-muted/50 p-6 backdrop-blur-xl transition-all duration-300 hover:border-emerald-500/60 hover:-translate-y-1 shadow-md">
+            <div className="flex size-11 items-center justify-center rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-400">
+              <Zap className="size-5" />
+            </div>
+            <div>
+              <span className="font-mono text-[0.65rem] uppercase tracking-wider text-emerald-400 font-semibold">
+                Pillar #2
+              </span>
+              <h3 className="font-display text-lg font-bold tracking-tight text-foreground">
+                No Paywalls · No Credit Card · No Required Sign-up
+              </h3>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                Open the app and start planning instantly. We do not ask for a credit card, email address, password, or account setup before giving you full access.
+              </p>
+            </div>
+          </div>
+
+          {/* Badge 3: 100% Private Client-Side Engine */}
+          <div className="flex flex-col gap-3 rounded-2xl border border-accent/30 bg-surface/80 dark:bg-surface-muted/50 p-6 backdrop-blur-xl transition-all duration-300 hover:border-accent/60 hover:-translate-y-1 shadow-md">
+            <div className="flex size-11 items-center justify-center rounded-xl border border-accent/40 bg-accent/10 text-accent">
+              <Lock className="size-5" />
+            </div>
+            <div>
+              <span className="font-mono text-[0.65rem] uppercase tracking-wider text-accent font-semibold">
+                Pillar #3
+              </span>
+              <h3 className="font-display text-lg font-bold tracking-tight text-foreground">
+                100% Private Client-Side Engine
+              </h3>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                Your financial data stays 100% on your device. Projections run locally in your browser and saved plans remain strictly in your local storage.
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Comparison table — CRO high-converting feature grid */}
@@ -200,3 +273,4 @@ export function LandingFeatures() {
     </div>
   );
 }
+
