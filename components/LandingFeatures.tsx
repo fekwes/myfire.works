@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Check, Receipt, Route, ShieldAlert, ShieldCheck, Sparkles, X } from "lucide-react";
+import { ArrowRight, Check, Receipt, Route, ShieldCheck, Sparkles, X } from "lucide-react";
 import { usePlan } from "@/components/PlanProvider";
 
 export function LandingFeatures() {
@@ -220,43 +220,30 @@ export function LandingFeatures() {
         </div>
       </section>
 
-      {/* Legal & Compliance Disclaimer Box */}
-      <section className="group relative overflow-hidden rounded-2xl border border-border/80 bg-surface/50 dark:bg-surface-muted/30 p-6 sm:p-7 backdrop-blur-xl shadow-sm transition-all duration-300 hover:border-primary/40 hover:shadow-md">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary transition-colors duration-300 group-hover:border-primary/40 group-hover:bg-primary/15">
-            <ShieldAlert className="size-5" strokeWidth={1.75} />
-          </div>
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="font-display text-xs font-bold uppercase tracking-wider text-foreground sm:text-sm">
-                Financial & Legal Disclaimer
-              </h3>
-              <span className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground hidden sm:inline-block">
-                Educational Tool
-              </span>
-            </div>
-            <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-              Fireworks is an educational financial modeling tool designed solely for planning and estimation. It does not provide personalized investment, tax, legal, or financial advice. Projections rely on user inputs, historical assumptions, and simplified statutory rules ({isUs ? "US IRS Tax Code & Social Security rules" : "UK HMRC Tax Rules & State Pension triple-lock"}), which are subject to legislative change. Monte Carlo simulations present probabilistic outcomes, not guaranteed future results. Always consult a licensed Certified Financial Planner (CFP) or tax advisor before making financial decisions.
-            </p>
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-3 border-t border-border/40 text-xs font-medium">
-              <Link
-                href="/disclaimer"
-                className="group/link inline-flex items-center gap-1.5 text-primary decoration-primary/30 underline-offset-4 hover:underline hover:text-primary/90 transition-colors"
-              >
-                <span>Read full disclaimer</span>
-                <ArrowRight className="size-3.5 transition-transform duration-200 group-hover/link:translate-x-0.5" />
-              </Link>
-              <span className="text-border/80" aria-hidden="true">•</span>
-              <Link
-                href="/privacy"
-                className="inline-flex items-center gap-1.5 text-muted-foreground decoration-border/60 underline-offset-4 hover:text-foreground hover:underline transition-colors"
-              >
-                <span>Privacy policy</span>
-              </Link>
-            </div>
+      {/* Sleek, Non-Intrusive Statutory Legal Disclaimer Notice */}
+      <footer className="border-t border-border/40 pt-6 text-xs text-muted-foreground">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-3xl leading-relaxed">
+            <strong className="font-semibold text-foreground">Educational Simulation Notice:</strong>{" "}
+            Fireworks is an educational modeling tool for estimation only and does not provide financial, tax, or investment advice. Projections rely on user inputs, historical returns, and simplified statutory tax rules.
+          </p>
+          <div className="flex shrink-0 items-center gap-4 font-medium">
+            <Link
+              href="/disclaimer"
+              className="inline-flex items-center gap-1 text-foreground hover:text-brand transition-colors underline decoration-border underline-offset-4"
+            >
+              <span>Full disclaimer</span>
+              <ArrowRight className="size-3" />
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-muted-foreground hover:text-foreground transition-colors underline decoration-border underline-offset-4"
+            >
+              <span>Privacy policy</span>
+            </Link>
           </div>
         </div>
-      </section>
+      </footer>
     </div>
   );
 }
