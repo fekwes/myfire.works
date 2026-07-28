@@ -506,6 +506,7 @@ function wrapperOcf(w: WrapperView): number {
  * for "what fees cost you".
  */
 export function estimateFeeDrag(inputs: FireInputs): number {
+  if (inputs.currentAge >= inputs.retirementAge) return 0;
   const fallback = inputs.growthRate ?? DEFAULT_ASSUMPTIONS.growthRate;
   const wrappers = wrapperViews(inputs);
 

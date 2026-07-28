@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useAuth } from "@/components/AuthProvider";
 import { Field, NumberInput } from "@/components/FireForm";
 import { usePlan } from "@/components/PlanProvider";
 import { ButtonLink, Card } from "@/components/ui";
@@ -12,12 +14,13 @@ import type { FireInputs } from "@/lib/fire-engine";
  */
 export function QuickLevers() {
   const { inputs, setInputs, activePack } = usePlan();
+  const { user } = useAuth();
   const set = <K extends keyof FireInputs>(key: K, value: FireInputs[K]) =>
     setInputs({ ...inputs, [key]: value });
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             Quick levers
@@ -25,13 +28,21 @@ export function QuickLevers() {
           <p className="mt-0.5 text-xs text-muted-foreground">
             Adjust the numbers you tweak most. Everything else — balances,
             property, funds — lives under Edit plan.
+            {!user && (
+              <span className="block mt-1">
+                <Link href="/account" className="font-medium text-primary underline-offset-2 hover:underline">
+                  Sign up to save your plan
+                </Link>{" "}
+                so your numbers are remembered across devices.
+              </span>
+            )}
           </p>
         </div>
         <ButtonLink
           href="/finances"
           variant="secondary"
           size="sm"
-          className="no-print"
+          className="no-print shrink-0"
         >
           Edit plan →
         </ButtonLink>

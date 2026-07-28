@@ -7,6 +7,8 @@ import { computeFireNumber } from "@/lib/fire-number";
 import { useFormat } from "@/hooks/useFormat";
 import { requiredContributions, retirementSensitivity } from "@/lib/what-if";
 import { sustainableIncomeFromPots } from "@/lib/bridge";
+import { runMonteCarlo } from "@/lib/monte-carlo";
+import { portfolioEquityFraction } from "@/lib/vanguard-funds";
 import { Card } from "@/components/ui/Card";
 
 function MonoLabel({ children }: { children: React.ReactNode }) {
@@ -34,11 +36,14 @@ export function OverviewPanel({
 
   const formatReal = (val: number | null) => val === null ? null : format(val * retireDefl);
 
-
   const fn = useMemo(() => computeFireNumber(inputs), [inputs]);
   const req = useMemo(() => requiredContributions(inputs), [inputs]);
   const s = useMemo(() => retirementSensitivity(inputs), [inputs]);
   const income = useMemo(() => sustainableIncomeFromPots(inputs), [inputs]);
+
+  const eq = useMemo(() => portfolioEquityFraction(inputs), [inputs]);
+  const mc = useMemo(() => runMonteCarlo(inputs, { equityFraction: eq }), [inputs, eq]);
+  const flatStrat = mc.strategies.find((st) => st.key === "flat");
 
   const sippAccessAge = inputs.sippAccessAge ?? 57;
   const hasBridge = inputs.retirementAge < sippAccessAge;
@@ -118,6 +123,14 @@ export function OverviewPanel({
                       <span className="font-medium tabular text-foreground">+{format(req.extraSipp)}/mo</span>
                     </div>
                   )}
+                  {flatStrat && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Confidence</span>
+                      <span className="font-medium tabular text-foreground">
+                        {Math.round(flatStrat.successRate * 100)}% ({mc.startAge}–{mc.endAge})
+                      </span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="mt-2 space-y-1.5 border-t border-border/50 pt-2 text-sm">
@@ -125,6 +138,14 @@ export function OverviewPanel({
                     <span className="text-muted-foreground">Projected surplus</span>
                     <span className="font-medium tabular text-success">+{formatReal(fn.surplus)}</span>
                   </div>
+                  {flatStrat && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Confidence</span>
+                      <span className="font-medium tabular text-foreground">
+                        {Math.round(flatStrat.successRate * 100)}% ({mc.startAge}–{mc.endAge})
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </>
@@ -162,22 +183,22 @@ export function OverviewPanel({
           {income ? (
             <>
               <p className="font-display text-2xl font-bold tabular text-foreground">
-                {formatReal(income.headline)}/yr
+                {format(income.headline)}/yr
               </p>
               <div className="mt-2 space-y-1.5 border-t border-border/50 pt-2 text-sm">
                 {hasBridge && income.bridgeIncome !== null && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Bridge pots</span>
-                    <span className="font-medium tabular text-foreground">{formatReal(income.bridgeIncome)}/yr</span>
+                    <span className="font-medium tabular text-foreground">{format(income.bridgeIncome)}/yr</span>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Pension</span>
-                  <span className="font-medium tabular text-foreground">{formatReal(income.pensionIncome)}/yr</span>
+                  <span className="font-medium tabular text-foreground">{format(income.pensionIncome)}/yr</span>
                 </div>
               </div>
               <p className="mt-auto pt-2 text-xs text-muted-foreground">
-                Sustainable net income from today&apos;s balances grown to age {inputs.retirementAge}.
+                Sustainable net income in today&apos;s money from starting balances.
               </p>
             </>
           ) : (

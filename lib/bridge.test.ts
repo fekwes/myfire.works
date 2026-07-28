@@ -86,4 +86,18 @@ describe("sustainableIncomeFromPots", () => {
     // With delayed access, bridge must last longer, so bridge income should drop
     expect(delayedAges.bridgeIncome!).toBeLessThan(defaultAges.bridgeIncome!);
   });
+
+  it("works with inputs.pots structure", () => {
+    const result = sustainableIncomeFromPots({
+      ...baseInputs,
+      pots: {
+        isa: { balance: 100000, monthlyContribution: 500 },
+        gia: { balance: 0, monthlyContribution: 0 },
+        sipp: { balance: 200000, monthlyContribution: 500 },
+      },
+    })!;
+    expect(result).not.toBeNull();
+    expect(result.bridgeIncome).toBeGreaterThan(0);
+    expect(result.pensionIncome).toBeGreaterThan(0);
+  });
 });
