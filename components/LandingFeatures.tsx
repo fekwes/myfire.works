@@ -12,7 +12,7 @@ export function LandingFeatures() {
   const features = [
     {
       Icon: Receipt,
-      tag: isEs ? "Cálculo IRPF Anual" : "Yearly Tax Solver",
+      tag: isEs ? "IRPF Anual" : "Yearly Tax Solver",
       badgeColor: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
       title: isEs ? "Renta Neta Exacta" : "Exact Net Take-Home",
       body: isUs
@@ -23,7 +23,7 @@ export function LandingFeatures() {
     },
     {
       Icon: Route,
-      tag: isEs ? "Puente a la Jubilación" : "Access Age Bridge",
+      tag: isEs ? "Etapa Puente" : "Access Age Bridge",
       badgeColor: "border-sky-500/30 bg-sky-500/10 text-sky-400",
       title: isEs ? "Rescate Eficiente" : "Penalty-Free Unlock",
       body: isUs
@@ -34,7 +34,7 @@ export function LandingFeatures() {
     },
     {
       Icon: ShieldCheck,
-      tag: isEs ? "Riesgo de Secuencia" : "Sequence Risk",
+      tag: isEs ? "Monte Carlo" : "Sequence Risk",
       badgeColor: "border-indigo-500/30 bg-indigo-500/10 text-indigo-400",
       title: isEs ? "2.000 Escenarios de Mercado" : "2,000 Market Runs",
       body: isEs
@@ -43,12 +43,12 @@ export function LandingFeatures() {
     },
     {
       Icon: Sparkles,
-      tag: isEs ? "Ingresos Públicos" : "Statutory Offsets",
+      tag: isEs ? "Pensión Pública" : "Statutory Offsets",
       badgeColor: "border-amber-500/30 bg-amber-500/10 text-amber-400",
       title: isUs
         ? "Social Security & Part-Time"
         : isEs
-        ? "Pensión Pública y Trabajo Parcial"
+        ? "Pensión y Trabajo Parcial"
         : "State Pension & Part-Time",
       body: isUs
         ? "Layers Social Security benefits and part-time earnings to lower your required pot size."
@@ -207,9 +207,9 @@ export function LandingFeatures() {
           {features.map((f) => (
             <li
               key={f.title}
-              className="group flex flex-col justify-between gap-3 rounded-2xl border border-border/60 bg-surface-muted/30 p-5 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:bg-surface-muted/60 hover:shadow-xl hover:shadow-brand/5"
+              className="group flex flex-col justify-start rounded-2xl border border-border/60 bg-surface-muted/30 p-5 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:bg-surface-muted/60 hover:shadow-xl hover:shadow-brand/5"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-4">
                 <span className="flex size-9 items-center justify-center rounded-xl border border-primary/20 bg-brand/5 text-primary transition-colors duration-300 group-hover:border-primary/40 group-hover:bg-brand/15">
                   <f.Icon className="size-4" strokeWidth={1.75} />
                 </span>
@@ -217,11 +217,11 @@ export function LandingFeatures() {
                   {f.tag}
                 </span>
               </div>
-              <div>
-                <h3 className="font-display text-base font-bold tracking-tight text-foreground">
+              <div className="flex flex-col flex-1 justify-start">
+                <h3 className="font-display text-base font-bold tracking-tight text-foreground leading-snug min-h-[1.5rem] flex items-center">
                   {f.title}
                 </h3>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                   {f.body}
                 </p>
               </div>
