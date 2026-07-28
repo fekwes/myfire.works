@@ -87,22 +87,24 @@ export function AssetTimelineChart({
 
   const { activePack } = usePlan();
   const { formatCompact } = useFormat();
-  const data = result.timeline.map((year) => ({
-    age: year.age,
-    ISA: Math.round(deflate(year.pots.isa.end, year.age)),
-    GIA: Math.round(deflate(year.pots.gia.end, year.age)),
-    SIPP: Math.round(deflate(year.pots.sipp.end, year.age)),
-    "Net worth": Math.round(
-      deflate(
-        year.pots.isa.end +
-          year.pots.gia.end +
-          year.pots.sipp.end +
-          year.rentalValueEnd +
-          year.homeValueEnd,
-        year.age,
+  const data = result.timeline.map((year) => {
+    const isaEnd = year.pots?.isa?.end ?? 0;
+    const giaEnd = year.pots?.gia?.end ?? 0;
+    const sippEnd = year.pots?.sipp?.end ?? 0;
+    const totalPots = Object.values(year.pots ?? {}).reduce((sum, p) => sum + (p?.end ?? 0), 0);
+    return {
+      age: year.age,
+      ISA: Math.round(deflate(isaEnd, year.age)),
+      GIA: Math.round(deflate(giaEnd, year.age)),
+      SIPP: Math.round(deflate(sippEnd, year.age)),
+      "Net worth": Math.round(
+        deflate(
+          totalPots + year.rentalValueEnd + year.homeValueEnd,
+          year.age,
+        ),
       ),
-    ),
-  }));
+    };
+  });
 
   const { sippAccessAge, statePensionAge } = result.inputs;
   const hasGia = data.some((d) => d.GIA > 0.5);

@@ -456,11 +456,8 @@ function StepReveal({
     () =>
       plan.timeline
         .filter((y) => y.age <= inputs.retirementAge)
-        .map(
-          (y) =>
-            (y.pots.isa.start ?? 0) +
-            (y.pots.gia.start ?? 0) +
-            (y.pots.sipp.start ?? 0),
+        .map((y) =>
+          Object.values(y.pots ?? {}).reduce((sum, p) => sum + (p?.start ?? 0), 0),
         ),
     [plan, inputs.retirementAge],
   );

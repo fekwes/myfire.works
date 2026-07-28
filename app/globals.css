@@ -29,6 +29,7 @@
 
   /* Bright ember for highlight fills / badges */
   --brand: #ff8a3d;
+  --brand-foreground: #241005;
 
   /* Secondary spark — periwinkle violet (links / secondary data) */
   --accent: #5b4bd6;
@@ -86,6 +87,7 @@
 
   /* Bright gold for highlight fills / the "burst" */
   --brand: #ffc24b;
+  --brand-foreground: #241005;
 
   /* Secondary spark — periwinkle violet */
   --accent: #9e8cff;
@@ -125,6 +127,7 @@
   --color-primary-foreground: var(--primary-foreground);
 
   --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
 

@@ -29,8 +29,10 @@ export function calculateTax(
     }
   }
 
-  // 2. We need a way to determine total income for cross-base allowance tapers.
-  const totalIncome = Object.values(incomeByBase).reduce((sum, val) => sum + val, 0);
+  // 2. We need a way to determine total ordinary income for cross-base allowance tapers (excluding CGT).
+  const totalIncome = Object.entries(incomeByBase)
+    .filter(([baseId]) => baseId !== "cgt")
+    .reduce((sum, [, val]) => sum + val, 0);
 
   // 3. Process each base.
   for (const base of taxSystem.bases) {

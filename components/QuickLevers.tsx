@@ -17,6 +17,22 @@ export function QuickLevers() {
   const { user } = useAuth();
   const set = <K extends keyof FireInputs>(key: K, value: FireInputs[K]) =>
     setInputs({ ...inputs, [key]: value });
+  const updatePotMonthly = (wrapperId: "isa" | "sipp", value: number) => {
+    const updated: FireInputs = {
+      ...inputs,
+      [wrapperId === "isa" ? "isaMonthlyContribution" : "sippMonthlyContribution"]: value,
+    };
+    if (inputs.pots && inputs.pots[wrapperId]) {
+      updated.pots = {
+        ...inputs.pots,
+        [wrapperId]: {
+          ...inputs.pots[wrapperId],
+          monthlyContribution: value,
+        },
+      };
+    }
+    setInputs(updated);
+  };
 
   return (
     <Card>
@@ -79,14 +95,14 @@ export function QuickLevers() {
         <Field label={activePack.id === "us" ? "Roth / mo" : "ISA / mo"}>
           <NumberInput
             value={(inputs.pots?.isa?.monthlyContribution ?? inputs.isaMonthlyContribution ?? 0)}
-            onChange={(v) => set("isaMonthlyContribution", v)}
+            onChange={(v) => updatePotMonthly("isa", v)}
             prefix={activePack.currency.symbol}
           />
         </Field>
         <Field label={activePack.id === "us" ? "401(k) / mo" : "Pension / mo"}>
           <NumberInput
             value={(inputs.pots?.sipp?.monthlyContribution ?? inputs.sippMonthlyContribution ?? 0)}
-            onChange={(v) => set("sippMonthlyContribution", v)}
+            onChange={(v) => updatePotMonthly("sipp", v)}
             prefix={activePack.currency.symbol}
           />
         </Field>
