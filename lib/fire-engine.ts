@@ -534,10 +534,17 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     }
 
     // DRAWDOWN ENGINE EVALUATION
-    const strategyName = inputs.country === "us" ? "brokerage->401k->roth" : "isa->gia->sipp";
+    const strategyName =
+      inputs.country === "us"
+        ? "brokerage->401k->roth"
+        : inputs.country === "es"
+        ? "pias->cuenta-valores->plan-pensiones"
+        : "isa->gia->sipp";
     
     const availableWrappers = pack.wrappers.map(w => {
-      const accessAge = w.id === "sipp" ? (inputs.sippAccessAge ?? w.accessAge ?? 57) : (w.accessAge ?? 0);
+      const isPension = w.treatment === "tax-deferred";
+      const defaultPensionAccessAge = country === "us" ? 59.5 : country === "es" ? 65 : 57;
+      const accessAge = isPension ? (inputs.sippAccessAge ?? w.accessAge ?? defaultPensionAccessAge) : (w.accessAge ?? 0);
       if (age < accessAge) return null;
       
       let fraction = w.taxFreeFractionOnWithdrawal;

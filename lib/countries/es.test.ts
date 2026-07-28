@@ -2,6 +2,8 @@ import { describe, expect, test } from "vitest";
 import { getPack, isCountryEnabled } from "./index";
 import { esPack } from "./es";
 import { ES_INCOME_TAX_BANDS_2026, ES_SAVINGS_TAX_BANDS_2026 } from "./es/constants";
+import { simulateFire } from "../fire-engine";
+import { computeFireNumber } from "../fire-number";
 
 describe("Spain (es-ES) Country Pack", () => {
   test("registers esPack correctly", () => {
@@ -35,9 +37,43 @@ describe("Spain (es-ES) Country Pack", () => {
   });
 
   test("feature flag for Spain works", () => {
-    // In Vitest (NODE_ENV === 'test'), isCountryEnabled('es') returns true for testing
     expect(isCountryEnabled("es")).toBe(true);
     expect(isCountryEnabled("uk")).toBe(true);
     expect(isCountryEnabled("unknown")).toBe(false);
+  });
+
+  test("simulates Spain FIRE drawdown correctly without pot locking or calculation errors", () => {
+    const sim = simulateFire({
+      country: "es",
+      currentAge: 40,
+      retirementAge: 55,
+      targetAnnualIncome: 24000,
+      pots: {
+        pias: { balance: 80000, monthlyContribution: 400, growth: 0.05 },
+        "plan-pensiones": { balance: 60000, monthlyContribution: 125, growth: 0.05 },
+        "cuenta-valores": { balance: 40000, monthlyContribution: 200, growth: 0.05 },
+      },
+      inflationRate: 0.025,
+    });
+
+    expect(sim.timeline.length).toBeGreaterThan(0);
+    const retiredYear = sim.timeline.find((y) => y.age === 55);
+    expect(retiredYear).toBeDefined();
+
+    const fireResult = computeFireNumber({
+      country: "es",
+      currentAge: 40,
+      retirementAge: 55,
+      targetAnnualIncome: 24000,
+      pots: {
+        pias: { balance: 80000, monthlyContribution: 400, growth: 0.05 },
+        "plan-pensiones": { balance: 60000, monthlyContribution: 125, growth: 0.05 },
+        "cuenta-valores": { balance: 40000, monthlyContribution: 200, growth: 0.05 },
+      },
+      inflationRate: 0.025,
+    });
+
+    expect(fireResult.fireNumber).toBeGreaterThan(100000);
+    expect(fireResult.fireNumber).toBeLessThan(2000000);
   });
 });

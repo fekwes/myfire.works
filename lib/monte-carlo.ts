@@ -110,7 +110,7 @@ export function runMonteCarlo(
 
   const first = retired[0];
   const startPot = first
-    ? first.pots.isa.start + first.pots.gia.start + first.pots.sipp.start
+    ? Object.values(first.pots).reduce((sum, p) => sum + p.start, 0)
     : 0;
 
   const guaranteedByAge = new Map<number, number>();
@@ -121,10 +121,9 @@ export function runMonteCarlo(
       y.age,
       y.statePensionIncome + y.rentalIncome + y.partTimeIncome,
     );
+    const potGross = Object.values(y.potWithdrawals).reduce((sum, w) => sum + w.gross, 0);
     grossIncome +=
-      y.potWithdrawals.isa.gross +
-      y.potWithdrawals.gia.gross +
-      y.potWithdrawals.sipp.gross +
+      potGross +
       y.statePensionIncome +
       y.rentalIncome +
       y.partTimeIncome;
