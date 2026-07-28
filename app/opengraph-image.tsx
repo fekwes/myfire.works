@@ -31,7 +31,7 @@ export default function OpengraphImage() {
         }}
       >
         {/* Wordmark & domain badge */}
-        <div style={{ display: "flex", alignItems: "center", justifyBetween: "space-between", width: "100%" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
             <svg width="64" height="64" viewBox="0 0 32 32" fill="none">
               <rect width="32" height="32" rx="8" fill={TILE} />
