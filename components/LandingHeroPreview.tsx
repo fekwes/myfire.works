@@ -114,7 +114,7 @@ export function LandingHeroPreview() {
       </div>
 
       <p className="mt-5 font-mono text-[0.62rem] uppercase tracking-wide text-muted-foreground">
-        FIRE target pot
+        Target retirement pot
       </p>
       <p className="mt-1 font-display text-4xl font-bold tabular tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-brand to-accent">
         {format(fireNumber)}
@@ -128,7 +128,7 @@ export function LandingHeroPreview() {
         className="mt-5 w-full overflow-visible"
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label="Projected assets rising over time, ending at your FIRE moment"
+        aria-label="Projected assets rising over time, ending at your retirement moment"
       >
         <defs>
           <linearGradient id="hero-preview-fill" x1="0" y1="0" x2="0" y2="1">

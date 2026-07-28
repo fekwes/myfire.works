@@ -34,7 +34,7 @@ export function LandingCta() {
             variant="brand"
             className="px-6 py-3 shadow-lg shadow-brand/25 transition-all hover:-translate-y-0.5 hover:scale-105 hover:shadow-brand/40"
           >
-            Build your FIRE plan
+            Build your retirement plan
             <ArrowRight className="size-4" />
           </ButtonLink>
         )}
@@ -53,7 +53,7 @@ export function LandingCta() {
         </span>
         <span className="inline-flex items-center gap-1.5">
           <ShieldCheck className="size-3.5 text-primary" />
-          {activeRegion === "us" ? "IRS 2026 Tax Engine" : "HMRC 2026/27 Tax Engine"}
+          {activeRegion === "us" ? "IRS 2026 Engine" : "HMRC 2026/27 Engine"}
         </span>
       </div>
     </>
