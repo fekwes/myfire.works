@@ -238,13 +238,25 @@ function resolveInputs(inputs: FireInputs): ResolvedFireInputs {
     downsizeReleaseFraction: inputs.downsizeReleaseFraction ?? 0,
     statePensionAnnual:
       inputs.statePensionAnnual ??
-      (inputs.country === "us" ? usPack.quizDefaults.defaultStatePensionAnnual : DEFAULT_ASSUMPTIONS.statePensionAnnual),
+      (inputs.country === "us"
+        ? usPack.quizDefaults.defaultStatePensionAnnual
+        : inputs.country === "es"
+        ? esPack.quizDefaults.defaultStatePensionAnnual
+        : DEFAULT_ASSUMPTIONS.statePensionAnnual),
     statePensionAge:
       inputs.statePensionAge ??
-      (inputs.country === "us" ? usPack.quizDefaults.defaultStatePensionAge : DEFAULT_ASSUMPTIONS.statePensionAge),
+      (inputs.country === "us"
+        ? usPack.quizDefaults.defaultStatePensionAge
+        : inputs.country === "es"
+        ? esPack.quizDefaults.defaultStatePensionAge
+        : DEFAULT_ASSUMPTIONS.statePensionAge),
     sippAccessAge:
       inputs.sippAccessAge ??
-      (inputs.country === "us" ? usPack.quizDefaults.defaultPensionAccessAge : DEFAULT_ASSUMPTIONS.sippAccessAge),
+      (inputs.country === "us"
+        ? usPack.quizDefaults.defaultPensionAccessAge
+        : inputs.country === "es"
+        ? esPack.quizDefaults.defaultPensionAccessAge
+        : DEFAULT_ASSUMPTIONS.sippAccessAge),
     pensionStrategy:
       inputs.country === "us" ? undefined : (inputs.pensionStrategy ?? DEFAULT_ASSUMPTIONS.pensionStrategy),
     // Never below `currentAge`: the projection walks `currentAge`..this age, so

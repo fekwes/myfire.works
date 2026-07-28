@@ -39,6 +39,18 @@ export const ES_DEFAULT_STATE_PENSION_ANNUAL = 14000;
 export const ES_DEFAULT_PENSION_ACCESS_AGE = 65;
 export const ES_DEFAULT_STATE_PENSION_AGE = 67;
 
-export function calculateEsPersonalAllowance(): number {
-  return ES_INCOME_TAX_BANDS_2026.personalAllowance;
+/**
+ * Spanish Personal Allowance (Mínimo Personal y Familiar)
+ * Base: 5,550 €
+ * Age >= 65: +1,150 € (6,700 €)
+ * Age >= 75: +1,400 € additional (8,100 €)
+ */
+export function calculateEsPersonalAllowance(age: number = 0): number {
+  let allowance = ES_INCOME_TAX_BANDS_2026.personalAllowance;
+  if (age >= 75) {
+    allowance += 2550;
+  } else if (age >= 65) {
+    allowance += 1150;
+  }
+  return allowance;
 }

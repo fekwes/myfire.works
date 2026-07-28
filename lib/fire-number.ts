@@ -31,7 +31,7 @@ function testInputsWithPots(inputs: FireInputs, isa: number, gia: number, sipp: 
       newInputs.pots[key] = { ...newInputs.pots[key], balance: 0, monthlyContribution: 0 };
     }
     
-    // Then assign the test amounts to the UK aliases
+    // Assign test amounts to UK aliases
     if (newInputs.pots.isa) newInputs.pots.isa.balance = isa;
     if (newInputs.pots.gia) newInputs.pots.gia.balance = gia;
     if (newInputs.pots.sipp) newInputs.pots.sipp.balance = sipp;
@@ -68,27 +68,31 @@ export function computeFireNumber(inputs: FireInputs): FireNumberResult {
 
   const total = projectedAtRetirement;
   
-  // Weights for bridge vs pension split when testing requirements
   const isUS = inputs.country === "us";
   const isES = inputs.country === "es";
-  const bridgePots = isUS ? ["brokerage"] : isES ? ["pias", "cuenta-valores"] : ["isa", "gia"];
-  const pensionPots = isUS ? ["401k", "roth"] : isES ? ["plan-pensiones"] : ["sipp"];
   
-  let bridgeBalance = 0;
+  let isaBalance = 0;
+  let giaBalance = 0;
   let pensionBalance = 0;
-  
+
   if (atRetirement) {
-    for (const key of bridgePots) {
-      if (atRetirement.pots[key]) bridgeBalance += atRetirement.pots[key].start;
-    }
-    for (const key of pensionPots) {
-      if (atRetirement.pots[key]) pensionBalance += atRetirement.pots[key].start;
+    if (isUS) {
+      isaBalance = atRetirement.pots["brokerage"]?.start ?? 0;
+      pensionBalance = (atRetirement.pots["401k"]?.start ?? 0) + (atRetirement.pots["roth"]?.start ?? 0);
+    } else if (isES) {
+      isaBalance = atRetirement.pots["pias"]?.start ?? 0;
+      giaBalance = atRetirement.pots["cuenta-valores"]?.start ?? 0;
+      pensionBalance = atRetirement.pots["plan-pensiones"]?.start ?? 0;
+    } else {
+      isaBalance = atRetirement.pots["isa"]?.start ?? 0;
+      giaBalance = atRetirement.pots["gia"]?.start ?? 0;
+      pensionBalance = atRetirement.pots["sipp"]?.start ?? 0;
     }
   }
 
   const weights =
     total > 0
-      ? { isa: bridgeBalance / total, gia: 0, sipp: pensionBalance / total }
+      ? { isa: isaBalance / total, gia: giaBalance / total, sipp: pensionBalance / total }
       : { isa: 0.4, gia: 0, sipp: 0.6 };
 
   const targetAtRetirement = inflatedTargetAt(inputs, retirementAge);
@@ -158,8 +162,9 @@ export function computeFireNumber(inputs: FireInputs): FireNumberResult {
     pensionRequired = Math.max(0, baseFireNumber - bridgeRequired);
   }
 
+  const bridgeBalanceTotal = isaBalance + giaBalance;
   const fireNumber = bridgeRequired + pensionRequired;
-  const bridgeGap = Math.max(0, bridgeRequired - bridgeBalance);
+  const bridgeGap = Math.max(0, bridgeRequired - bridgeBalanceTotal);
 
   return {
     projectedAtRetirement,
