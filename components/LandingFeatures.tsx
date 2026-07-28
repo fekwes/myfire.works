@@ -224,15 +224,15 @@ export function LandingFeatures() {
       <footer className="border-t border-border/40 pt-6 text-xs text-muted-foreground">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-3xl leading-relaxed">
-            <strong className="font-semibold text-foreground">Educational Simulation Notice:</strong>{" "}
-            Fireworks is an educational modeling tool for estimation only and does not provide financial, tax, or investment advice. Projections rely on user inputs, historical returns, and simplified statutory tax rules.
+            <strong className="font-semibold text-foreground">Statutory Disclosure:</strong>{" "}
+            Fireworks is an educational simulation tool, not a regulated financial adviser, broker-dealer, or fiduciary under US (SEC/FINRA) or UK (FCA) standards; all market projections, stochastic distributions, and tax estimates are hypothetical, illustrative, and non-guaranteed. Outputs do not constitute personalized investment, legal, or tax advice—please consult a licensed professional before making financial decisions.
           </p>
           <div className="flex shrink-0 items-center gap-4 font-medium">
             <Link
               href="/disclaimer"
               className="inline-flex items-center gap-1 text-foreground hover:text-brand transition-colors underline decoration-border underline-offset-4"
             >
-              <span>Full disclaimer</span>
+              <span>Disclaimer</span>
               <ArrowRight className="size-3" />
             </Link>
             <Link
