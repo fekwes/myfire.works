@@ -17,6 +17,9 @@ function useMounted() {
   );
 }
 
+const BADGE_STYLE =
+  "text-[10px] font-semibold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/25";
+
 export function RegionToggle() {
   const { activeRegion, setActiveRegion } = usePlan();
   const mounted = useMounted();
@@ -46,7 +49,7 @@ export function RegionToggle() {
         activeRegion === "es" ? (
           <Check className="size-4 text-primary" />
         ) : !esEnabled ? (
-          <span className="text-[10px] font-semibold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
+          <span className={BADGE_STYLE}>
             Próximamente
           </span>
         ) : null,
@@ -62,7 +65,7 @@ export function RegionToggle() {
         activeRegion === "us" ? (
           <Check className="size-4 text-primary" />
         ) : (
-          <span className="text-[10px] font-semibold text-muted-foreground bg-muted/20 px-2 py-0.5 rounded-full border border-border/40">
+          <span className={BADGE_STYLE}>
             Coming Soon
           </span>
         ),
