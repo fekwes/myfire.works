@@ -250,14 +250,14 @@ function LaunchBox() {
       {/* Left Card */}
       <g transform="translate(100, 110) rotate(-12)">
         <rect x="0" y="0" width="40" height="70" rx="4" fill="url(#card-1)" stroke="var(--border)" strokeWidth="1" />
-        <circle cx="20" cy="20" r="8" fill="var(--muted)" opacity="0.5" />
-        <rect x="10" y="35" width="20" height="4" rx="2" fill="var(--muted)" opacity="0.5" />
+        <circle cx="20" cy="20" r="8" fill="var(--muted-foreground)" opacity="0.4" />
+        <rect x="10" y="35" width="20" height="4" rx="2" fill="var(--muted-foreground)" opacity="0.4" />
       </g>
       
       {/* Right Card */}
       <g transform="translate(170, 105) rotate(15)">
         <rect x="0" y="0" width="40" height="70" rx="4" fill="url(#card-1)" stroke="var(--border)" strokeWidth="1" />
-        <rect x="8" y="15" width="24" height="24" rx="4" fill="var(--muted)" opacity="0.5" />
+        <rect x="8" y="15" width="24" height="24" rx="4" fill="var(--muted-foreground)" opacity="0.4" />
       </g>
 
       {/* Center Brand Card (The ignition source) */}

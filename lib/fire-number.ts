@@ -49,6 +49,27 @@ function testInputsWithPots(inputs: FireInputs, isa: number, gia: number, sipp: 
       if (newInputs.pots["plan-pensiones"]) newInputs.pots["plan-pensiones"].balance = sipp;
     }
   }
+
+  if (newInputs.currentAge > (inputs.currentAge ?? 0)) {
+    const yearsElapsed = newInputs.currentAge - (inputs.currentAge ?? 0);
+    const growth = inputs.growthRate ?? 0.05;
+    const rentalGrowth = inputs.rentalGrowth ?? growth;
+    const homeGrowth = inputs.homeGrowth ?? growth;
+
+    if (inputs.rentalSaleAge && inputs.rentalSaleAge <= newInputs.currentAge) {
+      newInputs.rentalValue = 0;
+      newInputs.rentalMonthlyIncome = 0;
+    } else if (inputs.rentalValue) {
+      newInputs.rentalValue = inputs.rentalValue * (1 + rentalGrowth) ** yearsElapsed;
+    }
+
+    if (inputs.downsizeAge && inputs.downsizeAge <= newInputs.currentAge) {
+      newInputs.downsizeReleaseFraction = 0;
+    } else if (inputs.homeValue) {
+      newInputs.homeValue = inputs.homeValue * (1 + homeGrowth) ** yearsElapsed;
+    }
+  }
+
   return newInputs;
 }
 

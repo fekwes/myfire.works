@@ -30,25 +30,43 @@ export default function OpengraphImage() {
           fontFamily: "sans-serif",
         }}
       >
-        {/* Wordmark */}
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <svg width="64" height="64" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="8" fill={TILE} />
-            <path
-              d="M6 25C11 25 15 21 19 13"
-              stroke={EMBER}
-              strokeWidth="2.6"
-              strokeLinecap="round"
-            />
-            <path
-              d="M20 6.5C21 11.5 21 11.5 26 13C21 14.5 21 14.5 20 19.5C19 14.5 19 14.5 14 13C19 11.5 19 11.5 20 6.5Z"
-              fill={GOLD}
-            />
-          </svg>
-          <div style={{ display: "flex", fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>
-            <span>Fire</span>
-            <span style={{ color: EMBER }}>·</span>
-            <span>works</span>
+        {/* Wordmark & domain badge */}
+        <div style={{ display: "flex", alignItems: "center", justifyBetween: "space-between", width: "100%" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <svg width="64" height="64" viewBox="0 0 32 32" fill="none">
+              <rect width="32" height="32" rx="8" fill={TILE} />
+              <path
+                d="M6 25C11 25 15 21 19 13"
+                stroke={EMBER}
+                strokeWidth="2.6"
+                strokeLinecap="round"
+              />
+              <path
+                d="M20 6.5C21 11.5 21 11.5 26 13C21 14.5 21 14.5 20 19.5C19 14.5 19 14.5 14 13C19 11.5 19 11.5 20 6.5Z"
+                fill={GOLD}
+              />
+            </svg>
+            <div style={{ display: "flex", fontSize: 42, fontWeight: 800, letterSpacing: -1 }}>
+              <span>Fire</span>
+              <span style={{ color: EMBER }}>·</span>
+              <span>works</span>
+            </div>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              padding: "10px 20px",
+              borderRadius: 24,
+              border: `1.5px solid ${EMBER}`,
+              backgroundColor: "rgba(255, 173, 78, 0.12)",
+              color: GOLD,
+              fontSize: 24,
+              fontWeight: 700,
+              letterSpacing: 1,
+            }}
+          >
+            myfire.works
           </div>
         </div>
 
@@ -62,7 +80,7 @@ export default function OpengraphImage() {
               fontWeight: 800,
               lineHeight: 1.05,
               letterSpacing: -2,
-              maxWidth: 960,
+              maxWidth: 980,
             }}
           >
             <span>Know your number. Know when.&nbsp;</span>
@@ -75,7 +93,7 @@ export default function OpengraphImage() {
         </div>
 
         {/* Footer chips */}
-        <div style={{ display: "flex", gap: 16, fontSize: 24, color: MUTED }}>
+        <div style={{ display: "flex", gap: 16, fontSize: 24, color: MUTED, alignItems: "center" }}>
           <span style={{ color: VIOLET }}>●</span>
           <span>Coast FIRE</span>
           <span>·</span>

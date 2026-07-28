@@ -537,7 +537,8 @@ export function estimateFeeDrag(inputs: FireInputs): number {
     const snap =
       [...result.timeline].reverse().find((y) => y.age < r) ??
       result.timeline[result.timeline.length - 1];
-    return snap.pots.isa.end + snap.pots.gia.end + snap.pots.sipp.end;
+    if (!snap || !snap.pots) return 0;
+    return Object.values(snap.pots).reduce((sum, p) => sum + (p?.end ?? 0), 0);
   };
 
   const withFees = potAtRetirement(simulateFire(inputs));

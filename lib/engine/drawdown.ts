@@ -14,6 +14,7 @@ export interface DrawdownResult {
   capitalGainsTaxPaid: number;
   incomeTaxPaid: number;
   state: DrawdownState;
+  remainingTaxFreeLumpSum: number;
 }
 
 /**
@@ -176,6 +177,7 @@ export function executeDrawdownSequence(
     totalTaxPaid: totalIncomeTax + totalCgt,
     capitalGainsTaxPaid: totalCgt,
     incomeTaxPaid: totalIncomeTax,
-    state: currentState
+    state: currentState,
+    remainingTaxFreeLumpSum: taxFreeLumpSumAvailable,
   };
 }

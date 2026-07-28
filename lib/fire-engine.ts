@@ -580,7 +580,13 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     
     stateBalances = drawdownResult.state.balances;
     stateBases = drawdownResult.state.bases;
-    totalTaxFreePension += Object.values(drawdownResult.potWithdrawals).reduce((sum, w) => sum + w.taxFree, 0);
+    taxFreeLumpSumAvailable = drawdownResult.remainingTaxFreeLumpSum;
+    const taxDeferredIds = new Set(pack.wrappers.filter(w => w.treatment === "tax-deferred").map(w => w.id));
+    for (const [potId, w] of Object.entries(drawdownResult.potWithdrawals)) {
+      if (taxDeferredIds.has(potId)) {
+        totalTaxFreePension += w.taxFree;
+      }
+    }
     
     const netIncome = drawdownResult.netIncomeFromPots + otherTaxableNet;
     const shortfall = netIncome < yearTarget - 0.01;

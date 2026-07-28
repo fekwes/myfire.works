@@ -95,6 +95,7 @@ export function DropPasteInput({
           placeholder ??
           "Paste text or drop a file here (CSV, PDF, Image)..."
         }
+        aria-label="Import statement or holdings list"
         disabled={busy}
         className="h-28 w-full resize-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
         onPaste={(e) => {

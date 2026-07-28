@@ -121,7 +121,7 @@ export const ukPack: CountryPack = {
           stacksOn: "income",
           schedule: [
             { 
-              upTo: UK_INCOME_TAX_BANDS_2026_27.basicRateBandWidth + UK_INCOME_TAX_BANDS_2026_27.personalAllowance, 
+              upTo: UK_INCOME_TAX_BANDS_2026_27.basicRateBandWidth, 
               rate: 0.18 
             },
             { upTo: Infinity, rate: 0.24 }

@@ -39,5 +39,16 @@ describe("Generic Tax Engine vs UK Hardcoded Engine", () => {
     // remaining basic band = 50270 - 47270 = 3000
     hardcodedResult = calculateCapitalGainsTax(20000, 3000);
     expect(genericResult.taxByBase["cgt"]).toBeCloseTo(hardcodedResult, 2);
+
+    // 5. Large gain with zero income: taxable gain = 47000. Basic rate band is 37700 @ 18%, remaining 9300 @ 24%
+    genericResult = calculateTax({ "employment": 0, "realised-gains": 50000 }, taxSys);
+    // 37700 * 0.18 + 9300 * 0.24 = 6786 + 2232 = 9018
+    expect(genericResult.taxByBase["cgt"]).toBeCloseTo(9018, 2);
+
+    // 6. High CGT with income > 100k: verify CGT does NOT taper Personal Allowance on income
+    const highCgtResult = calculateTax({ "employment": 90000, "realised-gains": 50000 }, taxSys);
+    // Income tax on 90k should be identical whether CGT is 0 or 50k
+    const noCgtResult = calculateTax({ "employment": 90000 }, taxSys);
+    expect(highCgtResult.taxByBase["income"]).toBeCloseTo(noCgtResult.taxByBase["income"], 2);
   });
 });

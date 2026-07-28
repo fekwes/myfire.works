@@ -38,10 +38,16 @@ export function calculateTax(
   for (const base of taxSystem.bases) {
     const baseIncome = incomeByBase[base.id] || 0;
     
-    // Total income for stacking
+    // Total income for stacking (taxable income of stacked base after allowance)
     let stackedIncome = 0;
-    if (base.stacksOn && incomeByBase[base.stacksOn]) {
-      stackedIncome = incomeByBase[base.stacksOn];
+    if (base.stacksOn) {
+      const parentBase = taxSystem.bases.find((b) => b.id === base.stacksOn);
+      const parentGross = incomeByBase[base.stacksOn] || 0;
+      let parentAllowance = 0;
+      if (parentBase?.allowance) {
+        parentAllowance = parentBase.allowance(totalIncome);
+      }
+      stackedIncome = Math.max(0, parentGross - parentAllowance);
     }
     
     let allowance = 0;

@@ -55,6 +55,10 @@ export const metadata: Metadata = {
     "retirement planner",
   ],
   authors: [{ name: "fekwes", url: "https://github.com/fekwes" }],
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
   openGraph: {
     type: "website",
     siteName: "Fireworks",
@@ -93,6 +97,12 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <AuthProvider>
             <PlanProvider>
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:shadow-lg"
+            >
+              Skip to main content
+            </a>
             <div aria-hidden className="app-backdrop" />
             <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
               <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
@@ -108,7 +118,7 @@ export default function RootLayout({
                 <MobileNav />
               </div>
             </header>
-            <main className="flex flex-1 flex-col">{children}</main>
+            <main id="main-content" tabIndex={-1} className="flex flex-1 flex-col outline-none">{children}</main>
             <footer className="mt-16 border-t border-border bg-surface/50 backdrop-blur-xl">
               <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-6 px-4 py-8 text-sm text-muted-foreground sm:px-6 md:flex-row">
                 <div className="flex flex-col gap-1 text-center md:text-left">

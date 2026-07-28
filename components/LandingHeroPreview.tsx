@@ -125,7 +125,7 @@ export function LandingHeroPreview() {
         </span>
         <span
           className={`inline-flex items-center gap-1.5 shrink-0 rounded-full px-2.5 py-1 text-[0.7rem] font-medium ${
-            sustainable ? "bg-brand/15 text-success" : "bg-danger/15 text-danger"
+            sustainable ? "bg-success/15 text-success" : "bg-danger/15 text-danger"
           }`}
         >
           <span className={`size-1.5 rounded-full ${sustainable ? "bg-success" : "bg-danger"}`} />

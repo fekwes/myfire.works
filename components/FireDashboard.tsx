@@ -148,7 +148,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
             </h2>
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                provisional ? "bg-surface-muted text-muted-foreground" : sustainable ? "bg-brand/15 text-success" : "bg-danger/15 text-danger"
+                provisional ? "bg-surface-muted text-muted-foreground" : sustainable ? "bg-success/15 text-success" : "bg-danger/15 text-danger"
               }`}
             >
               <span

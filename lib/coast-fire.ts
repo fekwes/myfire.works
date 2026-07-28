@@ -142,6 +142,14 @@ function solveCoastAge(inputs: FireInputs): number | null {
       targetAnnualIncome: inflatedTargetAt(inputs, age),
     });
 
+    if (inputs.rentalSaleAge && inputs.rentalSaleAge <= age) {
+      testInputs.rentalValue = 0;
+      testInputs.rentalMonthlyIncome = 0;
+    }
+    if (inputs.downsizeAge && inputs.downsizeAge <= age) {
+      testInputs.downsizeReleaseFraction = 0;
+    }
+
     if (snap && testInputs.pots) {
       const pots: Record<string, WrapperInput> = {};
       for (const [key, potSnap] of Object.entries(snap.pots)) {
