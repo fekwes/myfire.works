@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { AI_QUOTA_MESSAGE, isQuotaExhausted } from "@/lib/ai-errors";
 import { checkInOrder, clientIp, createRateLimiter } from "@/lib/rate-limit";
 import { ASSET_CLASSES } from "@/lib/portfolio-import";
+import { generateContentWithFallback } from "@/lib/ai-runner";
 
 export const runtime = "nodejs";
 
@@ -55,8 +56,6 @@ Only extract facts explicitly stated. Do not estimate, guess, or invent numbers 
 If a holding list is provided for a wrapper, classify each holding (assetClass, ocf, weight).
 Never set a growth rate, inflation rate, return, or age. Just output the extracted JSON matching the schema.`;
 
-import { generateContentWithFallback } from "@/lib/ai-runner";
-
 export async function POST(request: Request) {
   const retryAfter = limited(request);
   if (retryAfter !== null) {
@@ -82,8 +81,13 @@ export async function POST(request: Request) {
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  
-  const contents = [];
+
+  // Build a proper parts array for the Gemini SDK.
+  // The SDK's `contents` field accepts a string (single text turn) OR an array
+  // of Content objects with role + parts. When mixing text and inline files we
+  // must use the parts form.
+  const parts: Array<{ text: string } | { inlineData: { data: string; mimeType: string } }> = [];
+
   if (body.text) {
     const trimmed = String(body.text).trim();
     if (trimmed.length < 3) {
@@ -92,23 +96,27 @@ export async function POST(request: Request) {
     if (trimmed.length > 20000) {
       return NextResponse.json({ error: "Text is too long." }, { status: 413 });
     }
-    contents.push(trimmed);
+    parts.push({ text: trimmed });
   }
-  
+
   if (body.file) {
     // 5MB max base64
     if (body.file.data.length > 5 * 1024 * 1024 * 1.4) {
       return NextResponse.json({ error: "File is too large." }, { status: 413 });
     }
-    contents.push({
+    parts.push({
       inlineData: {
         data: body.file.data,
         mimeType: body.file.mimeType,
-      }
+      },
     });
+    // Add a text prompt alongside the file so the model knows what to do
+    if (parts.length === 1) {
+      parts.unshift({ text: "Extract the financial plan figures from this document." });
+    }
   }
 
-  if (contents.length === 0) {
+  if (parts.length === 0) {
     return NextResponse.json({ error: "No content provided." }, { status: 400 });
   }
 
@@ -116,7 +124,7 @@ export async function POST(request: Request) {
     const response = await generateContentWithFallback(
       ai,
       {
-        contents,
+        contents: [{ role: "user", parts }],
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
           responseMimeType: "application/json",
@@ -129,13 +137,18 @@ export async function POST(request: Request) {
 
     const text = response.text;
     if (!text) throw new Error("Empty response from AI");
-    
+
     return NextResponse.json({ plan: JSON.parse(text) });
   } catch (err) {
     if (isQuotaExhausted(err)) {
       return NextResponse.json({ error: AI_QUOTA_MESSAGE }, { status: 429 });
     }
-    console.error("AI import failed:", err);
-    return NextResponse.json({ error: "Failed to extract plan from the input." }, { status: 500 });
+    const msg =
+      err instanceof Error ? err.message : typeof err === "string" ? err : JSON.stringify(err);
+    console.error("AI import failed:", msg, err);
+    return NextResponse.json(
+      { error: `Failed to extract plan from the input.` },
+      { status: 500 },
+    );
   }
 }
