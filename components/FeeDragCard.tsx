@@ -13,7 +13,7 @@ import { estimateFeeDrag } from "@/lib/vanguard-funds";
  * portfolio (so the OCFs are known).
  */
 export function FeeDragCard() {
-  const { inputs, activePack } = usePlan();
+  const { inputs } = usePlan();
   const hasPortfolio =
     ((inputs.pots?.isa?.holdings ?? inputs.isaHoldings ?? [])?.length ?? 0) > 0 ||
     ((inputs.pots?.sipp?.holdings ?? inputs.sippHoldings ?? [])?.length ?? 0) > 0 ||
