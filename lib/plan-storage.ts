@@ -10,21 +10,49 @@ export const PLAN_STORAGE_KEY = "onfire:plan";
 export function getActiveRegionLocal(): "uk" | "es" | "us" {
   if (typeof window === "undefined") return "uk";
   
+  // 1. Explicit local storage preference
   const saved = window.localStorage.getItem("onfire:region");
   if (saved === "uk" || saved === "es" || saved === "us") return saved;
   
+  // 2. Stored plan country attribute
   try {
     const raw = window.localStorage.getItem(PLAN_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.country === "us" || parsed.country === "es") {
+      if (parsed.country === "us" || parsed.country === "es" || parsed.country === "uk") {
         window.localStorage.setItem("onfire:region", parsed.country);
         return parsed.country;
       }
     }
   } catch {}
-  
-  // Use timezone inference as a fallback
+
+  // 3. Server-set IP Geo Cookie (x-detected-region)
+  try {
+    const cookies = document.cookie.split(";").map((c) => c.trim());
+    const geoCookie = cookies.find((c) => c.startsWith("x-detected-region="));
+    if (geoCookie) {
+      const val = geoCookie.split("=")[1];
+      if (val === "us" || val === "es" || val === "uk") {
+        window.localStorage.setItem("onfire:region", val);
+        return val;
+      }
+    }
+  } catch {}
+
+  // 4. Browser locale (navigator.language)
+  try {
+    const lang = (navigator.language || (navigator.languages && navigator.languages[0]) || "").toLowerCase();
+    if (lang.includes("es") || lang.endsWith("-es")) {
+      window.localStorage.setItem("onfire:region", "es");
+      return "es";
+    }
+    if (lang.endsWith("-us")) {
+      window.localStorage.setItem("onfire:region", "us");
+      return "us";
+    }
+  } catch {}
+
+  // 5. Timezone inference (Intl.DateTimeFormat)
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (tz && tz.startsWith("America/")) {

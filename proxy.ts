@@ -1,21 +1,31 @@
-// This was `middleware.ts`. Next 16 deprecated that file convention and
-// renamed it to `proxy`, so the file and the exported function both follow —
-// the build warned on every run until they did. Behaviour is unchanged: same
-// `config.matcher`, same session refresh. Note that Proxy defaults to the
-// Node.js runtime and rejects a `runtime` config option, which this file never
-// set.
-
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 
 export async function proxy(request: NextRequest) {
-  // No Supabase configured → nothing to refresh.
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    return NextResponse.next();
+  let response = NextResponse.next({ request });
+
+  // GEO Auto-Detection from Edge Headers (Vercel / Cloudflare / AWS)
+  const countryHeader = (
+    request.headers.get("x-vercel-ip-country") ||
+    request.headers.get("cf-ipcountry") ||
+    request.headers.get("x-country-code") ||
+    ""
+  ).toUpperCase();
+
+  let detectedRegion: "uk" | "es" | "us" | null = null;
+  if (countryHeader === "ES") detectedRegion = "es";
+  else if (countryHeader === "US") detectedRegion = "us";
+  else if (countryHeader === "GB" || countryHeader === "UK") detectedRegion = "uk";
+
+  if (detectedRegion && !request.cookies.has("x-detected-region")) {
+    response.cookies.set("x-detected-region", detectedRegion, { path: "/", maxAge: 86400 * 30 });
   }
 
-  let response = NextResponse.next({ request });
+  // No Supabase configured → nothing to refresh.
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return response;
+  }
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
@@ -42,27 +52,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /**
-     * Only paths that actually need a session.
-     *
-     * This runs `auth.getUser()`, which for a signed-in visitor is a network
-     * round-trip to the Supabase Auth server — so every path matched here adds
-     * that hop to every request, and spends Supabase quota. The previous
-     * pattern matched everything but static assets, which meant the two AI
-     * routes, the sitemap, robots.txt and the OpenGraph image all paid for a
-     * session refresh none of them read.
-     *
-     * Excluded and why:
-     * - `_next/*`, `favicon.ico`, `icon.svg`, image files — no session.
-     * - `robots.txt`, `sitemap.xml`, `opengraph-image` — public, uncached-by-user.
-     * - `api/analyze`, `api/estimate-portfolio` — unauthenticated endpoints.
-     * - `auth/callback` — exchanges the code and sets the cookies itself;
-     *   refreshing first is wasted work on the one request guaranteed not to
-     *   have a session yet.
-     *
-     * `api/account/delete` is deliberately *not* excluded: it authenticates the
-     * caller, so it wants the token refreshed before it reads it.
-     */
     "/((?!_next/static|_next/image|favicon.ico|icon.svg|robots.txt|sitemap.xml|opengraph-image|auth/callback|api/analyze|api/estimate-portfolio|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
