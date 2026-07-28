@@ -13,7 +13,7 @@ export function LandingCta() {
 
   return (
     <>
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         {returning ? (
           <>
             <ButtonLink
@@ -34,20 +34,22 @@ export function LandingCta() {
             variant="brand"
             className="px-6 py-3 shadow-lg shadow-brand/25 transition-all hover:-translate-y-0.5 hover:scale-105 hover:shadow-brand/40"
           >
-            Build my FIRE plan
+            Build my FIRE plan — 100% Free
             <ArrowRight className="size-4" />
           </ButtonLink>
         )}
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
+      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
           <Zap className="size-3.5 text-brand" />
-          {returning ? "Welcome back — pick up right where you left off." : "Takes 2 minutes · 100% Free"}
+          {returning
+            ? "Welcome back — pick up right where you left off."
+            : "Takes 2 minutes · 100% Free Forever (No Card Required)"}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <Lock className="size-3.5 text-success" />
-          Private Client-Side Storage
+          100% Private Client Storage
         </span>
         <span className="inline-flex items-center gap-1.5">
           <ShieldCheck className="size-3.5 text-primary" />

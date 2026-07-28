@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { LandingFeatures } from "@/components/LandingFeatures";
 import { LandingHero } from "@/components/LandingHero";
-import { LaunchTrail } from "@/components/LaunchTrail";
+import { LaunchPad, LaunchTrail } from "@/components/LaunchTrail";
 import { siteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
@@ -81,6 +81,14 @@ export default function Landing() {
         <LaunchTrail />
         <LandingHero />
         <LandingFeatures />
+        
+        {/* Ignition LaunchPad — Fireworks & Wallet celebratory ignition trigger */}
+        <div className="mt-20 flex flex-col items-center justify-center text-center">
+          <p className="font-mono text-[0.7rem] uppercase tracking-[0.16em] text-brand font-semibold mb-2">
+            Click to launch celebratory fireworks spark 🎆
+          </p>
+          <LaunchPad />
+        </div>
       </div>
     </>
   );
