@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Receipt, Route, ShieldCheck, Sparkles, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Check, Receipt, Route, ShieldAlert, ShieldCheck, Sparkles, X } from "lucide-react";
 import { usePlan } from "@/components/PlanProvider";
 
 export function LandingFeatures() {
@@ -56,16 +57,16 @@ export function LandingFeatures() {
       note: "Reduces pot drawdown once benefits start",
     },
     {
-      feature: "Monte Carlo sequence-of-returns testing",
-      fireworks: true,
-      standard: false,
-      note: "2,000 market simulations with guardrails",
-    },
-    {
       feature: "Downsizing & real estate sale proceeds",
       fireworks: true,
       standard: false,
       note: "Primary residence relief & capital gains tax",
+    },
+    {
+      feature: "Monte Carlo sequence-of-returns testing",
+      fireworks: true,
+      standard: false,
+      note: "2,000 market simulations with guardrails",
     },
     {
       feature: "100% Private (No account required)",
@@ -158,14 +159,42 @@ export function LandingFeatures() {
         </div>
       </section>
 
-      {/* Legal & Compliance Disclaimer */}
-      <section className="rounded-2xl border border-border/40 bg-surface-muted/20 p-5 text-xs leading-relaxed text-muted-foreground">
-        <h3 className="font-semibold text-foreground uppercase tracking-wide text-[0.7rem] mb-1">
-          Financial & Legal Disclaimer
-        </h3>
-        <p>
-          Fireworks is an educational financial modeling tool designed solely for planning and estimation. It does not provide personalized investment, tax, legal, or financial advice. Projections rely on user inputs, historical assumptions, and simplified statutory rules ({isUs ? "IRS tax code" : "HMRC tax code"}), which are subject to change. Monte Carlo simulations and returns are not guaranteed. Always consult a licensed Certified Financial Planner (CFP) or tax advisor before taking financial decisions.
-        </p>
+      {/* Legal & Compliance Disclaimer Box */}
+      <section className="group relative overflow-hidden rounded-2xl border border-border/80 bg-surface/50 dark:bg-surface-muted/30 p-6 sm:p-7 backdrop-blur-xl shadow-sm transition-all duration-300 hover:border-primary/40 hover:shadow-md">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary transition-colors duration-300 group-hover:border-primary/40 group-hover:bg-primary/15">
+            <ShieldAlert className="size-5" strokeWidth={1.75} />
+          </div>
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-display text-xs font-bold uppercase tracking-wider text-foreground sm:text-sm">
+                Financial & Legal Disclaimer
+              </h3>
+              <span className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground hidden sm:inline-block">
+                Educational Tool
+              </span>
+            </div>
+            <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              Fireworks is an educational financial modeling tool designed solely for planning and estimation. It does not provide personalized investment, tax, legal, or financial advice. Projections rely on user inputs, historical assumptions, and simplified statutory rules ({isUs ? "IRS tax code" : "HMRC tax code"}), which are subject to change. Monte Carlo simulations and returns are not guaranteed. Always consult a licensed Certified Financial Planner (CFP) or tax advisor before making financial decisions.
+            </p>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-3 border-t border-border/40 text-xs font-medium">
+              <Link
+                href="/disclaimer"
+                className="group/link inline-flex items-center gap-1.5 text-primary decoration-primary/30 underline-offset-4 hover:underline hover:text-primary/90 transition-colors"
+              >
+                <span>Read full disclaimer</span>
+                <ArrowRight className="size-3.5 transition-transform duration-200 group-hover/link:translate-x-0.5" />
+              </Link>
+              <span className="text-border/80" aria-hidden="true">•</span>
+              <Link
+                href="/privacy"
+                className="inline-flex items-center gap-1.5 text-muted-foreground decoration-border/60 underline-offset-4 hover:text-foreground hover:underline transition-colors"
+              >
+                <span>Privacy policy</span>
+              </Link>
+            </div>
+          </div>
+        </div>
       </section>
     </div>
   );
