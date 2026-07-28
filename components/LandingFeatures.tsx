@@ -88,24 +88,70 @@ export function LandingFeatures() {
     <div className="mt-20 space-y-24">
       {/* Editorial features grid */}
       <section className="grid grid-cols-1 gap-10 border-t border-border/80 pt-14 lg:grid-cols-12 lg:gap-12">
-        <div className="flex flex-col lg:col-span-5">
-          <span className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-brand font-semibold mb-2">
-            Why Standard Rules Fail
-          </span>
-          <h2 data-launch-quiet className="font-display text-2xl font-bold tracking-tight text-balance sm:text-3xl">
-            Most calculators stop at a pot size.
-            <span className="text-muted-foreground"> This one models the journey.</span>
-          </h2>
-          <p data-launch-quiet className="mt-4 text-sm leading-relaxed text-muted-foreground">
-            Static 4% calculators assume constant returns and ignore taxes. Fireworks models the exact statutory drawdown mechanics so you know your plan will hold.
-          </p>
+        <div className="flex flex-col justify-between lg:col-span-5">
+          <div>
+            <span className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-brand font-semibold mb-2 block">
+              Why Standard Rules Fail
+            </span>
+            <h2 data-launch-quiet className="font-display text-2xl font-bold tracking-tight text-balance sm:text-3xl">
+              Most calculators stop at a pot size.
+              <span className="text-muted-foreground"> This one models the journey.</span>
+            </h2>
+            <p data-launch-quiet className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              Static 4% calculators assume constant returns and ignore taxes. Fireworks models exact drawdown mechanics so you know your plan will hold.
+            </p>
+          </div>
+
+          {/* Visual Model Advantage Graphic — Fills bottom-left space */}
+          <div className="mt-6 rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/10 via-surface/80 to-surface-muted/50 p-5 backdrop-blur-xl shadow-lg">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[0.65rem] font-bold uppercase tracking-wider text-brand">
+                Model Advantage
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 font-mono text-[0.65rem] text-emerald-400 font-semibold">
+                Tax-Aware Engine
+              </span>
+            </div>
+            
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="font-display text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-brand to-accent">
+                {isUs ? "+$140,000+" : "+£110,000+"}
+              </span>
+              <span className="text-xs text-muted-foreground font-medium">
+                {isUs ? "in tax savings & bridge optimization" : "in ISA & pension tax savings"}
+              </span>
+            </div>
+
+            {/* Visual Mini Comparison Bars */}
+            <div className="mt-4 space-y-2.5">
+              <div>
+                <div className="flex justify-between text-[0.68rem] text-muted-foreground mb-1 font-mono">
+                  <span>Static 4% Calculator</span>
+                  <span className="text-danger/80 font-semibold">Ran out at age 74 ⚠️</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-surface-muted overflow-hidden">
+                  <div className="h-full w-[65%] rounded-full bg-danger/60" />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[0.68rem] text-foreground mb-1 font-mono font-medium">
+                  <span>Fireworks Tax Engine</span>
+                  <span className="text-success font-semibold">Sustainable to Age 95+ ✓</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-surface-muted overflow-hidden">
+                  <div className="h-full w-[95%] rounded-full bg-gradient-to-r from-brand via-primary to-emerald-400" />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <ul className="lg:col-span-7 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {features.map((f) => (
             <li
               key={f.title}
-              className="group flex flex-col gap-3 rounded-2xl border border-border/60 bg-surface-muted/30 p-5 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:bg-surface-muted/60 hover:shadow-xl hover:shadow-brand/5"
+              className="group flex flex-col justify-between gap-3 rounded-2xl border border-border/60 bg-surface-muted/30 p-5 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:bg-surface-muted/60 hover:shadow-xl hover:shadow-brand/5"
             >
               <div className="flex items-center justify-between">
                 <span className="flex size-9 items-center justify-center rounded-xl border border-primary/20 bg-brand/5 text-primary transition-colors duration-300 group-hover:border-primary/40 group-hover:bg-brand/15">
