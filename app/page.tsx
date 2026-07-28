@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { LandingFeatures } from "@/components/LandingFeatures";
 import { LandingHero } from "@/components/LandingHero";
-import { LaunchPad, LaunchTrail } from "@/components/LaunchTrail";
+import { LaunchTrail } from "@/components/LaunchTrail";
 import { siteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
@@ -81,33 +81,6 @@ export default function Landing() {
         <LaunchTrail />
         <LandingHero />
         <LandingFeatures />
-        
-        {/* Ignition LaunchPad — Celebratory FIRE Launch Station */}
-        <section className="mt-24 relative overflow-hidden rounded-3xl border border-brand/40 bg-gradient-to-b from-surface/80 via-surface-muted/40 to-surface/90 p-8 sm:p-12 text-center backdrop-blur-2xl shadow-2xl shadow-brand/10">
-          <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-48 w-96 rounded-full bg-brand/20 blur-[100px] pointer-events-none" />
-          
-          <div className="relative z-10 max-w-xl mx-auto flex flex-col items-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/50 bg-brand/10 px-3.5 py-1 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-brand font-bold shadow-sm">
-              🎆 Celebratory FIRE Launch Pad
-            </span>
-            
-            <h2 className="mt-4 font-display text-2xl font-extrabold tracking-tight sm:text-3xl text-balance">
-              Ready to Ignite Your Financial Freedom?
-            </h2>
-            
-            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-              Click the fireworks mortar box illustration below to ignite the celebratory spark and watch your growth trajectory light up the sky.
-            </p>
-
-            <div className="mt-6">
-              <LaunchPad />
-            </div>
-
-            <p className="mt-3 font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground">
-              Click any time to re-trigger the launch trail & sky spark 🎆
-            </p>
-          </div>
-        </section>
       </div>
     </>
   );

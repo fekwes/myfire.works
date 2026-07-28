@@ -5,7 +5,7 @@ import { usePlan } from "@/components/PlanProvider";
 import { ButtonLink } from "@/components/ui";
 
 /**
- * Landing call-to-action with high-converting trust badges and localized features.
+ * Landing call-to-action with refined, professional microcopy.
  */
 export function LandingCta() {
   const { hasStoredPlan, hydrated, activeRegion } = usePlan();
@@ -34,7 +34,7 @@ export function LandingCta() {
             variant="brand"
             className="px-6 py-3 shadow-lg shadow-brand/25 transition-all hover:-translate-y-0.5 hover:scale-105 hover:shadow-brand/40"
           >
-            Build my FIRE plan — 100% Free
+            Build your FIRE plan
             <ArrowRight className="size-4" />
           </ButtonLink>
         )}
@@ -45,15 +45,15 @@ export function LandingCta() {
           <Zap className="size-3.5 text-brand" />
           {returning
             ? "Welcome back — pick up right where you left off."
-            : "Takes 2 minutes · 100% Free Forever (No Card Required)"}
+            : "Free & private · Takes about 2 minutes"}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <Lock className="size-3.5 text-success" />
-          100% Private Client Storage
+          No registration required
         </span>
         <span className="inline-flex items-center gap-1.5">
           <ShieldCheck className="size-3.5 text-primary" />
-          {activeRegion === "us" ? "IRS 2026 Tax Rules & Limits" : "HMRC 2026/27 Tax Rules & Limits"}
+          {activeRegion === "us" ? "IRS 2026 Tax Engine" : "HMRC 2026/27 Tax Engine"}
         </span>
       </div>
     </>
