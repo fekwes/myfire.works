@@ -32,7 +32,7 @@ export function LandingFeatures() {
       Icon: Sparkles,
       title: isUs ? "Social Security & Barista FIRE" : "State Pension & Barista FIRE",
       body: isUs
-        ? "Model Social Security PIA bend points starting at age 67, or transition to part-time work to let earnings bridge your income."
+        ? "Model Social Security PIA bend points starting at age 67, or transition to part-time work to let earnings bridge your drawdown."
         : "Model triple-lock State Pension income starting at age 67, or transition to part-time work to let earnings bridge your drawdown.",
     },
   ];
@@ -42,37 +42,37 @@ export function LandingFeatures() {
       feature: "Year-by-year progressive tax solver",
       fireworks: true,
       standard: false,
-      note: "Computes net spending, not gross pot guesses",
+      note: "Computes net take-home spending, not gross pot guesses",
     },
     {
       feature: isUs ? "401(k) & IRA 59½ penalty-free bridge" : "SIPP age 57 unlock bridge",
       fireworks: true,
       standard: false,
-      note: "Models exact statutory access ages",
+      note: "Models exact statutory penalty-free access ages",
     },
     {
-      feature: isUs ? "Social Security & State Pension offset" : "State Pension triple lock offset",
+      feature: isUs ? "Social Security benefit offset" : "State Pension triple-lock offset",
       fireworks: true,
       standard: false,
-      note: "Reduces pot drawdown once benefits start",
+      note: "Reduces pot drawdown once statutory benefits start",
     },
     {
       feature: "Downsizing & real estate sale proceeds",
       fireworks: true,
       standard: false,
-      note: "Primary residence relief & capital gains tax",
+      note: "Primary residence exemption & capital gains tax",
     },
     {
       feature: "Monte Carlo sequence-of-returns testing",
       fireworks: true,
       standard: false,
-      note: "2,000 market simulations with guardrails",
+      note: "2,000 market simulations with guardrail rules",
     },
     {
       feature: "100% Private (No account required)",
       fireworks: true,
       standard: false,
-      note: "All data stays stored in your browser",
+      note: "All calculations stay stored locally in your browser",
     },
   ];
 
@@ -86,8 +86,9 @@ export function LandingFeatures() {
             <span className="text-muted-foreground"> This one models the journey.</span>
           </h2>
           <p data-launch-quiet className="mt-4 text-sm leading-relaxed text-muted-foreground">
-            A single &ldquo;you need $1.2M&rdquo; hides everything that matters —
-            when you can access each pot penalty-free, and what the taxman takes on the way out. Fireworks models the exact mechanics for {isUs ? "US" : "UK"} FIRE plans.
+            {isUs
+              ? "A single “you need $1.5M” hides everything that matters — when your 401(k) unlocks penalty-free at age 59½, how your Roth IRA bridges early years, and what the IRS takes on the way out. Fireworks models the exact mechanics for US FIRE plans."
+              : "A single “you need £1.2M” hides everything that matters — when your SIPP unlocks at age 57, how your ISA bridges early retirement years, and what HMRC takes on the way out. Fireworks models the exact mechanics for UK FIRE plans."}
           </p>
         </div>
 
@@ -175,7 +176,7 @@ export function LandingFeatures() {
               </span>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
-              Fireworks is an educational financial modeling tool designed solely for planning and estimation. It does not provide personalized investment, tax, legal, or financial advice. Projections rely on user inputs, historical assumptions, and simplified statutory rules ({isUs ? "IRS tax code" : "HMRC tax code"}), which are subject to change. Monte Carlo simulations and returns are not guaranteed. Always consult a licensed Certified Financial Planner (CFP) or tax advisor before making financial decisions.
+              Fireworks is an educational financial modeling tool designed solely for planning and estimation. It does not provide personalized investment, tax, legal, or financial advice. Projections rely on user inputs, historical assumptions, and simplified statutory rules ({isUs ? "US IRS Tax Code & Social Security rules" : "UK HMRC Tax Rules & State Pension triple-lock"}), which are subject to legislative change. Monte Carlo simulations present probabilistic outcomes, not guaranteed future results. Always consult a licensed Certified Financial Planner (CFP) or tax advisor before making financial decisions.
             </p>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-3 border-t border-border/40 text-xs font-medium">
               <Link
