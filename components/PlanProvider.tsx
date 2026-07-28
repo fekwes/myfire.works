@@ -12,10 +12,13 @@ import {
   PROFILES_TABLE,
 } from "@/lib/profiles";
 import { createClient } from "@/lib/supabase/client";
+import { CountryPack } from "@/lib/countries/types";
+import { getPack } from "@/lib/countries";
 
 interface PlanState {
   activeRegion: "uk" | "us";
   setActiveRegion: (region: "uk" | "us") => void;
+  activePack: CountryPack;
   /** The single active plan, shared across the Planner and Your Finances tabs. */
   inputs: FireInputs;
   /** Update the active plan (and persist it to localStorage). */
@@ -176,9 +179,11 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const activePack = getPack(activeRegion);
+
   return (
     <PlanContext.Provider
-      value={{ activeRegion, setActiveRegion, inputs, setInputs, hydrated, hasStoredPlan, restoreError }}
+      value={{ activeRegion, setActiveRegion, activePack, inputs, setInputs, hydrated, hasStoredPlan, restoreError }}
     >
       {children}
     </PlanContext.Provider>

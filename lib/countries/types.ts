@@ -67,11 +67,75 @@ export interface Region {
   label: string;
 }
 
+/** Lifestyle tiers shown in the onboarding quiz spending step. */
+export interface LifestyleTier {
+  id: string;
+  label: string;
+  amount: number;
+  blurb: string;
+}
+
+/** Region-appropriate defaults for the onboarding quiz. */
+export interface QuizDefaults {
+  customIncome: number;
+  baristaAnnualIncome: number;
+  defaultIsaMonthly: number;
+  defaultSippMonthly: number;
+  /** Default Social Security / State Pension annual amount for the quiz. */
+  defaultStatePensionAnnual: number;
+  /** Default retirement account access age (SIPP: 57, 401k: 59.5). */
+  defaultPensionAccessAge: number;
+  /** Default state/social-security pension age. */
+  defaultStatePensionAge: number;
+}
+
+/**
+ * All user-facing labels that change between regions. Components read these
+ * instead of hard-coding UK terminology.
+ */
+export interface PackLabels {
+  /** What the country calls its government retirement benefit. */
+  statePension: string;
+  /** Short name for the tax-free wrapper (ISA / Roth IRA). */
+  taxFreeWrapper: string;
+  /** Short name for the tax-deferred wrapper (SIPP / 401(k)). */
+  taxDeferredWrapper: string;
+  /** Short name for the taxable wrapper (GIA / Taxable Brokerage). */
+  taxableWrapper: string;
+  /** Whether the pension-strategy toggle (UFPLS vs lump sum) applies. */
+  hasPensionStrategyToggle: boolean;
+  /** Retirement-age tooltip copy. */
+  retirementAgeTooltip: string;
+  /** Target-income tooltip copy. */
+  targetIncomeTooltip: string;
+  /** Part-time tooltip copy. */
+  partTimeTooltip: string;
+  /** Rental sale tooltip. */
+  rentalSaleTooltip: string;
+  /** Home/downsize tooltip. */
+  homeTooltip: string;
+  /** Quiz savings helper text. */
+  savingsHelper: string;
+  /** Quiz savings hint text. */
+  savingsHint: string;
+  /** Barista strategy tagline. */
+  baristaTagline: string;
+  /** Strategy why text. */
+  strategyWhy: string;
+  /** Checklist savings hint. */
+  checklistSavingsHint: string;
+  /** PLSA / benchmark name for the helper text. */
+  lifestyleBenchmarkName: string;
+}
+
 export interface CountryPack {
   id: string;
   currency: { code: string; locale: string; symbol?: string };
   regions: Region[];
   wrappers: WrapperSpec[];
+  labels: PackLabels;
+  lifestyleTiers: LifestyleTier[];
+  quizDefaults: QuizDefaults;
   taxSystem: (region: Region | undefined, filing: FilingStatus | undefined) => TaxSystem;
   statePension: (history: ContributionHistory, claimAge: number) => number;
   constraints: PlanConstraint[];

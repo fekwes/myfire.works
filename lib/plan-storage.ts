@@ -24,6 +24,15 @@ export function getActiveRegionLocal(): "uk" | "us" {
     }
   } catch {}
   
+  // Use timezone inference as a fallback
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz && tz.startsWith("America/")) {
+      window.localStorage.setItem("onfire:region", "us");
+      return "us";
+    }
+  } catch {}
+
   window.localStorage.setItem("onfire:region", "uk");
   return "uk";
 }

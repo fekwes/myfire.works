@@ -25,8 +25,8 @@ const jsonLd = {
       url: `${siteUrl}/`,
       name: "Fireworks",
       description:
-        "FIRE planner: model drawdown across ISA, GIA, SIPP, State Pension and property with the tax you'll actually pay.",
-      inLanguage: "en-GB",
+        "FIRE planner: model drawdown across ISA, Roth IRA, 401(k), SIPP, Social Security, State Pension and property with the tax you'll actually pay.",
+      inLanguage: "en",
     },
     {
       "@type": "WebApplication",
@@ -37,10 +37,10 @@ const jsonLd = {
       operatingSystem: "Any (web browser)",
       browserRequirements: "Requires JavaScript",
       isAccessibleForFree: true,
-      offers: { "@type": "Offer", price: "0", priceCurrency: "GBP" },
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
       description:
-        "Model your Financial Independence, Retire Early plan across ISA, GIA, SIPP, State Pension and property — with the tax you'll actually pay, Coast FIRE and Monte Carlo confidence.",
-      inLanguage: "en-GB",
+        "Model your Financial Independence, Retire Early plan across 401(k), IRA, ISA, SIPP, Social Security, State Pension and property — with the tax you'll actually pay, Coast FIRE and Monte Carlo confidence.",
+      inLanguage: "en",
     },
   ],
 };
@@ -49,12 +49,12 @@ const FEATURES = [
   {
     Icon: Receipt,
     title: "The tax you'll actually pay",
-    body: "Income-tax bands, the personal-allowance taper, CGT above the £3,000 exemption and the 25% tax-free pension — solved year by year, not hand-waved.",
+    body: "Federal & state income-tax brackets, capital gains, standard deduction, UK personal allowance taper, CGT exemptions, and tax-deferred withdrawal rules — solved year by year, not hand-waved.",
   },
   {
     Icon: Route,
     title: "The bridge years",
-    body: "Watch your ISA and GIA carry you from the day you stop working to the age your SIPP unlocks — the gap most calculators quietly skip.",
+    body: "Watch your tax-free and brokerage pots carry you from the day you stop working to the age your 401(k) or pension unlocks — the gap most calculators quietly skip.",
   },
   {
     Icon: ShieldCheck,
@@ -86,7 +86,7 @@ export default function Landing() {
 
           <span className="landing-rise inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 font-mono text-[0.7rem] uppercase tracking-[0.2em] text-muted-foreground">
             <span className="size-1.5 rounded-full bg-brand" />
-            Free FIRE planner · tax-aware drawdown
+            Free FIRE planner · US & UK tax-aware drawdown
           </span>
           <h1 className="landing-rise mt-5 font-display text-4xl font-extrabold leading-[1.02] tracking-tight text-balance [animation-delay:60ms] sm:text-[3.5rem]">
             Know your number. Know when.
@@ -107,9 +107,7 @@ export default function Landing() {
           >
             <Term term="FIRE">FIRE</Term> — financial independence, retire early
             — is having enough invested that work becomes optional. Fireworks
-            models the whole drawdown (<Term>ISA</Term>, <Term>GIA</Term>,{" "}
-            <Term>SIPP</Term>, State Pension and property) with the tax
-            you&apos;ll actually pay. No spreadsheet, no hand-waving.
+            models drawdown across tax-free wrappers (Roth IRA, ISA), 401(k)s, pensions, taxable accounts, Social Security / State Pension, and property with the tax you&apos;ll actually pay.
           </p>
           <div data-launch-quiet className="landing-rise [animation-delay:180ms]">
             <LandingCta />
@@ -129,9 +127,9 @@ export default function Landing() {
             <span className="text-muted-foreground"> This one keeps going.</span>
           </h2>
           <p data-launch-quiet className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
-            A single &ldquo;you need £1.2M&rdquo; hides everything that matters —
-            when you can actually access the money, and what the taxman takes on
-            the way out. Fireworks models the mechanics.
+            A single target number hides everything that matters —
+            when you can actually access the money penalty-free, and what taxes apply on
+            the way out. Fireworks models the exact mechanics for US & UK plans.
           </p>
           {/* Where the firework is lit, and what fills this column. `mt-12` drops the
               crate to a comfortable position below the copy. `lg` only: below that the

@@ -1,4 +1,5 @@
 import type { FireInputs } from "./fire-engine";
+import type { PackLabels } from "./countries/types";
 
 export interface ChecklistStep {
   id: string;
@@ -13,6 +14,7 @@ export function buildChecklist(
   inputs: FireInputs,
   signedIn: boolean,
   authConfigured: boolean,
+  labels?: PackLabels,
 ): ChecklistStep[] {
   const hasBalances =
     (inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0) > 0 ||
@@ -27,7 +29,7 @@ export function buildChecklist(
     {
       id: "balances",
       label: "Add your real balances",
-      hint: "From your ISA provider, pension portal or last statement — a rough figure is fine, you can refine it later.",
+      hint: labels?.checklistSavingsHint ?? "From your ISA provider, pension portal or last statement — a rough figure is fine, you can refine it later.",
       cta: "Add your balances",
       href: "/finances#balances",
       done: hasBalances,

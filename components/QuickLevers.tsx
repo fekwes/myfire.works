@@ -11,7 +11,7 @@ import type { FireInputs } from "@/lib/fire-engine";
  * keeps the Planner iterative without dragging the whole form onto it.
  */
 export function QuickLevers() {
-  const { inputs, setInputs } = usePlan();
+  const { inputs, setInputs, activePack } = usePlan();
   const set = <K extends keyof FireInputs>(key: K, value: FireInputs[K]) =>
     setInputs({ ...inputs, [key]: value });
 
@@ -56,27 +56,27 @@ export function QuickLevers() {
         </Field>
         <Field
           label="Target income"
-          tooltip="Take-home income per year, after tax. Your State Pension is already counted towards it, so your pots only fund the rest."
+          tooltip={`Take-home income per year, after tax. Your ${activePack.id === "us" ? "Social Security" : "State Pension"} is already counted towards it, so your pots only fund the rest.`}
         >
           <NumberInput
             value={inputs.targetAnnualIncome}
             onChange={(v) => set("targetAnnualIncome", v)}
-            prefix="£"
+            prefix={activePack.currency.symbol}
             step={500}
           />
         </Field>
-        <Field label="ISA / mo">
+        <Field label={activePack.id === "us" ? "Roth / mo" : "ISA / mo"}>
           <NumberInput
             value={(inputs.pots?.isa?.monthlyContribution ?? inputs.isaMonthlyContribution ?? 0)}
             onChange={(v) => set("isaMonthlyContribution", v)}
-            prefix="£"
+            prefix={activePack.currency.symbol}
           />
         </Field>
-        <Field label="Pension / mo">
+        <Field label={activePack.id === "us" ? "401(k) / mo" : "Pension / mo"}>
           <NumberInput
             value={(inputs.pots?.sipp?.monthlyContribution ?? inputs.sippMonthlyContribution ?? 0)}
             onChange={(v) => set("sippMonthlyContribution", v)}
-            prefix="£"
+            prefix={activePack.currency.symbol}
           />
         </Field>
       </div>

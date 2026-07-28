@@ -120,7 +120,7 @@ export interface FireInputs {
 // Holdings are collapsed into the per-wrapper growth scalars by resolveInputs,
 // so the resolved shape the simulation runs on doesn't carry them.
 type BaseResolvedFireInputs = Required<
-  Omit<FireInputs, "schemaVersion" | "country" | "region" | "filingStatus" | "pots" | "isaHoldings" | "giaHoldings" | "sippHoldings" | "isaBalance" | "isaMonthlyContribution" | "sippBalance" | "sippMonthlyContribution" | "giaBalance" | "giaMonthlyContribution" | "isaGrowth" | "giaGrowth" | "sippGrowth">
+  Omit<FireInputs, "schemaVersion" | "country" | "region" | "filingStatus" | "pots" | "pensionStrategy" | "isaHoldings" | "giaHoldings" | "sippHoldings" | "isaBalance" | "isaMonthlyContribution" | "sippBalance" | "sippMonthlyContribution" | "giaBalance" | "giaMonthlyContribution" | "isaGrowth" | "giaGrowth" | "sippGrowth">
 >;
 
 export interface ResolvedFireInputs extends BaseResolvedFireInputs {
@@ -128,6 +128,7 @@ export interface ResolvedFireInputs extends BaseResolvedFireInputs {
   country: "uk" | "us";
   region: string;
   filingStatus: "single" | "married-joint";
+  pensionStrategy?: PensionStrategy;
   pots: Record<string, Required<WrapperInput>>;
 }
 
@@ -235,12 +236,16 @@ function resolveInputs(inputs: FireInputs): ResolvedFireInputs {
     downsizeAge: inputs.downsizeAge ?? 0,
     downsizeReleaseFraction: inputs.downsizeReleaseFraction ?? 0,
     statePensionAnnual:
-      inputs.statePensionAnnual ?? DEFAULT_ASSUMPTIONS.statePensionAnnual,
+      inputs.statePensionAnnual ??
+      (inputs.country === "us" ? usPack.quizDefaults.defaultStatePensionAnnual : DEFAULT_ASSUMPTIONS.statePensionAnnual),
     statePensionAge:
-      inputs.statePensionAge ?? DEFAULT_ASSUMPTIONS.statePensionAge,
-    sippAccessAge: inputs.sippAccessAge ?? DEFAULT_ASSUMPTIONS.sippAccessAge,
+      inputs.statePensionAge ??
+      (inputs.country === "us" ? usPack.quizDefaults.defaultStatePensionAge : DEFAULT_ASSUMPTIONS.statePensionAge),
+    sippAccessAge:
+      inputs.sippAccessAge ??
+      (inputs.country === "us" ? usPack.quizDefaults.defaultPensionAccessAge : DEFAULT_ASSUMPTIONS.sippAccessAge),
     pensionStrategy:
-      inputs.pensionStrategy ?? DEFAULT_ASSUMPTIONS.pensionStrategy,
+      inputs.country === "us" ? undefined : (inputs.pensionStrategy ?? DEFAULT_ASSUMPTIONS.pensionStrategy),
     // Never below `currentAge`: the projection walks `currentAge`..this age, so
     // a lower value yields an *empty* timeline and every consumer that reads a
     // year out of it ("the pot at retirement", "the last year") reads

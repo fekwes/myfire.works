@@ -102,7 +102,7 @@ export function PortfolioImport({
         busy={busy}
         onPayload={handlePayload}
         onError={setError}
-        placeholder="e.g. Vanguard FTSE Global All Cap £42,000"
+        placeholder="e.g. Vanguard FTSE Global All Cap 42,000"
       />
       {busy && <p className="text-[0.7rem] text-muted-foreground mt-2">Reading holdings with AI...</p>}
       {error && (

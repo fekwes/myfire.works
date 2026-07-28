@@ -18,20 +18,18 @@ export function RegionToggle() {
   const mounted = useMounted();
 
   if (!mounted) {
-    return <div className="h-9 w-16 rounded-full border border-border" />;
+    return <div className="h-9 w-24 rounded-full border border-border" />;
   }
 
-  const isUs = activeRegion === "us";
-
   return (
-    <button
-      type="button"
-      onClick={() => setActiveRegion(isUs ? "uk" : "us")}
-      aria-label={isUs ? "Switch to UK region" : "Switch to US region"}
-      className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-border bg-surface px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+    <select
+      value={activeRegion}
+      onChange={(e) => setActiveRegion(e.target.value as "uk" | "us")}
+      aria-label="Select Region"
+      className="h-9 items-center justify-center rounded-full border border-border bg-surface px-3 py-0 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
     >
-      <span>{isUs ? "🇺🇸" : "🇬🇧"}</span>
-      <span className="hidden sm:inline">{isUs ? "US" : "UK"}</span>
-    </button>
+      <option value="uk">🇬🇧 UK</option>
+      <option value="us">🇺🇸 US</option>
+    </select>
   );
 }

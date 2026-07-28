@@ -13,7 +13,8 @@ import {
   YAxis,
 } from "recharts";
 import type { FireSimulationResult } from "@/lib/fire-engine";
-import { formatCurrency, formatCurrencyCompact } from "@/lib/format";
+import { useFormat } from "@/hooks/useFormat";
+import { usePlan } from "@/components/PlanProvider";
 
 interface TooltipPayloadEntry {
   name: string;
@@ -30,6 +31,7 @@ function ChartTooltip({
   payload?: TooltipPayloadEntry[];
   label?: number;
 }) {
+  const { format } = useFormat();
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-xl border border-border bg-surface/95 p-3 text-xs shadow-xl backdrop-blur">
@@ -50,7 +52,7 @@ function ChartTooltip({
               {entry.name}
             </span>
             <span className="font-medium text-foreground">
-              {formatCurrency(entry.value)}
+              {format(entry.value)}
             </span>
           </p>
         ))}
@@ -83,6 +85,8 @@ export function AssetTimelineChart({
       ? value / (1 + inflationRate) ** (age - currentAge)
       : value;
 
+  const { activePack } = usePlan();
+  const { formatCompact } = useFormat();
   const data = result.timeline.map((year) => ({
     age: year.age,
     ISA: Math.round(deflate(year.pots.isa.end, year.age)),
@@ -144,7 +148,7 @@ export function AssetTimelineChart({
             minTickGap={20}
           />
           <YAxis
-            tickFormatter={(v) => formatCurrencyCompact(v)}
+            tickFormatter={(v) => formatCompact(v)}
             tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }}
             tickLine={false}
             axisLine={false}
@@ -169,7 +173,7 @@ export function AssetTimelineChart({
             stroke="var(--color-muted-foreground)"
             strokeDasharray="4 4"
             label={{
-              value: "SIPP access",
+              value: `${activePack.labels.taxDeferredWrapper} access`,
               position: "insideTopLeft",
               fill: "var(--color-muted-foreground)",
               fontSize: 10,
@@ -180,7 +184,7 @@ export function AssetTimelineChart({
             stroke="var(--color-muted-foreground)"
             strokeDasharray="4 4"
             label={{
-              value: "State Pension",
+              value: activePack.labels.statePension,
               position: "insideBottomRight",
               fill: "var(--color-muted-foreground)",
               fontSize: 10,
@@ -189,7 +193,7 @@ export function AssetTimelineChart({
           <Area
             type="monotone"
             dataKey="ISA"
-            name="ISA"
+            name={activePack.labels.taxFreeWrapper}
             stroke="var(--color-data-1)"
             fill="url(#isaFill)"
             strokeWidth={2}
@@ -200,7 +204,7 @@ export function AssetTimelineChart({
             <Area
               type="monotone"
               dataKey="GIA"
-              name="GIA"
+              name={activePack.labels.taxableWrapper}
               stroke="var(--color-data-3)"
               fill="url(#giaFill)"
               strokeWidth={2}
@@ -211,7 +215,7 @@ export function AssetTimelineChart({
           <Area
             type="monotone"
             dataKey="SIPP"
-            name="SIPP"
+            name={activePack.labels.taxDeferredWrapper}
             stroke="var(--color-data-2)"
             fill="url(#sippFill)"
             strokeWidth={2}

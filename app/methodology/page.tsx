@@ -53,11 +53,11 @@ function Term({ children }: { children: React.ReactNode }) {
  */
 const CONTENTS = [
   { id: "projection", group: "The engine", title: "A year-by-year projection" },
-  { id: "income-tax", group: "Tax", title: "UK Income Tax (2026/27)" },
-  { id: "cgt", group: "Tax", title: "Capital Gains Tax on the GIA" },
+  { id: "income-tax", group: "Tax", title: "Income Tax (UK & US)" },
+  { id: "cgt", group: "Tax", title: "Capital Gains Tax" },
   { id: "property", group: "Assets", title: "Property" },
-  { id: "sipp", group: "Pensions", title: "SIPP access & the 25%" },
-  { id: "state-pension", group: "Pensions", title: "State Pension" },
+  { id: "sipp", group: "Pensions", title: "Retirement Accounts & Access Ages" },
+  { id: "state-pension", group: "Pensions", title: "State Pension & Social Security" },
   { id: "confidence", group: "Modes", title: "Confidence (Monte Carlo)" },
   { id: "coast", group: "Modes", title: "Coast FIRE" },
   { id: "assumptions", group: "Caveats", title: "Assumptions & simplifications" },
@@ -166,88 +166,50 @@ export default function MethodologyPage() {
         <Section
           id="income-tax"
           eyebrow="Tax"
-          title="UK Income Tax (2026/27)"
+          title="Income Tax (UK & US)"
         >
           <p>
-            SIPP drawdown and the State Pension are taxed as income against the
-            rest-of-UK bands. Scottish rates are not modelled.
+            Taxable pension withdrawals, 401(k) distributions, and government pensions/benefits are taxed as income year by year against progressive tax bands.
           </p>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[22rem] border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-border text-left">
-                  <th className="py-2 pr-4 font-medium text-foreground">Band</th>
-                  <th className="py-2 pr-4 font-medium text-foreground">
-                    Income
-                  </th>
-                  <th className="py-2 font-medium text-foreground">Rate</th>
-                </tr>
-              </thead>
-              <tbody className="tabular">
-                <tr className="border-b border-border">
-                  <td className="py-2 pr-4">Personal allowance</td>
-                  <td className="py-2 pr-4">up to £12,570</td>
-                  <td className="py-2">0%</td>
-                </tr>
-                <tr className="border-b border-border">
-                  <td className="py-2 pr-4">Basic</td>
-                  <td className="py-2 pr-4">to £50,270</td>
-                  <td className="py-2">20%</td>
-                </tr>
-                <tr className="border-b border-border">
-                  <td className="py-2 pr-4">Higher</td>
-                  <td className="py-2 pr-4">to £125,140</td>
-                  <td className="py-2">40%</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-4">Additional</td>
-                  <td className="py-2 pr-4">above £125,140</td>
-                  <td className="py-2">45%</td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div>
+              <h3 className="mb-2 font-display text-base font-semibold text-foreground">UK System (2026/27)</h3>
+              <ul className="list-disc space-y-1 pl-4 text-xs">
+                <li>Personal Allowance: £12,570 (0%)</li>
+                <li>Basic Rate: £12,571 to £50,270 (20%)</li>
+                <li>Higher Rate: £50,271 to £125,140 (40%)</li>
+                <li>Additional Rate: above £125,140 (45%)</li>
+                <li>Allowance Taper: £1 lost per £2 income over £100,000</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="mb-2 font-display text-base font-semibold text-foreground">US Federal & State</h3>
+              <ul className="list-disc space-y-1 pl-4 text-xs">
+                <li>Standard Deduction: $15,000 (Single) / $30,000 (Joint)</li>
+                <li>Federal Brackets: 10%, 12%, 22%, 24%, 32%, 35%, 37%</li>
+                <li>State Income Tax: Selectable (0% for TX/FL/NV, up to 13.3% CA / 10.9% NY)</li>
+                <li>Filing Status: Single vs Married Filing Jointly</li>
+              </ul>
+            </div>
           </div>
-          <p>
-            The <Term>personal allowance taper</Term> is included: for every £2
-            of income above £100,000, £1 of allowance is lost, reaching zero at
-            £125,140.
-          </p>
         </Section>
 
         <Section
           id="cgt"
           eyebrow="Tax"
-          title="Capital Gains Tax on the GIA"
+          title="Capital Gains Tax (GIA / Taxable Brokerage)"
         >
           <p>
-            A General Investment Account has no tax wrapper, so selling units to
-            fund income can realise a capital gain. Fireworks models this in a
-            simplified form:
+            Unwrapped investment accounts (UK GIA / US Taxable Brokerage) realise capital gains on withdrawals.
           </p>
           <ul className="list-disc space-y-1.5 pl-5">
             <li>
-              Each withdrawal realises a gain proportional to the pot&apos;s{" "}
-              <Term>embedded gain</Term> (value minus cost basis).
+              <Term>UK CGT</Term> — £3,000 annual allowance (2026/27). Gains above it are taxed at 18% (basic band) or 24% (higher band), stacked on top of income.
             </li>
             <li>
-              The <Term>£3,000 annual exempt amount</Term> (2026/27) is applied
-              each year.
-            </li>
-            <li>
-              Gains above it are taxed at <Term>18%</Term> within the basic-rate
-              band and <Term>24%</Term> above it (non-property rates from 30 Oct
-              2024), stacked on top of your income that year.
+              <Term>US Capital Gains & NIIT</Term> — Long-Term Capital Gains brackets (0%, 15%, 20%) apply based on taxable income, plus 3.8% Net Investment Income Tax (NIIT) above MAGI thresholds ($200k Single / $250k Joint).
             </li>
           </ul>
-          <p>
-            Three deliberate simplifications: the starting GIA balance is
-            assumed to carry <Term>no embedded gain</Term> (so early CGT is
-            understated); <Term>dividend tax is not modelled</Term>; and the CGT
-            rate is set from the income known when the GIA is drawn — which is{" "}
-            <Term>before the same year&apos;s SIPP withdrawal</Term>, drawn last
-            in the waterfall. So in a year that leans on both pots, a gain can be
-            taxed at 18% when part of it would in reality fall into the 24% band.
-          </p>
         </Section>
 
         <Section id="property" eyebrow="Assets" title="Property">
@@ -259,18 +221,12 @@ export default function MethodologyPage() {
             <li>
               <Term>Rental property</Term> — its value grows at your chosen
               rate, and the <Term>rental income is taxed as income</Term>
-              (stacked with the State Pension and any SIPP drawdown), offsetting
-              your target in retirement. You can optionally sell it at a chosen
-              age: residential CGT (18%/24%) is charged on the gain, the net
-              proceeds move into your GIA, and the rent then stops.
+              (stacked with state benefits and pension drawdowns). Selling a rental property applies capital gains tax on the gain and moves net proceeds to your taxable brokerage account.
             </li>
             <li>
               <Term>Home you live in</Term> — counts as net worth and grows, but
               isn&apos;t drawn for income unless you <Term>downsize</Term>.
-              Downsizing at a chosen age releases a share of its value as{" "}
-              <Term>tax-free cash</Term> (private-residence relief) into your
-              GIA. The starting rental value is assumed to carry no embedded
-              gain, same as the GIA.
+              Downsizing releases cash into your taxable brokerage with primary residence relief (UK Private Residence Relief / US Section 121 $250k/$500k exclusion).
             </li>
           </ul>
         </Section>
@@ -278,51 +234,40 @@ export default function MethodologyPage() {
         <Section
           id="sipp"
           eyebrow="Pensions"
-          title="SIPP: access age & how you take the 25%"
+          title="Retirement Accounts & Access Ages"
         >
           <p>
-            You can take <Term>25% of your pension tax-free</Term>, up to a cap
-            of <Term>£268,275</Term> (the Lump Sum Allowance). Fireworks lets you
-            choose how, under <Term>Lifestyle scenario → Pension access</Term>:
+            Retirement accounts have statutory access ages and unique tax rules:
           </p>
           <ul className="list-disc space-y-1.5 pl-5">
             <li>
-              <Term>Gradual (UFPLS)</Term> — the default. 25% of every
-              withdrawal is tax-free and the other 75% is taxed as income. This
-              spreads the tax-free allowance and is usually the most efficient.
+              <Term>UK SIPP</Term> — Normal Minimum Pension Age is 57 (rising from 55). 25% of withdrawals are tax-free (up to £268,275 cap) via gradual UFPLS or initial lump sum.
             </li>
             <li>
-              <Term>Lump sum</Term> — take the whole 25% as cash up front. Since
-              it can&apos;t fit in an ISA (£20k/yr limit), Fireworks places it in
-              your GIA; the rest of the pension is then fully taxable on
-              drawdown.
+              <Term>US 401(k) & Traditional IRA</Term> — Penalty-free access starts at age 59½. Withdrawals are taxed as ordinary income. Required Minimum Distributions (RMDs) apply starting at age 73/75.
+            </li>
+            <li>
+              <Term>US Roth IRA & UK ISA</Term> — Completely tax-free growth and tax-free withdrawals at any time.
             </li>
           </ul>
-          <p>
-            The UK <Term>Normal Minimum Pension Age</Term> is 55 today, rising to{" "}
-            <Term>57 on 6 April 2028</Term>. Early retirees modelled here reach
-            it after 2028, so the default is 57 — and the SIPP can&apos;t be
-            touched before it (bridge years must run on ISA/GIA).
-          </p>
         </Section>
 
         <Section
           id="state-pension"
           eyebrow="Pensions"
-          title="State Pension"
+          title="State Pension & Social Security"
         >
           <p>
-            From your State Pension age, a flat annual income is added and{" "}
-            <Term>offsets your pot withdrawals</Term> — the pots only fund the
-            rest of the target, so they last longer once it starts. The default
-            is the <Term>full new State Pension</Term> for 2026/27,
-            £12,547.60/yr (£241.30/week, +4.8% triple lock) — lower it if your
-            National Insurance record is incomplete.
+            From your state benefit age, guaranteed annual income is added and <Term>offsets your pot withdrawals</Term>:
           </p>
-          <p>
-            State Pension age is 66 today, rising to 67 (2026–2028) and 68
-            (2044–2046). The default is 67, editable in the planner.
-          </p>
+          <ul className="list-disc space-y-1.5 pl-5">
+            <li>
+              <Term>UK State Pension</Term> — Default is full new State Pension (£12,547.60/yr for 2026/27). Default claim age is 67.
+            </li>
+            <li>
+              <Term>US Social Security</Term> — Based on average indexed earnings with standard bend points (90% / 32% / 15%). Default claim age is Full Retirement Age (67).
+            </li>
+          </ul>
         </Section>
 
         <Section

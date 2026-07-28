@@ -4,6 +4,7 @@ import {
   type FireInputs,
 } from "./fire-engine";
 import { deriveMinimumPensionAge, deriveStatePensionAge } from "./pension-ages";
+import type { CountryPack, LifestyleTier } from "./countries/types";
 
 /** Nominal growth the quiz applies to the investment pots (editable later). */
 export const QUIZ_POT_GROWTH = 0.05;
@@ -19,6 +20,8 @@ const QUIZ_DEFAULT_SIPP_MONTHLY = 300;
  * excluding housing costs). The recognised institutional benchmark for "how
  * much income does a given lifestyle cost in retirement", from Loughborough
  * University for the Pensions and Lifetime Savings Association.
+ *
+ * @deprecated Use `activePack.lifestyleTiers` instead. Retained for test compat.
  */
 export const PLSA_LIFESTYLES = [
   {
@@ -44,9 +47,14 @@ export const PLSA_LIFESTYLES = [
 export type LifestyleId = (typeof PLSA_LIFESTYLES)[number]["id"] | "custom";
 
 /** Take-home income for a lifestyle (custom falls back to the custom amount). */
-export function lifestyleIncome(id: LifestyleId, customAmount: number): number {
+export function lifestyleIncome(
+  id: LifestyleId,
+  customAmount: number,
+  tiers?: LifestyleTier[],
+): number {
   if (id === "custom") return customAmount;
-  return PLSA_LIFESTYLES.find((l) => l.id === id)!.amount;
+  const source = tiers ?? PLSA_LIFESTYLES;
+  return source.find((l) => l.id === id)?.amount ?? customAmount;
 }
 
 /**
@@ -142,19 +150,32 @@ export function initialQuizState(): QuizState {
 
 /**
  * Turn the quiz answers into a complete `FireInputs`. Target income comes from
- * the chosen lifestyle (PLSA) or a custom figure; the strategy shapes the plan
- * ("go part-time first" adds part-time income to State Pension age; "coast to
- * it" is a normal plan whose Coast FIRE card lights up). Contributions start at
- * modest placeholders. Any savings the user gave seed the ISA balance — a
- * single combined figure can't say how it's split across ISA/SIPP/GIA, and ISA
- * is the accessible FIRE staple, so parking it there keeps the *net worth*
- * exactly right without fabricating pension money locked until 57. The user
- * splits it properly later, in the planner.
+ * the chosen lifestyle tier or a custom figure; the strategy shapes the plan
+ * ("go part-time first" adds part-time income to the government pension age;
+ * "coast to it" is a normal plan whose Coast FIRE card lights up).
+ *
+ * When a `CountryPack` is provided, it drives the default contributions,
+ * pension ages, and state benefit amounts — so a US user gets 59.5 for
+ * pension access and $22,900 for Social Security, not the UK's 57 and £12,548.
  */
-export function assembleQuizInputs(state: QuizState): FireInputs {
-  const targetAnnualIncome = lifestyleIncome(state.lifestyle, state.customIncome);
-  const statePensionAge = deriveStatePensionAge(state.currentAge);
-  const sippAccessAge = deriveMinimumPensionAge(state.currentAge);
+export function assembleQuizInputs(
+  state: QuizState,
+  pack?: CountryPack,
+): FireInputs {
+  const tiers = pack?.lifestyleTiers;
+  const targetAnnualIncome = lifestyleIncome(state.lifestyle, state.customIncome, tiers);
+
+  const isUs = pack?.id === "us";
+  const statePensionAge = isUs
+    ? (pack.quizDefaults.defaultStatePensionAge ?? 67)
+    : deriveStatePensionAge(state.currentAge);
+  const sippAccessAge = isUs
+    ? (pack.quizDefaults.defaultPensionAccessAge ?? 59.5)
+    : deriveMinimumPensionAge(state.currentAge);
+  const statePensionAnnual = pack?.quizDefaults.defaultStatePensionAnnual
+    ?? DEFAULT_ASSUMPTIONS.statePensionAnnual;
+  const defaultIsaMonthly = pack?.quizDefaults.defaultIsaMonthly ?? QUIZ_DEFAULT_ISA_MONTHLY;
+  const defaultSippMonthly = pack?.quizDefaults.defaultSippMonthly ?? QUIZ_DEFAULT_SIPP_MONTHLY;
 
   const barista = state.strategy === "barista";
   const partTimeAnnualIncome = barista ? state.partTimeAnnualIncome : 0;
@@ -166,6 +187,7 @@ export function assembleQuizInputs(state: QuizState): FireInputs {
   const isaBalance = state.savingsProvided ? Math.max(0, state.savings) : 0;
 
   return {
+    country: pack?.id as "uk" | "us" | undefined,
     currentAge: state.currentAge,
     retirementAge: state.retirementAge,
     targetAnnualIncome,
@@ -174,9 +196,9 @@ export function assembleQuizInputs(state: QuizState): FireInputs {
     partTimeUntilAge,
 
     isaBalance,
-    isaMonthlyContribution: QUIZ_DEFAULT_ISA_MONTHLY,
+    isaMonthlyContribution: defaultIsaMonthly,
     sippBalance: 0,
-    sippMonthlyContribution: QUIZ_DEFAULT_SIPP_MONTHLY,
+    sippMonthlyContribution: defaultSippMonthly,
     giaBalance: 0,
     giaMonthlyContribution: 0,
 
@@ -196,10 +218,10 @@ export function assembleQuizInputs(state: QuizState): FireInputs {
     rentalMonthlyIncome: 0,
     rentalSaleAge: 0,
 
-    statePensionAnnual: DEFAULT_ASSUMPTIONS.statePensionAnnual,
+    statePensionAnnual,
     statePensionAge,
     sippAccessAge,
-    pensionStrategy: DEFAULT_ASSUMPTIONS.pensionStrategy,
+    pensionStrategy: isUs ? undefined : DEFAULT_ASSUMPTIONS.pensionStrategy,
     lifeExpectancyAge: DEFAULT_ASSUMPTIONS.lifeExpectancyAge,
     ...state.importedPlan, // override with extracted figures
   };

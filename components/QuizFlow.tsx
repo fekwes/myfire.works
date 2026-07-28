@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { Spark } from "@/components/Logo";
 import { usePlan } from "@/components/PlanProvider";
 import type { FireInputs } from "@/lib/fire-engine";
+import { CountryPack } from "@/lib/countries/types";
 import {
   MiniAssetChart,
   ProgressBar,
@@ -18,13 +19,12 @@ import { PlanImport } from "@/components/quiz/PlanImport";
 import { Button } from "@/components/ui";
 import { simulateFire } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
-import { formatCurrency } from "@/lib/format";
+import { useFormat } from "@/hooks/useFormat";
 import {
   assembleQuizInputs,
   FIRE_STRATEGIES,
   initialQuizState,
   type LifestyleId,
-  PLSA_LIFESTYLES,
   type QuizState,
   type StrategyId,
 } from "@/lib/quiz";
@@ -41,7 +41,7 @@ const REVEAL_STEP = TOTAL_QUESTIONS; // index 4, shown after the last question
  */
 export function QuizFlow() {
   const router = useRouter();
-  const { setInputs } = usePlan();
+  const { setInputs, activePack } = usePlan();
   const [step, setStep] = useState(0);
   const [state, setState] = useState<QuizState>(initialQuizState);
 
@@ -54,7 +54,7 @@ export function QuizFlow() {
     // client-side push to /planner never re-read it — the planner rendered
     // its defaults and every quiz answer was silently discarded until a hard
     // reload. setInputs updates the live state *and* persists.
-    setInputs(assembleQuizInputs(state));
+    setInputs(assembleQuizInputs(state, activePack));
     router.push("/planner");
   };
 
@@ -71,6 +71,7 @@ export function QuizFlow() {
           key="strategy"
           strategy={state.strategy}
           retirementAge={state.retirementAge}
+          activePack={activePack}
           onPick={(strategy) => setState((s) => ({ ...s, strategy }))}
           onNext={next}
         />
@@ -80,6 +81,7 @@ export function QuizFlow() {
           key="lifestyle"
           lifestyle={state.lifestyle}
           customIncome={state.customIncome}
+          activePack={activePack}
           onPickLifestyle={(lifestyle) => setState((s) => ({ ...s, lifestyle }))}
           onCustomIncome={(customIncome) =>
             setState((s) => ({ ...s, customIncome, lifestyle: "custom" }))
@@ -92,6 +94,7 @@ export function QuizFlow() {
         <StepAges
           key="ages"
           state={state}
+          activePack={activePack}
           onChange={(patch) => setState((s) => ({ ...s, ...patch }))}
           onNext={next}
           onBack={back}
@@ -101,6 +104,7 @@ export function QuizFlow() {
         <StepSavings
           key="savings"
           savings={state.savings}
+          activePack={activePack}
           onChange={(savings) =>
             setState((s) => ({ ...s, savings, savingsProvided: true, importedPlan: undefined }))
           }
@@ -128,6 +132,7 @@ export function QuizFlow() {
 // ------------------------------------------------------------------ //
 
 function StepLifestyle({
+  activePack,
   lifestyle,
   customIncome,
   onPickLifestyle,
@@ -137,27 +142,29 @@ function StepLifestyle({
 }: {
   lifestyle: LifestyleId;
   customIncome: number;
+  activePack: CountryPack;
   onPickLifestyle: (id: LifestyleId) => void;
   onCustomIncome: (amount: number) => void;
   onNext: () => void;
   onBack?: () => void;
 }) {
+  const { format } = useFormat();
   return (
     <StepShell
       heading="How much will you spend each year?"
-      helper="Take-home spending per year, in today's money. Benchmarks are the UK PLSA Retirement Living Standards (single, excluding housing) — this one number drives your FIRE target."
+      helper={`Take-home spending per year, in today's money. Benchmarks are the ${activePack.labels.lifestyleBenchmarkName} (single, excluding housing) — this one number drives your FIRE target.`}
       why="Your yearly spending is the biggest lever on your FIRE number — everything else in the plan sizes around it."
       onContinue={onNext}
       onBack={onBack}
     >
       <div className="grid gap-2.5">
-        {PLSA_LIFESTYLES.map((l) => {
+        {activePack.lifestyleTiers.map((l) => {
           const selected = lifestyle === l.id;
           return (
             <button
               key={l.id}
               type="button"
-              onClick={() => onPickLifestyle(l.id)}
+              onClick={() => onPickLifestyle(l.id as LifestyleId)}
               aria-pressed={selected}
               className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
                 selected
@@ -174,7 +181,7 @@ function StepLifestyle({
                 </span>
               </span>
               <span className="shrink-0 font-display text-sm font-bold tabular text-foreground">
-                {formatCurrency(l.amount)}
+                {format(l.amount)}
               </span>
             </button>
           );
@@ -185,14 +192,14 @@ function StepLifestyle({
         label="Or set your own target"
         hint={
           lifestyle === "custom"
-            ? `Using your custom ${formatCurrency(customIncome)}/yr.`
+            ? `Using your custom ${format(customIncome)}/yr.`
             : "Leaner or richer than the bands above — your number wins."
         }
       >
         <QuizNumberInput
           value={customIncome}
           onChange={onCustomIncome}
-          prefix="£"
+          prefix={activePack.currency.symbol}
           suffix="/ yr"
           step={1000}
         />
@@ -206,12 +213,14 @@ function StepLifestyle({
 // ------------------------------------------------------------------ //
 
 function StepAges({
+  activePack,
   state,
   onChange,
   onNext,
   onBack,
 }: {
   state: QuizState;
+  activePack: CountryPack;
   onChange: (patch: Partial<QuizState>) => void;
   onNext: () => void;
   onBack: () => void;
@@ -266,7 +275,7 @@ function StepAges({
               <QuizNumberInput
                 value={state.partTimeAnnualIncome}
                 onChange={(v) => onChange({ partTimeAnnualIncome: v })}
-                prefix="£"
+                prefix={activePack.currency.symbol}
                 step={1000}
               />
             </QuizField>
@@ -284,12 +293,14 @@ function StepAges({
 function StepStrategy({
   strategy,
   retirementAge,
+  activePack,
   onPick,
   onNext,
   onBack,
 }: {
   strategy: StrategyId;
   retirementAge: number;
+  activePack: CountryPack;
   onPick: (id: StrategyId) => void;
   onNext: () => void;
   onBack?: () => void;
@@ -298,7 +309,7 @@ function StepStrategy({
     <StepShell
       heading="How do you want to get there?"
       helper={`Three routes to age ${retirementAge}. You can change this — and everything else — in the planner.`}
-      why="Your route changes the shape of the plan — when you stop adding money, and whether part-time work bridges you to the State Pension."
+      why={activePack.labels.strategyWhy}
       onContinue={onNext}
       onBack={onBack}
     >
@@ -321,7 +332,7 @@ function StepStrategy({
                 {s.label}
               </span>
               <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-                {s.tagline}
+                {s.id === "barista" ? activePack.labels.baristaTagline : s.tagline}
               </span>
             </button>
           );
@@ -336,6 +347,7 @@ function StepStrategy({
 // ------------------------------------------------------------------ //
 
 function StepSavings({
+  activePack,
   savings,
   onChange,
   onImport,
@@ -344,6 +356,7 @@ function StepSavings({
   onBack,
 }: {
   savings: number;
+  activePack: CountryPack;
   onChange: (amount: number) => void;
   onImport: (plan: FireInputs) => void;
   onSkip: () => void;
@@ -363,7 +376,7 @@ function StepSavings({
   return (
     <StepShell
       heading="Paste or drop everything you've got"
-      helper="A ballpark total across your ISAs, pensions and other savings is fine. This is the one number that turns your result from a guess into a real verdict — but you can skip it."
+      helper={activePack.labels.savingsHelper}
       why="Without a starting balance we can only project from your contributions — a rough figure is what makes the verdict actually about you."
       onContinue={onNext}
       onBack={onBack}
@@ -390,12 +403,12 @@ function StepSavings({
 
       <QuizField
         label="Total saved so far"
-        hint="We'll add this to your ISA to start — you can split it across your pension in the planner."
+        hint={activePack.labels.savingsHint}
       >
         <QuizNumberInput
           value={savings}
           onChange={onChange}
-          prefix="£"
+          prefix={activePack.currency.symbol}
           step={1000}
         />
       </QuizField>
@@ -424,7 +437,9 @@ function StepReveal({
   onFinish: () => void;
   onBack: () => void;
 }) {
-  const inputs = useMemo(() => assembleQuizInputs(state), [state]);
+  const { activePack } = usePlan();
+  const { format } = useFormat();
+  const inputs = useMemo(() => assembleQuizInputs(state, activePack), [state, activePack]);
   const fire = useMemo(() => computeFireNumber(inputs), [inputs]);
   const plan = useMemo(() => simulateFire(inputs), [inputs]);
 
@@ -471,11 +486,11 @@ function StepReveal({
       </p>
 
       <p className="mt-4 font-display text-4xl font-bold tabular tracking-tight sm:text-5xl">
-        {formatCurrency(shown)}
+        {format(shown)}
       </p>
       <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
         the pot you&apos;d need by age {inputs.retirementAge} to draw{" "}
-        {formatCurrency(inputs.targetAnnualIncome)}/yr, in today&apos;s money.
+        {format(inputs.targetAnnualIncome)}/yr, in today&apos;s money.
       </p>
 
       <div className="mt-6">

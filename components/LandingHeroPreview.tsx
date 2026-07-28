@@ -2,6 +2,9 @@ import { simulateFire, type FireInputs } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
 import { formatCurrency } from "@/lib/format";
 
+// Landing page hero uses an explicit GBP sample plan — not region-aware.
+// The landing page itself will be localized separately (server-side).
+
 // A representative on-track plan. These are real engine outputs — the same
 // numbers the planner would show — so the hero previews the actual product
 // rather than a mocked-up screenshot.

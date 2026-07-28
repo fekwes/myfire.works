@@ -503,7 +503,7 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
           </Field>
           <Field
             label="Retirement age"
-            tooltip="When you plan to stop working. Your ISA/GIA bridges income until your SIPP unlocks."
+            tooltip={pack.labels.retirementAgeTooltip}
           >
             <NumberInput
               value={value.retirementAge}
@@ -516,12 +516,12 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
 
         <Field
           label="Target retirement income"
-          tooltip="The take-home income you want to spend each year in retirement — after tax, in today's money. Your State Pension is already counted towards this."
+          tooltip={pack.labels.targetIncomeTooltip}
         >
           <NumberInput
             value={value.targetAnnualIncome}
             onChange={(v) => set("targetAnnualIncome", v)}
-            prefix="£"
+            prefix={pack.currency.symbol}
             suffix="/ yr"
             step={500}
           />
@@ -545,7 +545,7 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
 
         <Block
           title="Part-time transition"
-          tooltip="Go part-time in early retirement to bridge the gap to your State Pension."
+          tooltip={pack.labels.partTimeTooltip}
         >
           <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
             <Field label="Part-time until age">
@@ -559,7 +559,7 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
               <NumberInput
                 value={num(value.partTimeAnnualIncome, 0)}
                 onChange={(v) => set("partTimeAnnualIncome", v)}
-                prefix="£"
+                prefix={pack.currency.symbol}
                 step={1000}
               />
             </Field>
@@ -622,20 +622,20 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
         <Block
           title="Rental property"
           dotClass="bg-muted-foreground/60"
-          tooltip="Rental income is taxed as income and offsets your target in retirement. Optionally sell it later — residential CGT applies and the net proceeds move into your GIA."
+          tooltip={pack.labels.rentalSaleTooltip ?? "Rental income is taxed as income and offsets your target in retirement. Optionally sell it later."}
         >
           <Field label="Current value">
             <NumberInput
               value={num(value.rentalValue, 0)}
               onChange={(v) => set("rentalValue", v)}
-              prefix="£"
+              prefix={pack.currency.symbol}
             />
           </Field>
           <Field label="Monthly rent">
             <NumberInput
               value={num(value.rentalMonthlyIncome, 0)}
               onChange={(v) => set("rentalMonthlyIncome", v)}
-              prefix="£"
+              prefix={pack.currency.symbol}
             />
           </Field>
           <Field label="Expected growth">
@@ -646,7 +646,7 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
           </Field>
           <Field
             label="Sell at age"
-            tooltip="Leave at 0 to keep it. Otherwise it's sold at this age (residential CGT), proceeds go to your GIA, and the rent stops."
+            tooltip={pack.labels.rentalSaleTooltip ?? "Leave at 0 to keep it. Otherwise it's sold at this age, proceeds go to your brokerage, and the rent stops."}
           >
             <NumberInput
               value={num(value.rentalSaleAge, 0)}
@@ -658,13 +658,13 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
 
         <Block
           title="Home you live in"
-          tooltip="Counts as net worth and grows, but isn't drawn for income — unless you downsize, which releases tax-free cash (primary-residence relief) into your GIA."
+          tooltip={pack.labels.homeTooltip}
         >
           <Field label="Current value">
             <NumberInput
               value={num(value.homeValue, 0)}
               onChange={(v) => set("homeValue", v)}
-              prefix="£"
+              prefix={pack.currency.symbol}
             />
           </Field>
           <Field label="Expected growth">
@@ -699,17 +699,19 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
         description="How you take your pension, and any part-time work."
         hidden={activeSection !== "scenario"}
       >
-        <Field
-          label="Pension access"
-          tooltip="Gradual (UFPLS): 25% of every withdrawal is tax-free — usually the most tax-efficient. Lump sum: take the 25% tax-free cash up front (it goes into your GIA)."
-        >
-          <PensionStrategyToggle
-            value={value.pensionStrategy ?? DEFAULT_ASSUMPTIONS.pensionStrategy}
-            onChange={(v) => {
-              set("pensionStrategy", v);
-            }}
-          />
-        </Field>
+        {pack.labels.hasPensionStrategyToggle && (
+          <Field
+            label="Pension access"
+            tooltip="Gradual (UFPLS): 25% of every withdrawal is tax-free — usually the most tax-efficient. Lump sum: take the 25% tax-free cash up front (it goes into your GIA)."
+          >
+            <PensionStrategyToggle
+              value={value.pensionStrategy ?? DEFAULT_ASSUMPTIONS.pensionStrategy}
+              onChange={(v) => {
+                set("pensionStrategy", v);
+              }}
+            />
+          </Field>
+        )}
 
         <Block
           title="Part-time work — Barista FIRE"
@@ -732,7 +734,7 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
                 <NumberInput
                   value={num(value.partTimeAnnualIncome, 0)}
                   onChange={(v) => set("partTimeAnnualIncome", v)}
-                  prefix="£"
+                  prefix={pack.currency.symbol}
                   suffix="/ yr"
                   step={1000}
                 />
@@ -762,8 +764,8 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
       >
         <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
           <Field
-            label="SIPP access age"
-            tooltip="UK minimum pension age is 55 today, rising to 57 in April 2028 — the default here."
+            label={country === "us" ? "401(k) / IRA access age" : "SIPP access age"}
+            tooltip={country === "us" ? "US standard access age is 59.5 without penalties." : "UK minimum pension age is 55 today, rising to 57 in April 2028 — the default here."}
           >
             <NumberInput
               value={num(value.sippAccessAge, DEFAULT_ASSUMPTIONS.sippAccessAge)}
@@ -798,8 +800,8 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
 
         <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
           <Field
-            label="State Pension age"
-            tooltip="66 today, rising to 67 (2026–2028) then 68. Default is 67."
+            label={country === "us" ? "Social Security age" : "State Pension age"}
+            tooltip={country === "us" ? "FRA is typically 67." : "66 today, rising to 67 (2026–2028) then 68. Default is 67."}
           >
             <NumberInput
               value={num(
@@ -811,8 +813,8 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
             />
           </Field>
           <Field
-            label="State Pension"
-            tooltip="Full new State Pension for 2026/27 is £12,548/yr. Lower it if your National Insurance record is incomplete."
+            label={country === "us" ? "Social Security" : "State Pension"}
+            tooltip={country === "us" ? "Your expected Social Security benefit." : "Full new State Pension for 2026/27 is £12,548/yr. Lower it if your National Insurance record is incomplete."}
           >
             <NumberInput
               value={num(
@@ -820,7 +822,7 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
                 DEFAULT_ASSUMPTIONS.statePensionAnnual,
               )}
               onChange={(v) => set("statePensionAnnual", v)}
-              prefix="£"
+              prefix={pack.currency.symbol}
               suffix="/ yr"
               step={100}
             />

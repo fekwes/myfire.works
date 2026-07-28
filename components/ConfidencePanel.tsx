@@ -19,7 +19,7 @@ import {
   type MonteCarloResult,
   type StrategyResult,
 } from "@/lib/monte-carlo";
-import { formatCurrency, formatCurrencyCompact } from "@/lib/format";
+import { useFormat } from "@/hooks/useFormat";
 import { portfolioAllocation } from "@/lib/vanguard-funds";
 
 function tone(rate: number) {
@@ -119,22 +119,24 @@ function FanTooltip({
   payload?: { payload: { p10: number; p50: number; p90: number } }[];
   label?: number;
 }) {
+  const { format } = useFormat();
   if (!active || !payload?.length) return null;
   const { p10, p50, p90 } = payload[0].payload;
   return (
     <div className="rounded-xl border border-border bg-surface/95 p-3 text-xs shadow-xl backdrop-blur">
       <p className="mb-1 font-display font-semibold text-foreground">Age {label}</p>
       <p className="tabular text-muted-foreground">
-        Median <span className="text-foreground">{formatCurrency(p50)}</span>
+        Median <span className="text-foreground">{format(p50)}</span>
       </p>
       <p className="tabular text-muted-foreground">
-        Range {formatCurrency(p10)} – {formatCurrency(p90)}
+        Range {format(p10)} – {format(p90)}
       </p>
     </div>
   );
 }
 
 export function ConfidencePanel({ inputs }: { inputs: FireInputs }) {
+  const { formatCompact } = useFormat();
   // The allocation the user's chosen funds imply — the default the simulation
   // runs at, so the risk analysis matches the portfolio they actually built.
   const alloc = useMemo(() => portfolioAllocation(inputs), [inputs]);
@@ -242,7 +244,7 @@ export function ConfidencePanel({ inputs }: { inputs: FireInputs }) {
                   minTickGap={20}
                 />
                 <YAxis
-                  tickFormatter={(v) => formatCurrencyCompact(v)}
+                  tickFormatter={(v) => formatCompact(v)}
                   tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}

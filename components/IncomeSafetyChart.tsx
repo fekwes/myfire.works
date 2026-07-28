@@ -12,7 +12,8 @@ import {
   Legend,
 } from "recharts";
 import type { FireSimulationResult } from "@/lib/fire-engine";
-import { formatCurrency, formatCurrencyCompact } from "@/lib/format";
+import { usePlan } from "@/components/PlanProvider";
+import { useFormat } from "@/hooks/useFormat";
 
 interface TooltipPayloadEntry {
   name: string;
@@ -28,6 +29,7 @@ function ChartTooltip({
   active?: boolean;
   payload?: TooltipPayloadEntry[];
 }) {
+  const { format } = useFormat();
   if (!active || !payload?.length) return null;
   const { age, netIncome, shortfall } = payload[0].payload;
   return (
@@ -39,13 +41,13 @@ function ChartTooltip({
             <span className="inline-block size-2 rounded-sm" style={{ backgroundColor: p.color }} />
             {p.name}
           </span>
-          <span className="font-medium tabular text-foreground">{formatCurrency(p.value)}</span>
+          <span className="font-medium tabular text-foreground">{format(p.value)}</span>
         </div>
       ))}
       <div className="mt-2 pt-2 border-t border-border/50 flex justify-between gap-4 font-semibold">
         <span className="text-foreground">Total Net</span>
         <span className={`tabular ${shortfall ? "text-danger" : "text-success"}`}>
-          {formatCurrency(netIncome)}
+          {format(netIncome)}
         </span>
       </div>
     </div>
@@ -59,6 +61,8 @@ export function IncomeSafetyChart({
   result: FireSimulationResult;
   realTerms?: boolean;
 }) {
+  const { activePack } = usePlan();
+  const { formatCompact } = useFormat();
   const data = result.timeline
     .filter((year) => year.phase !== "accumulation")
     .map((year) => {
@@ -115,7 +119,7 @@ export function IncomeSafetyChart({
             minTickGap={20}
           />
           <YAxis
-            tickFormatter={(v) => formatCurrencyCompact(v)}
+            tickFormatter={(v) => formatCompact(v)}
             tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }}
             tickLine={false}
             axisLine={false}
@@ -140,10 +144,10 @@ export function IncomeSafetyChart({
           />
           <Bar dataKey="work" name="Work" stackId="a" fill="var(--color-data-3)" maxBarSize={18} />
           <Bar dataKey="rental" name="Rental" stackId="a" fill="var(--color-data-2)" maxBarSize={18} />
-          <Bar dataKey="statePension" name="State Pension" stackId="a" fill="var(--color-data-1)" maxBarSize={18} />
-          <Bar dataKey="sipp" name="SIPP" stackId="a" fill="var(--color-brand)" maxBarSize={18} />
-          <Bar dataKey="gia" name="GIA" stackId="a" fill="var(--color-accent)" maxBarSize={18} />
-          <Bar dataKey="isa" name="ISA" stackId="a" fill="var(--color-success)" maxBarSize={18} />
+          <Bar dataKey="statePension" name={activePack.labels.statePension} stackId="a" fill="var(--color-data-1)" maxBarSize={18} />
+          <Bar dataKey="sipp" name={activePack.labels.taxDeferredWrapper} stackId="a" fill="var(--color-brand)" maxBarSize={18} />
+          <Bar dataKey="gia" name={activePack.labels.taxableWrapper} stackId="a" fill="var(--color-accent)" maxBarSize={18} />
+          <Bar dataKey="isa" name={activePack.labels.taxFreeWrapper} stackId="a" fill="var(--color-success)" maxBarSize={18} />
           <Bar dataKey="propertyCash" name="Property Cash" stackId="a" fill="#fbbf24" maxBarSize={18} />
           <Bar dataKey="tax" name="Tax Paid" stackId="a" fill="var(--color-danger)" maxBarSize={18} />
         </ComposedChart>

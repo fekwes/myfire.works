@@ -15,7 +15,7 @@ import {
 const DISMISS_KEY = "onfire:checklist-dismissed";
 
 export function PlanChecklist() {
-  const { inputs } = usePlan();
+  const { inputs, activePack } = usePlan();
   const { user, configured } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const [hydration, setHydration] = useState<{
@@ -38,7 +38,7 @@ export function PlanChecklist() {
     setHydration({ ready: true, dismissed });
   }, []);
 
-  const steps = buildChecklist(inputs, !!user, configured);
+  const steps = buildChecklist(inputs, !!user, configured, activePack.labels);
   const { done, total, complete } = checklistProgress(steps);
   const next = nextChecklistStep(steps);
 

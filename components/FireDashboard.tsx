@@ -92,7 +92,7 @@ function Segmented({
 }
 
 export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
-  const { inputs: ownInputs, setInputs, restoreError } = usePlan();
+  const { inputs: ownInputs, setInputs, restoreError, activePack } = usePlan();
   const router = useRouter();
   const shared = useMemo(() => decodePlan(sharedParam), [sharedParam]);
   const readOnly = shared !== null;
@@ -183,7 +183,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
             {provisional
               ? "Add your balances to see if you're on track."
               : sustainable
-                ? `Funds £${plan.inputs.targetAnnualIncome.toLocaleString()}/yr to age ${horizon}.`
+                ? `Funds ${activePack.currency.symbol}${plan.inputs.targetAnnualIncome.toLocaleString()}/yr to age ${horizon}.`
                 : `Falls short from age ${firstShortfall}.`}
           </p>
         </div>

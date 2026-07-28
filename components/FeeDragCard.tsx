@@ -4,7 +4,7 @@ import { Info } from "lucide-react";
 import { useMemo } from "react";
 import { usePlan } from "@/components/PlanProvider";
 import { Card } from "@/components/ui";
-import { formatCurrency } from "@/lib/format";
+import { useFormat } from "@/hooks/useFormat";
 import { estimateFeeDrag } from "@/lib/vanguard-funds";
 
 /**
@@ -13,11 +13,12 @@ import { estimateFeeDrag } from "@/lib/vanguard-funds";
  * portfolio (so the OCFs are known).
  */
 export function FeeDragCard() {
-  const { inputs } = usePlan();
+  const { inputs, activePack } = usePlan();
   const hasPortfolio =
     ((inputs.pots?.isa?.holdings ?? inputs.isaHoldings ?? [])?.length ?? 0) > 0 ||
     ((inputs.pots?.sipp?.holdings ?? inputs.sippHoldings ?? [])?.length ?? 0) > 0 ||
     ((inputs.pots?.gia?.holdings ?? inputs.giaHoldings ?? [])?.length ?? 0) > 0;
+  const { format } = useFormat();
   const drag = useMemo(() => estimateFeeDrag(inputs), [inputs]);
 
   if (!hasPortfolio || drag < 1) return null;
@@ -31,12 +32,12 @@ export function FeeDragCard() {
         <div>
           <h2 className="text-sm font-semibold text-foreground">
             Fees cost you about{" "}
-            <span className="tabular text-danger">{formatCurrency(drag)}</span>{" "}
+            <span className="tabular text-danger">{format(drag)}</span>{" "}
             by age {inputs.retirementAge}
           </h2>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             That&apos;s the growth your pot forgoes to fund OCFs plus Vanguard&apos;s
-            0.15% platform fee (capped at £375/yr). Cheaper trackers keep more of
+            0.15% platform fee (capped at {activePack.currency.symbol}375/yr). Cheaper trackers keep more of
             it — compare the funds above.
           </p>
         </div>

@@ -4,7 +4,7 @@ import { Info, TrendingDown, TrendingUp } from "lucide-react";
 import { useMemo } from "react";
 import { type FireSimulationResult } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
-import { formatCurrency } from "@/lib/format";
+import { useFormat } from "@/hooks/useFormat";
 import { requiredContributions, retirementSensitivity } from "@/lib/what-if";
 import { sustainableIncomeFromPots } from "@/lib/bridge";
 import { Card } from "@/components/ui/Card";
@@ -24,6 +24,7 @@ export function OverviewPanel({
   result: FireSimulationResult;
   realTerms?: boolean;
 }) {
+  const { format } = useFormat();
   const { inputs } = result;
 
   const infl = inputs.inflationRate ?? 0;
@@ -31,7 +32,7 @@ export function OverviewPanel({
     (realTerms && infl > 0) ? 1 / (1 + infl) ** (age - inputs.currentAge) : 1;
   const retireDefl = deflateAt(inputs.retirementAge);
 
-  const formatReal = (val: number | null) => val === null ? null : formatCurrency(val * retireDefl);
+  const formatReal = (val: number | null) => val === null ? null : format(val * retireDefl);
 
 
   const fn = useMemo(() => computeFireNumber(inputs), [inputs]);
@@ -98,7 +99,7 @@ export function OverviewPanel({
             <>
               <p className="font-display text-2xl font-bold tabular text-success">
                 {req.extraNeeded > 0 ? (
-                  <span className="text-foreground">+{formatCurrency(req.extraNeeded)}/mo</span>
+                  <span className="text-foreground">+{format(req.extraNeeded)}/mo</span>
                 ) : (
                   "On Track"
                 )}
@@ -108,13 +109,13 @@ export function OverviewPanel({
                   {hasBridge && req.extraIsaGia > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Extra ISA/GIA</span>
-                      <span className="font-medium tabular text-foreground">+{formatCurrency(req.extraIsaGia)}/mo</span>
+                      <span className="font-medium tabular text-foreground">+{format(req.extraIsaGia)}/mo</span>
                     </div>
                   )}
                   {req.extraSipp > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Extra SIPP</span>
-                      <span className="font-medium tabular text-foreground">+{formatCurrency(req.extraSipp)}/mo</span>
+                      <span className="font-medium tabular text-foreground">+{format(req.extraSipp)}/mo</span>
                     </div>
                   )}
                 </div>
@@ -138,7 +139,7 @@ export function OverviewPanel({
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <TrendingUp className="size-3 shrink-0" />
                 <span>
-                  Retire at {s.earlierAge}: <strong className="text-foreground">+{formatCurrency(s.earlierExtraMonthly)}/mo</strong>
+                  Retire at {s.earlierAge}: <strong className="text-foreground">+{format(s.earlierExtraMonthly)}/mo</strong>
                 </span>
               </div>
             )}
@@ -146,7 +147,7 @@ export function OverviewPanel({
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <TrendingDown className="size-3 shrink-0 text-success" />
                 <span>
-                  Retire at {s.laterAge}: <strong className="text-success">-{formatCurrency(s.laterSavingMonthly)}/mo</strong>
+                  Retire at {s.laterAge}: <strong className="text-success">-{format(s.laterSavingMonthly)}/mo</strong>
                 </span>
               </div>
             )}
