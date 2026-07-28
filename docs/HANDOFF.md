@@ -86,6 +86,14 @@ Fireworks is a modern, privacy-first financial independence & early retirement (
 
 ---
 
+## Product Roadmap & Planned UI Enhancements
+
+- 📌 **Overview Metrics Redesign**:
+  - Replace/reframe the "WHAT IT TAKES" card in the main dashboard overview with a **Target Confidence Metric**.
+  - Show target figures calculated to achieve **95% Confidence Level** using a **5% Guardrail strategy** (`guard5` Monte Carlo model in `lib/monte-carlo.ts`), giving users a stress-tested Target Pot instead of a flat deterministic minimum.
+
+---
+
 ## Solver Modules & Math Utility Map
 
 1. **`lib/bisect.ts`**: Unified monotonic binary search solver with bracket clamping (`smallestPassing`).
