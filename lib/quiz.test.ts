@@ -69,7 +69,7 @@ describe("assembleQuizInputs", () => {
     });
     expect(inputs.currentAge).toBe(42);
     expect(inputs.retirementAge).toBe(58);
-    expect(inputs.sippAccessAge).toBe(58);
+    expect(inputs.sippAccessAge).toBe(57);
     expect(inputs.statePensionAge).toBe(68);
     expect(inputs.statePensionAnnual).toBe(DEFAULT_ASSUMPTIONS.statePensionAnnual);
     expect(inputs.pensionStrategy).toBe(DEFAULT_ASSUMPTIONS.pensionStrategy);

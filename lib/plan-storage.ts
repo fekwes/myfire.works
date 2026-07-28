@@ -254,6 +254,12 @@ export function sanitisePlanInput(parsed: unknown): FireInputs | null {
   if (typeof source.country === "string" && (source.country === "uk" || source.country === "es" || source.country === "us")) {
     clean.country = source.country;
   }
+  if (typeof source.region === "string") {
+    clean.region = source.region;
+  }
+  if (typeof source.filingStatus === "string" && (source.filingStatus === "single" || source.filingStatus === "married-joint")) {
+    clean.filingStatus = source.filingStatus;
+  }
   if (typeof source.pots === "object" && source.pots !== null) {
     const safePots: NonNullable<FireInputs["pots"]> = {};
     for (const [potId, pot] of Object.entries(source.pots)) {

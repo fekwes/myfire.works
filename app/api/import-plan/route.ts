@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     parts.push({ text: trimmed });
   }
 
-  if (body.file) {
+  if (body.file && typeof body.file === "object" && typeof body.file.data === "string") {
     // 5MB max base64
     if (body.file.data.length > 5 * 1024 * 1024 * 1.4) {
       return NextResponse.json({ error: "File is too large." }, { status: 413 });
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     parts.push({
       inlineData: {
         data: body.file.data,
-        mimeType: body.file.mimeType,
+        mimeType: body.file.mimeType ?? "application/pdf",
       },
     });
     // Add a text prompt alongside the file so the model knows what to do

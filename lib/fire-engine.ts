@@ -381,7 +381,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
   const homeGrowth = inputs.homeGrowth;
   let homeDownsized = false;
   const downsizeAge = inputs.downsizeAge;
-  const downsizeReleaseFraction = 0.5;
+  const downsizeReleaseFraction = inputs.downsizeReleaseFraction ?? 0;
 
   const partTimeAnnualIncome = inputs.partTimeAnnualIncome;
   const partTimeUntilAge = inputs.partTimeUntilAge;
@@ -518,7 +518,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       homeDownsized = true;
     }
     
-    const rentalIncome = rentalSold ? 0 : rentalMonthlyIncome * 12;
+    const rentalIncome = rentalSold ? 0 : rentalMonthlyIncome * 12 * inflationFactor;
     const partTimeIncome = partTimeAnnualIncome > 0 && age < partTimeUntilAge ? partTimeAnnualIncome * inflationFactor : 0;
     
     // Other taxable income

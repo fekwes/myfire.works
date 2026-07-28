@@ -15,15 +15,15 @@ function csvColumns(labels?: PackLabels) {
   return [
     { header: "Age", value: (y: YearSnapshot) => y.age },
     { header: "Phase", value: (y: YearSnapshot) => y.phase },
-    { header: isa, value: (y: YearSnapshot) => Math.round(y.pots.isa.end) },
-    { header: gia, value: (y: YearSnapshot) => Math.round(y.pots.gia.end) },
-    { header: sipp, value: (y: YearSnapshot) => Math.round(y.pots.sipp.end) },
+    { header: isa, value: (y: YearSnapshot) => Math.round(y.pots?.isa?.end ?? y.pots?.[Object.keys(y.pots)[0]]?.end ?? 0) },
+    { header: gia, value: (y: YearSnapshot) => Math.round(y.pots?.gia?.end ?? y.pots?.[Object.keys(y.pots)[1]]?.end ?? 0) },
+    { header: sipp, value: (y: YearSnapshot) => Math.round(y.pots?.sipp?.end ?? y.pots?.[Object.keys(y.pots)[2]]?.end ?? 0) },
     { header: "Rental value", value: (y: YearSnapshot) => Math.round(y.rentalValueEnd) },
     { header: "Home value", value: (y: YearSnapshot) => Math.round(y.homeValueEnd) },
-    { header: `${isa} withdrawal`, value: (y: YearSnapshot) => Math.round(y.potWithdrawals.isa.gross) },
-    { header: `${gia} withdrawal`, value: (y: YearSnapshot) => Math.round(y.potWithdrawals.gia.gross) },
-    { header: `${sipp} gross`, value: (y: YearSnapshot) => Math.round(y.potWithdrawals.sipp.gross) },
-    { header: "Tax-free pension", value: (y: YearSnapshot) => Math.round(y.potWithdrawals.sipp.taxFree) },
+    { header: `${isa} withdrawal`, value: (y: YearSnapshot) => Math.round(y.potWithdrawals?.isa?.gross ?? y.potWithdrawals?.[Object.keys(y.potWithdrawals)[0]]?.gross ?? 0) },
+    { header: `${gia} withdrawal`, value: (y: YearSnapshot) => Math.round(y.potWithdrawals?.gia?.gross ?? y.potWithdrawals?.[Object.keys(y.potWithdrawals)[1]]?.gross ?? 0) },
+    { header: `${sipp} gross`, value: (y: YearSnapshot) => Math.round(y.potWithdrawals?.sipp?.gross ?? y.potWithdrawals?.[Object.keys(y.potWithdrawals)[2]]?.gross ?? 0) },
+    { header: "Tax-free pension", value: (y: YearSnapshot) => Math.round(y.potWithdrawals?.sipp?.taxFree ?? y.potWithdrawals?.[Object.keys(y.potWithdrawals)[2]]?.taxFree ?? 0) },
     { header: sp, value: (y: YearSnapshot) => Math.round(y.statePensionIncome) },
     { header: "Rental income", value: (y: YearSnapshot) => Math.round(y.rentalIncome) },
     { header: "Part-time income", value: (y: YearSnapshot) => Math.round(y.partTimeIncome) },
@@ -38,11 +38,8 @@ function csvColumns(labels?: PackLabels) {
 export const CSV_COLUMN_COUNT = csvColumns().length;
 
 /**
- * A year-by-year CSV of the simulated plan. All values are integers; the phase
- * and shortfall columns are plain words — none contain commas, so no quoting is
- * needed.
- *
- * Pass `labels` to use region-appropriate column headers (e.g. "Roth IRA" instead of "ISA").
+ * A year-by-year CSV of the simulated plan.
+ * Safe across all country packs (UK, US, ES) with optional chaining on pot keys.
  */
 export function planTimelineCsv(result: FireSimulationResult, labels?: PackLabels): string {
   const cols = csvColumns(labels);

@@ -339,7 +339,7 @@ describe("simulateFire", () => {
     });
     const before = result.timeline.find((t) => t.age === 69);
     const dsYear = result.timeline.find((t) => t.age === 70);
-    expect(dsYear?.propertyCashReleased ?? 0).toBeGreaterThan(0);
+    expect(dsYear?.propertyCashReleased ?? 0).toBeCloseTo(161270, -2);
     expect(dsYear?.homeValueEnd ?? 0).toBeLessThan(before?.homeValueEnd ?? 0);
     expect(dsYear?.capitalGainsTaxPaid).toBe(0); // primary residence: tax-free
   });

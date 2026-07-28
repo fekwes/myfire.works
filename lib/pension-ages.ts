@@ -8,7 +8,9 @@ export function deriveStatePensionAge(currentAge: number): number {
   return 66;
 }
 
-export function deriveMinimumPensionAge(_currentAge: number): number {
-  // UK Normal Minimum Pension Age (NMPA) is statutory age 57 (Finance Act 2022, effective 6 April 2028).
+export function deriveMinimumPensionAge(currentAge: number = 0): number {
+  // UK Normal Minimum Pension Age (NMPA) rises to 57 on 6 April 2028 (Finance Act 2022).
+  // Individuals born before April 1973 (age 53+ in 2026) reach 55 before April 2028.
+  if (currentAge >= 53) return 55;
   return 57;
 }
