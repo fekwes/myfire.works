@@ -116,12 +116,15 @@ function FanTooltip({
   label,
 }: {
   active?: boolean;
-  payload?: { payload: { p10: number; p50: number; p90: number } }[];
+  payload?: { payload: { p10?: number; p50?: number; p90?: number; band?: [number, number] } }[];
   label?: number;
 }) {
   const { format } = useFormat();
   if (!active || !payload?.length) return null;
-  const { p10, p50, p90 } = payload[0].payload;
+  const data = payload[0].payload;
+  const p50 = data.p50 ?? 0;
+  const p10 = data.p10 ?? (data.band ? data.band[0] : 0);
+  const p90 = data.p90 ?? (data.band ? data.band[1] : 0);
   return (
     <div className="rounded-xl border border-border bg-surface/95 p-3 text-xs shadow-xl backdrop-blur">
       <p className="mb-1 font-display font-semibold text-foreground">Age {label}</p>
@@ -165,7 +168,9 @@ export function ConfidencePanel({ inputs }: { inputs: FireInputs }) {
   const fanData = flat?.percentiles.map((p) => ({
     age: p.age,
     band: [p.p10, p.p90] as [number, number],
+    p10: p.p10,
     p50: p.p50,
+    p90: p.p90,
   }));
 
   return (

@@ -57,11 +57,13 @@ function getCompactFormatter(locale: string, currency: string): Intl.NumberForma
 export function formatCurrency(value: number, opts?: CurrencyOpts): string {
   const locale = opts?.locale ?? "en-GB";
   const currency = opts?.currency ?? "GBP";
-  return getFormatter(locale, currency).format(value);
+  const safeValue = Number.isFinite(value) ? value : 0;
+  return getFormatter(locale, currency).format(safeValue);
 }
 
 export function formatCurrencyCompact(value: number, opts?: CurrencyOpts): string {
   const locale = opts?.locale ?? "en-GB";
   const currency = opts?.currency ?? "GBP";
-  return getCompactFormatter(locale, currency).format(value);
+  const safeValue = Number.isFinite(value) ? value : 0;
+  return getCompactFormatter(locale, currency).format(safeValue);
 }
