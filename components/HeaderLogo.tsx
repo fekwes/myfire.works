@@ -2,20 +2,18 @@
 
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
+import { usePlan } from "@/components/PlanProvider";
 import { LogoMark } from "@/components/Logo";
 
 /**
- * The full brand lockup — mark, wordmark and the beta badge as one unit, so
- * their alignment lives in a single place. The wordmark and badge share a
- * baseline-neutral row (`leading-none` + `items-center`) so the small badge
- * sits on the wordmark's optical centre instead of drifting low.
- *
- * The home link routes a signed-in visitor to their planner and everyone else
- * to the landing page.
+ * The full brand lockup — mark, wordmark and the beta badge as one unit.
+ * Routes an onboarded or signed-in visitor to their planner, and new visitors to the landing page.
  */
 export function HeaderLogo() {
   const { user } = useAuth();
-  const href = user ? "/planner" : "/";
+  const { hasStoredPlan } = usePlan();
+  const href = user || hasStoredPlan ? "/planner" : "/";
+
   return (
     <Link
       href={href}
