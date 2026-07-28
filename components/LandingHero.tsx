@@ -47,7 +47,7 @@ export function LandingHero() {
           .
         </h1>
 
-        {/* Region-Specific Value Proposition */}
+        {/* Region-Specific Value Proposition — Clean & Typo-Free */}
         <p
           data-launch-quiet
           className="landing-rise mt-5 max-w-xl text-base leading-relaxed text-muted-foreground [animation-delay:120ms] sm:text-lg"
@@ -60,7 +60,7 @@ export function LandingHero() {
               ? "401(k)s, Roth IRAs, Taxable Brokerages, Social Security, and property"
               : "ISAs, SIPPs, GIAs, triple-lock State Pension, and property"}
           </strong>{" "}
-          with the exact {isUs ? "federal & state tax rules" : "HMRC tax bands"} you&apos;ll actually pay.
+          with the exact {isUs ? "federal & state tax rules " : "HMRC tax bands "}you&apos;ll actually pay.
         </p>
 
         {/* CTA Section */}

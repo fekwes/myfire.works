@@ -11,29 +11,37 @@ export function LandingFeatures() {
   const features = [
     {
       Icon: Receipt,
+      tag: "Yearly Tax Solver",
+      badgeColor: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
       title: "The tax you'll actually pay",
       body: isUs
-        ? "Federal & state income-tax brackets (10%–37%), standard deduction ($15k/$30k), Long-Term Capital Gains (0%/15%/20%), NIIT (3.8%), and 401(k) penalty-free access — solved year by year."
-        : "Income-tax bands (20%/40%/45%), personal-allowance taper above £100k, CGT £3,000 exemption, and 25% tax-free pension (UFPLS) — solved year by year.",
+        ? "Federal & state tax brackets (10%–37%), standard deductions ($15k/$30k), Long-Term Capital Gains, and NIIT (3.8%) — computed year by year."
+        : "HMRC tax bands (20%/40%/45%), personal allowance taper, CGT exemptions, and tax-free pension lump sums — computed year by year.",
     },
     {
       Icon: Route,
+      tag: "Access Age Bridge",
+      badgeColor: "border-sky-500/30 bg-sky-500/10 text-sky-400",
       title: "The bridge years",
       body: isUs
-        ? "Watch your Roth IRA and Taxable Brokerage carry you from early retirement to age 59½ when your 401(k) unlocks — avoiding 10% early withdrawal penalties."
-        : "Watch your ISA and GIA carry you from the day you stop working to age 57 when your SIPP unlocks — the bridge gap most calculators skip.",
+        ? "Model how your Roth IRA and Taxable Brokerage fund early retirement until your 401(k) unlocks penalty-free at age 59½."
+        : "Model how your ISA and GIA fund early retirement until your SIPP unlocks penalty-free at statutory age 57.",
     },
     {
       Icon: ShieldCheck,
-      title: "Monte Carlo market stress testing",
-      body: "2,000 randomized market runs stress-test your portfolio against sequence-of-returns risk, so one good decade isn't mistaken for a safe plan.",
+      tag: "Sequence Risk",
+      badgeColor: "border-indigo-500/30 bg-indigo-500/10 text-indigo-400",
+      title: "Monte Carlo stress testing",
+      body: "2,000 randomized market simulations test your portfolio against sequence-of-returns risk, ensuring one poor decade won't break your plan.",
     },
     {
       Icon: Sparkles,
+      tag: "Statutory Offsets",
+      badgeColor: "border-amber-500/30 bg-amber-500/10 text-amber-400",
       title: isUs ? "Social Security & Barista FIRE" : "State Pension & Barista FIRE",
       body: isUs
-        ? "Model Social Security PIA bend points starting at age 67, or transition to part-time work to let earnings bridge your drawdown."
-        : "Model triple-lock State Pension income starting at age 67, or transition to part-time work to let earnings bridge your drawdown.",
+        ? "Seamlessly layer Social Security benefits starting at age 67, or add part-time work earnings to reduce portfolio drawdown."
+        : "Seamlessly layer triple-lock State Pension income starting at age 67, or add part-time work earnings to reduce portfolio drawdown.",
     },
   ];
 
@@ -79,16 +87,17 @@ export function LandingFeatures() {
   return (
     <div className="mt-20 space-y-24">
       {/* Editorial features grid */}
-      <section className="grid grid-cols-1 gap-10 border-t border-border pt-14 lg:grid-cols-12 lg:gap-12">
+      <section className="grid grid-cols-1 gap-10 border-t border-border/80 pt-14 lg:grid-cols-12 lg:gap-12">
         <div className="flex flex-col lg:col-span-5">
+          <span className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-brand font-semibold mb-2">
+            Why Standard Rules Fail
+          </span>
           <h2 data-launch-quiet className="font-display text-2xl font-bold tracking-tight text-balance sm:text-3xl">
             Most calculators stop at a pot size.
             <span className="text-muted-foreground"> This one models the journey.</span>
           </h2>
           <p data-launch-quiet className="mt-4 text-sm leading-relaxed text-muted-foreground">
-            {isUs
-              ? "A single “you need $1.5M” hides everything that matters — when your 401(k) unlocks penalty-free at age 59½, how your Roth IRA bridges early years, and what the IRS takes on the way out. Fireworks models the exact mechanics for US FIRE plans."
-              : "A single “you need £1.2M” hides everything that matters — when your SIPP unlocks at age 57, how your ISA bridges early retirement years, and what HMRC takes on the way out. Fireworks models the exact mechanics for UK FIRE plans."}
+            Static 4% calculators assume constant returns and ignore taxes. Fireworks models the exact statutory drawdown mechanics so you know your plan will hold.
           </p>
         </div>
 
@@ -96,16 +105,21 @@ export function LandingFeatures() {
           {features.map((f) => (
             <li
               key={f.title}
-              className="group flex flex-col gap-3 rounded-2xl border border-border/50 bg-surface-muted/30 p-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/30 hover:bg-surface-muted/50 hover:shadow-xl hover:shadow-brand/5"
+              className="group flex flex-col gap-3 rounded-2xl border border-border/60 bg-surface-muted/30 p-5 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:bg-surface-muted/60 hover:shadow-xl hover:shadow-brand/5"
             >
-              <span className="flex size-9 items-center justify-center rounded-xl border border-primary/20 bg-brand/5 text-primary transition-colors duration-300 group-hover:border-primary/40 group-hover:bg-brand/15">
-                <f.Icon className="size-4" strokeWidth={1.75} />
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="flex size-9 items-center justify-center rounded-xl border border-primary/20 bg-brand/5 text-primary transition-colors duration-300 group-hover:border-primary/40 group-hover:bg-brand/15">
+                  <f.Icon className="size-4" strokeWidth={1.75} />
+                </span>
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 font-mono text-[0.65rem] font-semibold uppercase tracking-wider ${f.badgeColor}`}>
+                  {f.tag}
+                </span>
+              </div>
               <div>
-                <h3 className="font-display text-base font-bold tracking-tight">
+                <h3 className="font-display text-base font-bold tracking-tight text-foreground">
                   {f.title}
                 </h3>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                   {f.body}
                 </p>
               </div>
@@ -118,7 +132,7 @@ export function LandingFeatures() {
       <section className="rounded-3xl border border-border/60 bg-surface/60 p-6 sm:p-8 backdrop-blur-xl">
         <div className="text-center">
           <span className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-brand font-semibold">
-            Why Fireworks?
+            Feature Comparison
           </span>
           <h2 className="mt-2 font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
             Fireworks vs. Standard 4% Rule Calculators
