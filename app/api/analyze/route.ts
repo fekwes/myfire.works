@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { AI_QUOTA_MESSAGE, isQuotaExhausted } from "@/lib/ai-errors";
 import { formatCurrency } from "@/lib/format";
 import { checkInOrder, clientIp, createRateLimiter } from "@/lib/rate-limit";
+import { generateContentWithFallback } from "@/lib/ai-runner";
 
 export const runtime = "nodejs";
 
@@ -139,18 +140,20 @@ UK FIRE simulation summary:
   const ai = new GoogleGenAI({ apiKey });
 
   try {
-    const response = await ai.models.generateContent({
-      // "latest" tracks the current Flash model so it won't retire underneath us.
-      model: "gemini-flash-latest",
-      contents: `Based on this simulation, give exactly 3 tailored strategy tips. If UK: cover SIPP tax-relief vs ISA-bridge, GIA CGT allowance, and closing the gap. If US: cover 401(k)/Traditional IRA vs Roth vs Brokerage tax optimization, and closing the gap. Reference current tax bands.\n\n${summary}`,
-      config: {
-        systemInstruction:
-          "You are a financial planning assistant specializing in FIRE (Financial Independence, Retire Early) strategy. Give tailored, concrete tips referencing current tax rules for the requested country (e.g. ISA/SIPP/UK bands vs 401k/Roth/US Federal bands). Keep tips educational, not regulated financial advice.",
-        responseMimeType: "application/json",
-        responseSchema: TIPS_SCHEMA,
-        temperature: 0.7,
+    const response = await generateContentWithFallback(
+      ai,
+      {
+        contents: `Based on this simulation, give exactly 3 tailored strategy tips. If UK: cover SIPP tax-relief vs ISA-bridge, GIA CGT allowance, and closing the gap. If US: cover 401(k)/Traditional IRA vs Roth vs Brokerage tax optimization, and closing the gap. Reference current tax bands.\n\n${summary}`,
+        config: {
+          systemInstruction:
+            "You are a financial planning assistant specializing in FIRE (Financial Independence, Retire Early) strategy. Give tailored, concrete tips referencing current tax rules for the requested country (e.g. ISA/SIPP/UK bands vs 401k/Roth/US Federal bands). Keep tips educational, not regulated financial advice.",
+          responseMimeType: "application/json",
+          responseSchema: TIPS_SCHEMA,
+          temperature: 0.7,
+        },
       },
-    });
+      "gemini-2.0-flash",
+    );
 
     const text = response.text;
     if (!text) {

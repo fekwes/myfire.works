@@ -7,6 +7,7 @@ import {
   parseImportRequest,
 } from "@/lib/portfolio-import";
 import { checkInOrder, clientIp, createRateLimiter } from "@/lib/rate-limit";
+import { generateContentWithFallback } from "@/lib/ai-runner";
 
 export const runtime = "nodejs";
 
@@ -89,16 +90,19 @@ export async function POST(request: Request) {
   const ai = new GoogleGenAI({ apiKey });
   let holdings;
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
-      contents: `Classify these holdings:\n\n${parsedRequest.text}`,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        responseSchema: HOLDINGS_SCHEMA,
-        temperature: 0.2,
+    const response = await generateContentWithFallback(
+      ai,
+      {
+        contents: `Classify these holdings:\n\n${parsedRequest.text}`,
+        config: {
+          systemInstruction: SYSTEM_INSTRUCTION,
+          responseMimeType: "application/json",
+          responseSchema: HOLDINGS_SCHEMA,
+          temperature: 0.2,
+        },
       },
-    });
+      "gemini-2.0-flash",
+    );
     // Every field is validated here — unknown classes dropped, fees clamped,
     // weights renormalised. See lib/portfolio-import.ts.
     holdings = parseHoldingsResponse(response.text);

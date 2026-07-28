@@ -55,6 +55,8 @@ Only extract facts explicitly stated. Do not estimate, guess, or invent numbers 
 If a holding list is provided for a wrapper, classify each holding (assetClass, ocf, weight).
 Never set a growth rate, inflation rate, return, or age. Just output the extracted JSON matching the schema.`;
 
+import { generateContentWithFallback } from "@/lib/ai-runner";
+
 export async function POST(request: Request) {
   const retryAfter = limited(request);
   if (retryAfter !== null) {
@@ -111,16 +113,19 @@ export async function POST(request: Request) {
   }
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        responseSchema: PLAN_SCHEMA,
-        temperature: 0,
+    const response = await generateContentWithFallback(
+      ai,
+      {
+        contents,
+        config: {
+          systemInstruction: SYSTEM_INSTRUCTION,
+          responseMimeType: "application/json",
+          responseSchema: PLAN_SCHEMA,
+          temperature: 0,
+        },
       },
-    });
+      "gemini-2.0-flash",
+    );
 
     const text = response.text;
     if (!text) throw new Error("Empty response from AI");
