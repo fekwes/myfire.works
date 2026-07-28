@@ -83,10 +83,14 @@ export async function POST(request: Request) {
   
   const contents = [];
   if (body.text) {
-    if (body.text.length > 20000) {
+    const trimmed = String(body.text).trim();
+    if (trimmed.length < 3) {
+      return NextResponse.json({ error: "Please paste your statement or figures first." }, { status: 400 });
+    }
+    if (trimmed.length > 20000) {
       return NextResponse.json({ error: "Text is too long." }, { status: 413 });
     }
-    contents.push(body.text);
+    contents.push(trimmed);
   }
   
   if (body.file) {
