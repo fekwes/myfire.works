@@ -131,22 +131,15 @@ export function runMonteCarlo(
   }
   const effTax = grossIncome > 0 ? clamp(totalTax / grossIncome, 0, 0.45) : 0;
 
-  const baseRate = startPot > 0 ? target / startPot : 0;
+  const inflationRate = inputs.inflationRate ?? 0.025;
+  const currentAge = inputs.currentAge;
+  const baseTargetAtStart = target * (1 + inflationRate) ** (startAge - currentAge);
+  const baseRate = startPot > 0 ? baseTargetAtStart / startPot : 0;
   const ages = Array.from({ length: endAge - startAge + 1 }, (_, i) => startAge + i);
 
   /**
    * Draw every market path once, up front, and run all three strategies over
    * the same ones — "common random numbers".
-   *
-   * This matters for the answer, not just the speed. The strategies used to
-   * share a single generator and consume it in turn, so each one was scored on
-   * a *different* set of market paths: part of any gap between them was which
-   * returns each happened to be dealt, not the strategy. Guardrails can only
-   * ever spend less than flat does (spending is cut when the pot is stretched
-   * and capped at the target when it recovers), so on identical paths a
-   * guardrail strategy cannot fail where flat survived — an ordering that must
-   * hold exactly, and only held on average before. Drawing once also does a
-   * third of the random-number work.
    */
   const normal = makeNormal(mulberry32(seed));
   const returns = new Float64Array(sims * ages.length);
@@ -161,7 +154,7 @@ export function runMonteCarlo(
 
     for (let s = 0; s < sims; s++) {
       let pot = startPot;
-      let spend = target;
+      let spend = baseTargetAtStart;
       let failed = false;
 
       for (let i = 0; i < ages.length; i++) {
@@ -169,12 +162,16 @@ export function runMonteCarlo(
         const r = returns[s * ages.length + i];
         pot *= 1 + r;
 
+        const currentTarget = target * (1 + inflationRate) ** (age - currentAge);
+
         // Guardrails: cut spending when the pot is stretched, recover toward
         // the target (never above it) when it's comfortable.
         if (band > 0 && pot > 0) {
           const rate = spend / pot;
-          if (rate > baseRate * 1.15) spend = Math.max(target * 0.5, spend * (1 - band));
-          else if (rate < baseRate * 0.85) spend = Math.min(target, spend * (1 + band));
+          if (rate > baseRate * 1.15) spend = Math.max(currentTarget * 0.5, spend * (1 - band));
+          else if (rate < baseRate * 0.85) spend = Math.min(currentTarget, spend * (1 + band));
+        } else {
+          spend = currentTarget;
         }
 
         const guaranteed = guaranteedByAge.get(age) ?? 0;
