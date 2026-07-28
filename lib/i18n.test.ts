@@ -27,7 +27,7 @@ describe("i18n Translation Engine", () => {
 
   test("getTranslations returns complete dictionary", () => {
     const es = getTranslations("es");
-    expect(es.hero.spainLaunchingSoon).toBe("Próximamente disponible en España");
-    expect(es.comingSoon.title).toBe("¡España estará disponible muy pronto!");
+    expect(es.hero.spainLaunchingSoon).toBe("Versión para España disponible muy pronto");
+    expect(es.comingSoon.title).toBe("España estará disponible muy pronto");
   });
 });

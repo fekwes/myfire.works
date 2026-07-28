@@ -41,12 +41,11 @@ export function LandingHero() {
         <h1 className="landing-rise mt-5 font-display text-4xl font-extrabold leading-[1.03] tracking-tight text-balance [animation-delay:60ms] sm:text-[3.5rem] lg:text-[3.75rem]">
           {isEs ? (
             <>
-              Sabe exactamente cuándo
+              Calcula cuándo
               <br />
-              puedes{" "}
               <span className="relative inline-block whitespace-nowrap">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-brand to-accent drop-shadow-[0_2px_12px_rgba(255,194,75,0.25)]">
-                  dejar de trabajar
+                  podrías dejar de trabajar
                 </span>
                 <span className="absolute -bottom-1 left-0 h-[3.5px] w-full rounded-full bg-gradient-to-r from-amber-400 via-brand to-accent opacity-90 shadow-sm" />
               </span>

@@ -75,44 +75,44 @@ export const esPack: CountryPack = {
     taxableWrapper: "Cuenta de Valores",
     hasPensionStrategyToggle: false,
     retirementAgeTooltip:
-      "Edad en la que planeas dejar de trabajar. Tus ahorros e inversiones cubrirán la etapa puente hasta la pensión pública.",
+      "La edad a la que quieres dejar de trabajar. Tus fondos de inversión y PIAS cubrirán el periodo hasta cobrar la pensión o rescatar tu plan de pensiones.",
     targetIncomeTooltip:
-      "El ingreso neto anual deseado durante la jubilación — libre de impuestos, expresado en dinero de hoy.",
+      "El ingreso neto anual deseado durante la jubilación — libre de impuestos y expresado en euros de hoy.",
     partTimeTooltip:
-      "Trabaja a tiempo parcial en la jubilación temprana para complementar la renta hasta la pensión pública.",
+      "Genera ingresos a tiempo parcial en la jubilación temprana para reducir la dependencia de tus ahorros antes de cobrar la pensión pública.",
     rentalSaleTooltip:
-      "Déjalo en 0 para conservarlo. Si no, se venderá a esta edad (tributación de ganancias patrimoniales) y el neto irá a tu cuenta de valores.",
+      "Déjalo en 0 si quieres conservarlo. Si fijas una edad de venta, se venderá tributando en la base del ahorro del IRPF y el neto pasará a tu cuenta de valores.",
     homeTooltip:
-      "Suma al patrimonio neto pero no financia la renta mensual — salvo que reduzcas vivienda y liberes liquidez.",
+      "Forma parte de tu patrimonio neto pero no genera renta periódica, a menos que vendas para trasladarte a una vivienda más pequeña (reducción de vivienda) e inyectes liquidez.",
     savingsHelper:
-      "Una estimación aproximada de tus ahorros en planes de pensiones y fondos de inversión es suficiente.",
-    savingsHint: "Lo añadiremos a tus fondos de inversión para empezar — podrás redistribuirlo en el planificador.",
+      "Una cifra aproximada del total ahorrado entre planes de pensiones, fondos de inversión y cuentas es suficiente.",
+    savingsHint: "Lo asignaremos a tus fondos de inversión como punto de partida. Podrás distribuirlo entre tus distintas cuentas en el planificador.",
     baristaTagline:
-      "Deja el trabajo a tiempo completo antes y compleméntalo con ingresos a tiempo parcial hasta la pensión.",
+      "Reduce tu jornada o trabaja a tiempo parcial para cubrir la transición hasta la pensión pública.",
     strategyWhy:
-      "Tu estrategia cambia cuándo dejas de aportar dinero y cómo se financia el periodo hasta la pensión pública.",
+      "Tu estrategia define cuándo dejas de hacer aportaciones y cómo financias la transición hasta la pensión pública.",
     checklistSavingsHint:
-      "De tu extracto bancario o de la gestora de tu plan de pensiones — una cifra aproximada es suficiente.",
-    lifestyleBenchmarkName: "Estándares de Vida en la Jubilación (España)",
+      "Consulta el extracto de tu banco o de la gestora de tu plan de pensiones. Una cifra aproximada es suficiente.",
+    lifestyleBenchmarkName: "Estándares de Vida en la Jubilación en España",
   },
   lifestyleTiers: [
     {
       id: "minimum",
       label: "Mínimo",
       amount: 12000,
-      blurb: "Cubre necesidades básicas con un pequeño margen para ocio.",
+      blurb: "Cubre las necesidades esenciales con un pequeño margen para ocio.",
     },
     {
       id: "moderate",
       label: "Moderado",
       amount: 24000,
-      blurb: "Mayor tranquilidad financiera y margen de flexibilidad.",
+      blurb: "Mayor tranquilidad financiera, viajes y margen para imprevistos.",
     },
     {
       id: "comfortable",
       label: "Confortable",
       amount: 36000,
-      blurb: "Gran libertad económica, viajes y extras en la jubilación.",
+      blurb: "Gran libertad económica, ocio y un nivel de vida holgado.",
     },
   ],
   quizDefaults: {
