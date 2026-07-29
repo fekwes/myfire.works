@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Spark } from "@/components/Logo";
@@ -101,11 +101,6 @@ export function QuizFlow() {
       {step === 3 && (
         <StepSavings
           key="savings"
-          savings={state.savings}
-          activePack={activePack}
-          onChange={(savings) =>
-            setState((s) => ({ ...s, savings, savingsProvided: true, importedPlan: undefined }))
-          }
           onImport={(plan) => {
             setState((s) => ({ ...s, importedPlan: plan, savingsProvided: true }));
             next();
@@ -114,7 +109,6 @@ export function QuizFlow() {
             setState((s) => ({ ...s, savings: 0, savingsProvided: false, importedPlan: undefined }));
             next();
           }}
-          onNext={next}
           onBack={back}
         />
       )}
@@ -345,79 +339,26 @@ function StepStrategy({
 // ------------------------------------------------------------------ //
 
 function StepSavings({
-  activePack,
-  savings,
-  onChange,
   onImport,
   onSkip,
-  onNext,
   onBack,
 }: {
-  savings: number;
-  activePack: CountryPack;
-  onChange: (amount: number) => void;
   onImport: (plan: FireInputs) => void;
   onSkip: () => void;
-  onNext: () => void;
   onBack: () => void;
 }) {
-  const [importing, setImporting] = useState(false);
-
-  if (importing) {
-    return (
-      <StepShell heading="Import your plan" onBack={() => setImporting(false)}>
-        <PlanImport onImport={onImport} onCancel={() => setImporting(false)} />
-      </StepShell>
-    );
-  }
-
   return (
     <StepShell
-      heading="Paste or drop everything you've got"
-      helper={activePack.labels.savingsHelper}
-      why="Without a starting balance we can only project from your contributions — a rough figure is what makes the verdict actually about you."
-      onContinue={onNext}
+      heading="Import your assets & income"
+      helper="Paste a list of your savings, investments, property, or drop a statement. Our AI will automatically parse your figures for validation."
+      why="Listing your actual savings, pensions, and income sources allows the engine to accurately project your FIRE timeline."
       onBack={onBack}
-      continueLabel="See my number"
-      continueIcon={<ArrowRight className="size-4" />}
     >
-      <div className="mb-4 text-center">
-        <button
-          type="button"
-          onClick={() => setImporting(true)}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand/10 px-4 py-3 text-sm font-semibold text-brand transition-colors hover:bg-brand/20"
-        >
-          <Sparkles className="size-4" />
-          Import with AI
-        </button>
-      </div>
-
-      <div className="relative my-6 flex items-center justify-center">
-        <span className="absolute bg-background px-3 text-xs uppercase tracking-wide text-muted-foreground">
-          Or single figure
-        </span>
-        <div className="h-px w-full bg-border" />
-      </div>
-
-      <QuizField
-        label="Total saved so far"
-        hint={activePack.labels.savingsHint}
-      >
-        <QuizNumberInput
-          value={savings}
-          onChange={onChange}
-          prefix={activePack.currency.symbol}
-          step={1000}
-        />
-      </QuizField>
-
-      <button
-        type="button"
-        onClick={onSkip}
-        className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline mt-4"
-      >
-        Skip for now
-      </button>
+      <PlanImport
+        onImport={onImport}
+        onCancel={onSkip}
+        placeholder="e.g. I have £35k in my Stocks & Shares ISA (adding £500/mo), £150k in a workplace SIPP (adding £1,000/mo), £20k GIA, a home worth £450k, and rental income of £800/mo..."
+      />
     </StepShell>
   );
 }

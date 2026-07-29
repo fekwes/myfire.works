@@ -9,9 +9,11 @@ import { sanitisePlanInput } from "@/lib/plan-storage";
 export function PlanImport({
   onImport,
   onCancel,
+  placeholder,
 }: {
   onImport: (plan: FireInputs) => void;
   onCancel: () => void;
+  placeholder?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,9 +89,6 @@ export function PlanImport({
     const fields: { key: string; label: string; val: number; prefix?: string; suffix?: string }[] = [];
 
     const fieldDefs: { key: string; label: string; prefix?: string; suffix?: string }[] = [
-      { key: "currentAge", label: "Current Age", suffix: "yrs" },
-      { key: "retirementAge", label: "Target Retirement Age", suffix: "yrs" },
-      { key: "targetAnnualIncome", label: "Target Net Annual Income", prefix: "£", suffix: "/yr" },
       { key: "isaBalance", label: "ISA Balance", prefix: "£" },
       { key: "isaMonthlyContribution", label: "ISA Monthly Savings", prefix: "£", suffix: "/mo" },
       { key: "sippBalance", label: "SIPP (Pension) Balance", prefix: "£" },
@@ -125,7 +124,7 @@ export function PlanImport({
         if (typeof rawVal === "number") val = rawVal;
       }
 
-      if (val !== undefined && (val > 0 || def.key === "currentAge" || def.key === "retirementAge" || def.key === "targetAnnualIncome")) {
+      if (val !== undefined && val > 0) {
         fields.push({ ...def, val });
       }
     }
@@ -198,7 +197,10 @@ export function PlanImport({
         busy={busy}
         onPayload={handlePayload}
         onError={setError}
-        placeholder="Paste text, or drop a PDF / image..."
+        placeholder={
+          placeholder ??
+          "e.g. I have £35k in my Stocks & Shares ISA (adding £500/mo), £150k in a workplace SIPP (adding £1,000/mo), £20k GIA, a home worth £450k, and rental income of £800/mo..."
+        }
       />
       
       {busy && <p className="text-xs text-muted-foreground">Reading plan with AI...</p>}
