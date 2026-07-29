@@ -85,23 +85,29 @@ export async function POST(request: Request) {
     process.env.GEMINI_KEY ||
     process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
+  const fileExtractedText =
+    body.file && typeof body.file === "object" && typeof body.file.extractedText === "string"
+      ? body.file.extractedText.trim()
+      : "";
+  const combinedText = [textInput, fileExtractedText].filter(Boolean).join("\n\n");
+
   if (retryAfter !== null || !apiKey) {
-    const fallbackPlan = textInput ? parseTextPlanFallback(textInput) : {};
+    const fallbackPlan = combinedText ? parseTextPlanFallback(combinedText) : {};
     return NextResponse.json({ plan: fallbackPlan });
   }
 
   // Build a proper parts array for the Gemini SDK.
   const parts: Array<{ text: string } | { inlineData: { data: string; mimeType: string } }> = [];
 
-  if (textInput) {
-    if (textInput.length > 20000) {
+  if (combinedText) {
+    if (combinedText.length > 30000) {
       return NextResponse.json({ plan: {} });
     }
-    parts.push({ text: textInput });
+    parts.push({ text: `Document text content:\n${combinedText}` });
   }
 
   if (body.file && typeof body.file === "object" && typeof body.file.data === "string") {
-    if (body.file.data.length > 5 * 1024 * 1024 * 1.4) {
+    if (body.file.data.length > 10 * 1024 * 1024 * 1.4) {
       return NextResponse.json({ plan: {} });
     }
     parts.push({
@@ -110,9 +116,9 @@ export async function POST(request: Request) {
         mimeType: body.file.mimeType ?? "application/pdf",
       },
     });
-    if (parts.length === 1) {
-      parts.unshift({ text: "Extract the financial plan figures from this document." });
-    }
+    parts.unshift({
+      text: "Extract all financial figures from this portfolio valuation document into SIPP, ISA, and GIA balances.",
+    });
   }
 
   if (parts.length === 0) {
@@ -139,10 +145,18 @@ export async function POST(request: Request) {
     const text = response.text;
     if (!text) throw new Error("Empty response from AI");
 
-    return NextResponse.json({ plan: JSON.parse(text) });
+    const parsedPlan = JSON.parse(text);
+    // If AI returns empty plan but combinedText exists, attempt rule-based extraction
+    const hasNumbers = Object.values(parsedPlan).some((v) => typeof v === "number" && v > 0);
+    if (!hasNumbers && combinedText) {
+      const fallbackPlan = parseTextPlanFallback(combinedText);
+      return NextResponse.json({ plan: { ...parsedPlan, ...fallbackPlan } });
+    }
+
+    return NextResponse.json({ plan: parsedPlan });
   } catch (err) {
     console.warn("AI import failed, attempting rule-based fallback:", err);
-    const fallbackPlan = textInput ? parseTextPlanFallback(textInput) : {};
+    const fallbackPlan = combinedText ? parseTextPlanFallback(combinedText) : {};
     return NextResponse.json({ plan: fallbackPlan });
   }
 }

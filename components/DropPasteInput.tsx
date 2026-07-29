@@ -5,7 +5,7 @@ import { useState } from "react";
 
 export type ImportPayload =
   | { type: "text"; text: string }
-  | { type: "file"; data: string; mimeType: string };
+  | { type: "file"; data: string; mimeType: string; extractedText?: string };
 
 interface DropPasteInputProps {
   onPayload: (payload: ImportPayload) => void;
@@ -39,21 +39,58 @@ export function DropPasteInput({
     }
 
     // binary files (pdf, images)
-    if (file.type === "application/pdf" || file.type.startsWith("image/")) {
-      if (file.size > 5 * 1024 * 1024) {
-        onError("File is too large (max 5MB).");
+    if (file.type === "application/pdf" || file.name.match(/\.pdf$/i) || file.type.startsWith("image/")) {
+      if (file.size > 10 * 1024 * 1024) {
+        onError("File is too large (max 10MB).");
         return;
       }
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = String(reader.result ?? "");
-        const base64Data = result.split(",")[1];
-        if (base64Data) {
-          onPayload({ type: "file", data: base64Data, mimeType: file.type });
-        }
+
+      const processFile = (extractedText?: string) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = String(reader.result ?? "");
+          const base64Data = result.split(",")[1];
+          if (base64Data) {
+            onPayload({
+              type: "file",
+              data: base64Data,
+              mimeType: file.type || "application/pdf",
+              extractedText: extractedText && extractedText.length > 20 ? extractedText : undefined,
+            });
+          }
+        };
+        reader.onerror = () => onError("Couldn't read file.");
+        reader.readAsDataURL(file);
       };
-      reader.onerror = () => onError("Couldn't read file.");
-      reader.readAsDataURL(file);
+
+      if (file.type === "application/pdf" || file.name.match(/\.pdf$/i)) {
+        const textReader = new FileReader();
+        textReader.onload = () => {
+          let extractedText = "";
+          try {
+            const buffer = textReader.result as ArrayBuffer;
+            if (buffer) {
+              const rawBytes = new Uint8Array(buffer);
+              const rawStr = new TextDecoder("latin1").decode(rawBytes);
+              const matches = rawStr.match(/\(([^()]{1,120})\)/g);
+              if (matches) {
+                extractedText = matches
+                  .map((m) => m.slice(1, -1))
+                  .filter((t) => /[a-zA-Z0-9£$,.]/.test(t))
+                  .join(" ");
+              }
+            }
+          } catch {
+            // non-fatal fallback
+          }
+          processFile(extractedText);
+        };
+        textReader.onerror = () => processFile();
+        textReader.readAsArrayBuffer(file);
+        return;
+      }
+
+      processFile();
       return;
     }
 
