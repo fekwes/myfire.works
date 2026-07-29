@@ -48,82 +48,134 @@ export function PlanImport({
     }
   };
 
-  const getLabelAndValue = (key: string, val: unknown): { label: string; formatted: string } | null => {
-    if (val === null || val === undefined || val === 0) return null;
-    if (Array.isArray(val) && val.length === 0) return null;
+  const handleFieldChange = (key: string, rawVal: string) => {
+    if (!reviewPlan) return;
+    const num = parseFloat(rawVal);
+    const val = isNaN(num) ? 0 : num;
+    const updated = { ...reviewPlan };
 
-    const labels: Record<string, string> = {
-      currentAge: "Current Age",
-      retirementAge: "Target Retirement Age",
-      targetAnnualIncome: "Target Net Annual Income",
-      isaBalance: "ISA Balance",
-      isaMonthlyContribution: "ISA Monthly Savings",
-      sippBalance: "SIPP (Pension) Balance",
-      sippMonthlyContribution: "SIPP Monthly Savings",
-      giaBalance: "GIA (Taxable) Balance",
-      giaMonthlyContribution: "GIA Monthly Savings",
-      homeValue: "Home Property Value",
-      rentalValue: "Rental Property Value",
-      rentalMonthlyIncome: "Rental Monthly Income",
-      partTimeAnnualIncome: "Part-time Annual Income",
-      sippAccessAge: "SIPP Access Age",
-      statePensionAge: "State Pension Age",
-    };
-
-    const label = labels[key] ?? key;
-    let formatted = String(val);
-
-    if (typeof val === "number") {
-      if (key.includes("Age")) {
-        formatted = `${val} years old`;
-      } else if (key.includes("Monthly")) {
-        formatted = `£${val.toLocaleString()}/mo`;
-      } else if (key.includes("Annual") || key.includes("Income")) {
-        formatted = `£${val.toLocaleString()}/yr`;
-      } else if (key.includes("Balance") || key.includes("Value")) {
-        formatted = `£${val.toLocaleString()}`;
-      } else {
-        formatted = val.toLocaleString();
-      }
-    } else if (typeof val === "object") {
-      formatted = JSON.stringify(val);
+    if (key === "currentAge") updated.currentAge = val;
+    else if (key === "retirementAge") updated.retirementAge = val;
+    else if (key === "targetAnnualIncome") updated.targetAnnualIncome = val;
+    else if (
+      key === "isaBalance" ||
+      key === "isaMonthlyContribution" ||
+      key === "sippBalance" ||
+      key === "sippMonthlyContribution" ||
+      key === "giaBalance" ||
+      key === "giaMonthlyContribution"
+    ) {
+      const potKey = key.startsWith("isa") ? "isa" : key.startsWith("sipp") ? "sipp" : "gia";
+      const isContrib = key.endsWith("MonthlyContribution");
+      const pots = { ...(updated.pots ?? {}) };
+      const currentPot = pots[potKey] ?? { balance: 0, monthlyContribution: 0 };
+      pots[potKey] = {
+        ...currentPot,
+        [isContrib ? "monthlyContribution" : "balance"]: val,
+      };
+      updated.pots = pots;
+      (updated as unknown as Record<string, unknown>)[key] = val;
+    } else {
+      (updated as unknown as Record<string, unknown>)[key] = val;
     }
 
-    return { label, formatted };
+    setReviewPlan(updated);
+  };
+
+  const getDisplayFields = () => {
+    if (!reviewPlan) return [];
+    const fields: { key: string; label: string; val: number; prefix?: string; suffix?: string }[] = [];
+
+    const fieldDefs: { key: string; label: string; prefix?: string; suffix?: string }[] = [
+      { key: "currentAge", label: "Current Age", suffix: "yrs" },
+      { key: "retirementAge", label: "Target Retirement Age", suffix: "yrs" },
+      { key: "targetAnnualIncome", label: "Target Net Annual Income", prefix: "£", suffix: "/yr" },
+      { key: "isaBalance", label: "ISA Balance", prefix: "£" },
+      { key: "isaMonthlyContribution", label: "ISA Monthly Savings", prefix: "£", suffix: "/mo" },
+      { key: "sippBalance", label: "SIPP (Pension) Balance", prefix: "£" },
+      { key: "sippMonthlyContribution", label: "SIPP Monthly Savings", prefix: "£", suffix: "/mo" },
+      { key: "giaBalance", label: "GIA (Taxable) Balance", prefix: "£" },
+      { key: "giaMonthlyContribution", label: "GIA Monthly Savings", prefix: "£", suffix: "/mo" },
+      { key: "homeValue", label: "Home Property Value", prefix: "£" },
+      { key: "rentalValue", label: "Rental Property Value", prefix: "£" },
+      { key: "rentalMonthlyIncome", label: "Rental Monthly Income", prefix: "£", suffix: "/mo" },
+      { key: "partTimeAnnualIncome", label: "Part-time Annual Income", prefix: "£", suffix: "/yr" },
+      { key: "sippAccessAge", label: "SIPP Access Age", suffix: "yrs" },
+      { key: "statePensionAge", label: "State Pension Age", suffix: "yrs" },
+    ];
+
+    for (const def of fieldDefs) {
+      let val: number | undefined;
+
+      if (
+        def.key === "isaBalance" ||
+        def.key === "isaMonthlyContribution" ||
+        def.key === "sippBalance" ||
+        def.key === "sippMonthlyContribution" ||
+        def.key === "giaBalance" ||
+        def.key === "giaMonthlyContribution"
+      ) {
+        const potKey = def.key.startsWith("isa") ? "isa" : def.key.startsWith("sipp") ? "sipp" : "gia";
+        const isContrib = def.key.endsWith("MonthlyContribution");
+        val = reviewPlan.pots?.[potKey]?.[isContrib ? "monthlyContribution" : "balance"];
+      }
+
+      if (val === undefined) {
+        const rawVal = (reviewPlan as unknown as Record<string, unknown>)[def.key];
+        if (typeof rawVal === "number") val = rawVal;
+      }
+
+      if (val !== undefined && (val > 0 || def.key === "currentAge" || def.key === "retirementAge" || def.key === "targetAnnualIncome")) {
+        fields.push({ ...def, val });
+      }
+    }
+
+    return fields;
   };
 
   if (reviewPlan) {
-    const entries = Object.entries(reviewPlan)
-      .map(([k, v]) => getLabelAndValue(k, v))
-      .filter((e): e is { label: string; formatted: string } => e !== null);
+    const fields = getDisplayFields();
 
     return (
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold">Review imported figures</h3>
-        <p className="text-xs text-muted-foreground">Here is what was extracted from your plan. You can adjust these anytime.</p>
-        <div className="rounded-xl border border-border bg-surface-muted p-2 text-sm">
+        <h3 className="text-sm font-semibold">Review & Edit Imported Figures</h3>
+        <p className="text-xs text-muted-foreground">
+          Review what was extracted. You can edit any figure directly in the boxes below before confirming.
+        </p>
+        <div className="rounded-xl border border-border bg-surface-muted p-3 text-sm">
           <table className="w-full text-left">
             <tbody>
-              {entries.map(({ label, formatted }) => (
-                <tr key={label} className="border-b border-border/50 last:border-0">
-                  <td className="px-3 py-2 text-muted-foreground">{label}</td>
-                  <td className="px-3 py-2 font-semibold text-foreground text-right">{formatted}</td>
+              {fields.map(({ key, label, val, prefix, suffix }) => (
+                <tr key={key} className="border-b border-border/50 last:border-0">
+                  <td className="px-3 py-2.5 text-xs font-medium text-muted-foreground">{label}</td>
+                  <td className="px-3 py-2.5 text-right">
+                    <div className="inline-flex items-center justify-end gap-1">
+                      {prefix && <span className="text-xs text-muted-foreground font-mono">{prefix}</span>}
+                      <input
+                        type="number"
+                        value={val}
+                        onChange={(e) => handleFieldChange(key, e.target.value)}
+                        className="w-28 rounded-md border border-border bg-background px-2.5 py-1 text-right text-xs font-bold text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                      />
+                      {suffix && <span className="text-xs text-muted-foreground font-mono">{suffix}</span>}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 pt-1">
           <button
             onClick={() => onImport(reviewPlan)}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
           >
             <Check className="inline-block size-4 mr-1" />
             Accept & Continue
           </button>
           <button
             onClick={() => setReviewPlan(null)}
-            className="rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-surface-muted"
+            className="rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
           >
             Try again
           </button>
