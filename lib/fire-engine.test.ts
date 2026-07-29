@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
-  BASIC_RATE_CEILING,
   calculateCapitalGainsTax,
-  calculatePersonalAllowance,
   calculateTaxFreeLumpSum,
   calculateUkIncomeTax,
-  CGT_ANNUAL_EXEMPT_AMOUNT,
   simulateFire,
-  solveGiaGrossForNet,
-  solveGrossIncomeForNet,
-  TAX_FREE_LUMP_SUM_CAP,
 } from "./fire-engine";
+import {
+  BASIC_RATE_CEILING,
+  calculatePersonalAllowance,
+  CGT_ANNUAL_EXEMPT_AMOUNT,
+  TAX_FREE_LUMP_SUM_CAP,
+} from "./countries/uk/constants";
 
 describe("calculatePersonalAllowance", () => {
   it("returns the full allowance below the taper threshold", () => {
@@ -53,25 +53,7 @@ describe("calculateUkIncomeTax", () => {
   });
 });
 
-describe("solveGrossIncomeForNet", () => {
-  it("inverts calculateUkIncomeTax within a penny", () => {
-    const gross = solveGrossIncomeForNet(30000, 0);
-    const net = gross - calculateUkIncomeTax(gross);
-    expect(net).toBeCloseTo(30000, 1);
-  });
 
-  it("accounts for other taxable income using up the personal allowance", () => {
-    const statePension = 11502;
-    const gross = solveGrossIncomeForNet(20000, statePension);
-    const totalTax = calculateUkIncomeTax(statePension + gross);
-    const net = statePension + gross - totalTax;
-    expect(net).toBeCloseTo(20000, 1);
-  });
-
-  it("returns 0 for a non-positive target", () => {
-    expect(solveGrossIncomeForNet(0, 5000)).toBe(0);
-  });
-});
 
 describe("calculateTaxFreeLumpSum", () => {
   it("is 25% of the SIPP balance below the cap", () => {
@@ -108,19 +90,7 @@ describe("calculateCapitalGainsTax", () => {
   });
 });
 
-describe("solveGiaGrossForNet", () => {
-  it("returns the target unchanged when there is no gain", () => {
-    expect(solveGiaGrossForNet(20000, 0, BASIC_RATE_CEILING)).toBe(20000);
-  });
 
-  it("inverts the CGT calc so net-of-CGT matches the target", () => {
-    const gross = solveGiaGrossForNet(20000, 0.5, BASIC_RATE_CEILING);
-    const net =
-      gross - calculateCapitalGainsTax(gross * 0.5, BASIC_RATE_CEILING);
-    expect(net).toBeCloseTo(20000, 1);
-    expect(gross).toBeGreaterThan(20000); // must gross up to cover the CGT
-  });
-});
 
 describe("simulateFire", () => {
   const baseInputs = {
@@ -140,7 +110,7 @@ describe("simulateFire", () => {
     );
     expect(accumulationYears).toHaveLength(10); // ages 40-49
     expect(accumulationYears.every((y) => y.netIncome === 0)).toBe(true);
-    expect(accumulationYears[9].isaBalanceEnd).toBeGreaterThan(
+    expect(accumulationYears[9].pots.isa.end).toBeGreaterThan(
       baseInputs.isaBalance,
     );
   });
@@ -150,7 +120,7 @@ describe("simulateFire", () => {
     const bridgeYears = result.timeline.filter((y) => y.phase === "bridge");
     expect(bridgeYears.length).toBeGreaterThan(0); // ages 50-57
     for (const year of bridgeYears) {
-      expect(year.sippGrossWithdrawal).toBe(0);
+      expect(year.potWithdrawals.sipp.gross).toBe(0);
       expect(year.incomeTaxPaid).toBe(0);
       expect(year.netIncome).toBeCloseTo(baseInputs.targetAnnualIncome, 0);
     }
@@ -164,7 +134,7 @@ describe("simulateFire", () => {
     expect(result.taxFreeLumpSum).toBeGreaterThan(0);
     expect(result.taxFreeLumpSum).toBeLessThanOrEqual(TAX_FREE_LUMP_SUM_CAP);
 
-    const lumpSumYear = result.timeline.find((y) => y.pensionTaxFreeTaken > 0);
+    const lumpSumYear = result.timeline.find((y) => y.potWithdrawals.sipp.taxFree > 0);
     expect(lumpSumYear?.age).toBe(57); // default SIPP access age (2028 NMPA)
   });
 
@@ -186,7 +156,7 @@ describe("simulateFire", () => {
       sippMonthlyContribution: 0,
     });
     const sippYears = result.timeline.filter((y) => y.phase === "sipp");
-    expect(sippYears.some((y) => y.sippGrossWithdrawal > 0)).toBe(true);
+    expect(sippYears.some((y) => y.potWithdrawals.sipp.gross > 0)).toBe(true);
   });
 
   it("offsets SIPP drawdown with State Pension income from age 67", () => {
@@ -224,7 +194,7 @@ describe("simulateFire", () => {
     const result = simulateFire(baseInputs);
     expect(
       result.timeline.every(
-        (y) => y.giaBalanceEnd === 0 && y.capitalGainsTaxPaid === 0,
+        (y) => y.pots.gia.end === 0 && y.capitalGainsTaxPaid === 0,
       ),
     ).toBe(true);
     expect(result.giaDepletedAge).toBeNull();
@@ -244,15 +214,15 @@ describe("simulateFire", () => {
     });
     // GIA funds the plan, and CGT appears once per-withdrawal gains exceed
     // the £3,000 annual exemption.
-    expect(result.timeline.some((y) => y.giaWithdrawal > 0)).toBe(true);
+    expect(result.timeline.some((y) => y.potWithdrawals.gia.gross > 0)).toBe(true);
     expect(
       result.timeline.some(
-        (y) => y.giaWithdrawal > 0 && y.capitalGainsTaxPaid > 0,
+        (y) => y.potWithdrawals.gia.gross > 0 && y.capitalGainsTaxPaid > 0,
       ),
     ).toBe(true);
     // Net income is grossed up to still hit the target despite CGT.
     const fundedYear = result.timeline.find(
-      (y) => y.giaWithdrawal > 0 && !y.shortfall,
+      (y) => y.potWithdrawals.gia.gross > 0 && !y.shortfall,
     );
     expect(fundedYear?.netIncome).toBeCloseTo(20000, 0);
   });
@@ -270,7 +240,7 @@ describe("simulateFire", () => {
       sippMonthlyContribution: 0,
     });
     const bridge = result.timeline.filter((y) => y.phase === "bridge");
-    expect(bridge.every((y) => y.sippGrossWithdrawal === 0)).toBe(true);
+    expect(bridge.every((y) => y.potWithdrawals.sipp.gross === 0)).toBe(true);
     expect(bridge.some((y) => y.shortfall)).toBe(true);
   });
 
@@ -286,8 +256,8 @@ describe("simulateFire", () => {
       pensionStrategy: "lump-sum",
     });
     const accessYear = result.timeline.find((y) => y.age === 57);
-    expect(accessYear?.giaBalanceStart).toBe(0);
-    expect(accessYear?.giaBalanceEnd ?? 0).toBeGreaterThan(50000); // lump landed here
+    expect(accessYear?.pots.gia.start).toBe(0);
+    expect(accessYear?.pots.gia.end ?? 0).toBeGreaterThan(50000); // lump landed here
     expect(result.taxFreeLumpSum).toBeGreaterThan(0);
   });
 
@@ -303,9 +273,9 @@ describe("simulateFire", () => {
       pensionStrategy: "gradual",
     });
     const year = result.timeline.find(
-      (y) => y.age === 57 && y.sippGrossWithdrawal > 0,
+      (y) => y.age === 57 && y.potWithdrawals.sipp.gross > 0,
     );
-    expect(year?.pensionTaxFreeTaken ?? 0).toBeGreaterThan(0);
+    expect(year?.potWithdrawals.sipp.taxFree ?? 0).toBeGreaterThan(0);
     expect(year?.netIncome).toBeCloseTo(30000, 0);
     expect(result.totalTaxFreePension).toBeGreaterThan(0);
   });
@@ -325,7 +295,7 @@ describe("simulateFire", () => {
     const y = result.timeline.find((t) => t.age === 60);
     expect(y?.rentalIncome).toBeCloseTo(12000, 0);
     // Rental income (net £12k) means the ISA only funds the £18k remainder.
-    expect(y?.isaWithdrawal ?? 0).toBeCloseTo(18000, 0);
+    expect(y?.potWithdrawals.isa.gross ?? 0).toBeCloseTo(18000, 0);
     expect(y?.netIncome).toBeCloseTo(30000, 0);
   });
 
@@ -369,7 +339,7 @@ describe("simulateFire", () => {
     });
     const before = result.timeline.find((t) => t.age === 69);
     const dsYear = result.timeline.find((t) => t.age === 70);
-    expect(dsYear?.propertyCashReleased ?? 0).toBeGreaterThan(0);
+    expect(dsYear?.propertyCashReleased ?? 0).toBeCloseTo(161270, -2);
     expect(dsYear?.homeValueEnd ?? 0).toBeLessThan(before?.homeValueEnd ?? 0);
     expect(dsYear?.capitalGainsTaxPaid).toBe(0); // primary residence: tax-free
   });
@@ -415,17 +385,17 @@ describe("simulateFire — inflation (real-terms target)", () => {
     const first = simulateFire({ ...infBase, inflationRate: 0 }).timeline.find(
       (y) => y.age === 50,
     );
-    expect(first?.isaWithdrawal).toBeCloseTo(25000, 0);
+    expect(first?.potWithdrawals.isa.gross).toBeCloseTo(25000, 0);
   });
 
   it("grows the nominal target by inflation each year", () => {
     const r = simulateFire({ ...infBase, inflationRate: 0.03 });
     // 10 years from currentAge to first retired year, 20 years by age 60.
-    expect(r.timeline.find((y) => y.age === 50)?.isaWithdrawal).toBeCloseTo(
+    expect(r.timeline.find((y) => y.age === 50)?.potWithdrawals.isa.gross).toBeCloseTo(
       25000 * 1.03 ** 10,
       0,
     );
-    expect(r.timeline.find((y) => y.age === 60)?.isaWithdrawal).toBeCloseTo(
+    expect(r.timeline.find((y) => y.age === 60)?.potWithdrawals.isa.gross).toBeCloseTo(
       25000 * 1.03 ** 20,
       0,
     );
@@ -495,7 +465,7 @@ describe("simulateFire — part-time (Barista) income", () => {
       partTimeUntilAge: 55,
     });
     const isaAt50 = (r: ReturnType<typeof simulateFire>) =>
-      r.timeline.find((y) => y.age === 50)!.isaWithdrawal;
+      r.timeline.find((y) => y.age === 50)!.potWithdrawals.isa.gross;
     // A working retirement year pulls less from the ISA than a non-working one.
     expect(isaAt50(withBarista)).toBeLessThan(isaAt50(without));
     expect(withBarista.timeline.find((y) => y.age === 50)!.partTimeIncome).toBe(

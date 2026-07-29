@@ -1,10 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { DropPasteInput, type ImportPlanData } from "@/components/DropPasteInput";
 import { FeeDragCard } from "@/components/FeeDragCard";
 import {
   FINANCE_SECTIONS,
@@ -14,7 +12,10 @@ import {
 import { FireForm } from "@/components/FireForm";
 import { usePlan } from "@/components/PlanProvider";
 import { SavedPlans } from "@/components/SavedPlans";
-import { ButtonLink, Card } from "@/components/ui";
+import { ButtonLink, Card, Button } from "@/components/ui";
+import { Sparkles } from "lucide-react";
+import { PlanImport } from "@/components/quiz/PlanImport";
+import { formatExtractedTotalsSummary } from "@/lib/plan-import-fallback";
 
 const SECTION_IDS = FINANCE_SECTIONS.map((s) => s.id) as readonly string[];
 const isSectionId = (v: string): v is FinanceSectionId =>
@@ -29,9 +30,6 @@ export function FinancesPanel() {
   const { inputs, setInputs } = usePlan();
   const { configured, user } = useAuth();
   const [active, setActive] = useState<FinanceSectionId>("basics");
-  const [showImport, setShowImport] = useState(false);
-  const [importNotice, setImportNotice] = useState<string | null>(null);
-  const [highlightedFields, setHighlightedFields] = useState<Record<string, boolean>>({});
 
   // Deep-link support: the dashboard checklist links to /finances#balances,
   // #funds, #scenario, etc. Select the matching tab on load and whenever the
@@ -52,48 +50,8 @@ export function FinancesPanel() {
     window.history.replaceState(null, "", `#${id}`);
   };
 
-  const applyImportedPlan = (data: ImportPlanData) => {
-    const nextInputs = {
-      ...inputs,
-      isaBalance:
-        data.wrappers.isa !== null && data.wrappers.isa > 0
-          ? data.wrappers.isa
-          : inputs.isaBalance,
-      sippBalance:
-        data.wrappers.sipp !== null && data.wrappers.sipp > 0
-          ? data.wrappers.sipp
-          : inputs.sippBalance,
-      giaBalance:
-        data.wrappers.gia !== null && data.wrappers.gia > 0
-          ? data.wrappers.gia
-          : inputs.giaBalance,
-      isaMonthlyContribution:
-        data.wrappers.monthlyContribution !== null && data.wrappers.monthlyContribution > 0
-          ? data.wrappers.monthlyContribution
-          : inputs.isaMonthlyContribution,
-      sippMonthlyContribution:
-        data.wrappers.monthlyContribution !== null && data.wrappers.monthlyContribution > 0
-          ? data.wrappers.monthlyContribution
-          : inputs.sippMonthlyContribution,
-      giaMonthlyContribution:
-        data.wrappers.monthlyContribution !== null && data.wrappers.monthlyContribution > 0
-          ? data.wrappers.monthlyContribution
-          : inputs.giaMonthlyContribution ?? 0,
-    };
-
-    setInputs(nextInputs);
-    setHighlightedFields({
-      isaBalance: data.wrappers.isa !== null && data.wrappers.isa > 0,
-      isaMonthlyContribution:
-        data.wrappers.monthlyContribution !== null && data.wrappers.monthlyContribution > 0,
-      sippBalance: data.wrappers.sipp !== null && data.wrappers.sipp > 0,
-      sippMonthlyContribution:
-        data.wrappers.monthlyContribution !== null && data.wrappers.monthlyContribution > 0,
-      giaBalance: data.wrappers.gia !== null && data.wrappers.gia > 0,
-    });
-    setImportNotice(data.warning ?? null);
-    setShowImport(false);
-  };
+  const [importing, setImporting] = useState(false);
+  const [importSuccessMsg, setImportSuccessMsg] = useState<string | null>(null);
 
   return (
     <div className="space-y-5">
@@ -114,9 +72,55 @@ export function FinancesPanel() {
               updates instantly.
             </p>
           </div>
-          <ButtonLink href="/planner">View dashboard →</ButtonLink>
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setImporting(!importing);
+                setImportSuccessMsg(null);
+              }}
+              className="gap-2 text-brand"
+            >
+              <Sparkles className="size-4" />
+              Import with AI
+            </Button>
+            <ButtonLink href="/planner">View dashboard →</ButtonLink>
+          </div>
         </div>
       </Card>
+
+      {importSuccessMsg && (
+        <div className="rounded-xl border border-success/30 bg-success/10 p-4 text-sm text-success font-medium flex items-center justify-between">
+          <span>✨ {importSuccessMsg}</span>
+          <button
+            type="button"
+            onClick={() => setImportSuccessMsg(null)}
+            className="text-xs text-muted-foreground hover:text-foreground underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {importing && (
+        <Card padding="lg" className="border-brand/30 bg-brand/5 shadow-sm">
+          <PlanImport
+            skipReview={true}
+            onImport={(plan) => {
+              // Merge imported figures directly with existing inputs and update the finances form
+              setInputs({
+                ...inputs,
+                ...plan,
+                pots: plan.pots ?? inputs.pots,
+              });
+              setImporting(false);
+              setImportSuccessMsg(formatExtractedTotalsSummary(plan));
+            }}
+            onCancel={() => setImporting(false)}
+          />
+        </Card>
+      )}
 
       {/* Before sign-in this is just a one-line nudge (SavedPlans renders the
           dashed prompt itself); the full Profiles card only appears once signed
@@ -145,39 +149,10 @@ export function FinancesPanel() {
         <FinancesNav active={active} onSelect={selectSection} />
         <div className="min-w-0 space-y-5">
           <Card padding="lg">
-            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  Import balances
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  Paste a Vanguard-style statement or a free-text valuation to pre-fill the review fields.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowImport((value) => !value)}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
-              >
-                <Sparkles className="size-3.5" />
-                {showImport ? "Hide importer" : "Import statement"}
-              </button>
-            </div>
-            {showImport && (
-              <div className="mb-4 rounded-lg border border-border bg-surface-muted p-3">
-                <DropPasteInput onPlanImported={applyImportedPlan} onClose={() => setShowImport(false)} />
-              </div>
-            )}
-            {importNotice && (
-              <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-                {importNotice}
-              </div>
-            )}
             <FireForm
               value={inputs}
               onChange={setInputs}
               activeSection={active}
-              highlightedFields={highlightedFields}
             />
           </Card>
           <FeeDragCard />

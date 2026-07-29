@@ -268,7 +268,8 @@ export function SavedPlans({
           placeholder={
             activeProfile ? `Update “${activeProfile.name}”…` : "Name this plan…"
           }
-          aria-label="Profile name"
+          aria-label="Plan name"
+          disabled={busy}
           className={inputClasses}
         />
         <Button

@@ -18,7 +18,7 @@ const variants: Record<ButtonVariant, string> = {
   // The signature CTA — bright ember/gold "burst" fill with a fixed dark ink
   // label that stays legible on the accent in both themes.
   brand:
-    "bg-brand text-[#241005] shadow-[var(--shadow-sm)] hover:opacity-90 hover:shadow-[var(--shadow-md)]",
+    "bg-brand text-brand-foreground shadow-[var(--shadow-sm)] hover:opacity-90 hover:shadow-[var(--shadow-md)]",
   secondary:
     "border border-border bg-surface text-muted-foreground hover:text-foreground hover:border-muted-foreground/40",
   ghost: "text-muted-foreground hover:bg-surface-muted hover:text-foreground",

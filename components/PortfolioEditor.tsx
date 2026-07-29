@@ -216,6 +216,7 @@ export function PortfolioEditor({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search funds by name, provider or type…"
+              aria-label="Search funds by name, provider or type"
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:border-primary"
             />
             {(query.trim() !== "" || !hasPortfolio) && (
@@ -314,6 +315,7 @@ function CustomHoldingForm({
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Holding name (e.g. My workplace fund)"
+        aria-label="Holding name"
         className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs outline-none focus-visible:border-primary"
       />
       <div className="flex flex-wrap items-end gap-2">

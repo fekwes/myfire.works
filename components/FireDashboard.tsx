@@ -8,11 +8,11 @@ import { AssetTimelineChart } from "@/components/AssetTimelineChart";
 import { ConfidencePanel } from "@/components/ConfidencePanel";
 import { IncomeSafetyChart } from "@/components/IncomeSafetyChart";
 import { PlanActions } from "@/components/PlanActions";
-import { PlanChecklist } from "@/components/PlanChecklist";
 import { usePlan } from "@/components/PlanProvider";
 import { QuickLevers } from "@/components/QuickLevers";
 import { Button, Card } from "@/components/ui";
 import { OverviewPanel } from "@/components/OverviewPanel";
+import { useFormat } from "@/hooks/useFormat";
 import { simulateFire } from "@/lib/fire-engine";
 import { decodePlan } from "@/lib/share";
 
@@ -93,6 +93,7 @@ function Segmented({
 
 export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
   const { inputs: ownInputs, setInputs, restoreError } = usePlan();
+  const { format } = useFormat();
   const router = useRouter();
   const shared = useMemo(() => decodePlan(sharedParam), [sharedParam]);
   const readOnly = shared !== null;
@@ -107,7 +108,15 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
 
   const chartPanelId = useId();
   const chartTabsPrefix = useId();
+
   const chartTabId = (tab: ChartTab) => `${chartTabsPrefix}-${tab}`;
+
+  const [realTerms, setRealTerms] = useState(true);
+
+  const infl = inputs.inflationRate ?? 0;
+  const showRealToggle = infl > 0;
+  const real = showRealToggle && realTerms;
+
 
   useEffect(() => {
     const openFromHash = () => { if (window.location.hash === "#confidence") setHashTab("confidence"); };
@@ -121,7 +130,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
 
   const plan = useMemo(() => simulateFire(inputs), [inputs]);
 
-  const netWorth = inputs.isaBalance + (inputs.giaBalance ?? 0) + inputs.sippBalance + (inputs.rentalValue ?? 0) + (inputs.homeValue ?? 0);
+  const netWorth = (inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0) + ((inputs.pots?.gia?.balance ?? inputs.giaBalance ?? 0) ?? 0) + (inputs.pots?.sipp?.balance ?? inputs.sippBalance ?? 0) + (inputs.rentalValue ?? 0) + (inputs.homeValue ?? 0);
   const provisional = netWorth === 0;
 
   const sustainable = plan.sustainableToLifeExpectancy;
@@ -133,11 +142,29 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
     <div className="mx-auto w-full max-w-4xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4 sm:flex-nowrap">
         <div>
-          <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            {readOnly ? "Shared plan" : "Your plan"}
-          </h2>
-          <p className="mt-1 max-w-[40ch] text-sm text-muted-foreground">
-            {readOnly ? "A read-only view of a plan someone shared with you." : "Your pots, projected forward."}
+          <div className="flex items-center gap-3">
+            <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+              {readOnly ? "Shared plan" : "Your plan"}
+            </h2>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                provisional ? "bg-surface-muted text-muted-foreground" : sustainable ? "bg-success/15 text-success" : "bg-danger/15 text-danger"
+              }`}
+            >
+              <span
+                className={`size-1.5 rounded-full ${
+                  provisional ? "bg-muted-foreground" : sustainable ? "bg-success" : "bg-danger"
+                }`}
+              />
+              {provisional ? "Provisional" : sustainable ? "On track" : "Shortfall"}
+            </span>
+          </div>
+          <p className="mt-1 max-w-[45ch] text-sm text-muted-foreground">
+            {provisional
+              ? "Add your balances to see if you're on track."
+              : sustainable
+                ? `Funds ${format(plan.inputs.targetAnnualIncome)}/yr to age ${horizon}.`
+                : `Falls short from age ${firstShortfall}.`}
           </p>
         </div>
         <div className="shrink-0">
@@ -156,38 +183,43 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
         </div>
       )}
 
-      {/* Ribbon */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3 shadow-sm">
-        <div className="flex items-center gap-3">
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-              provisional ? "bg-surface-muted text-muted-foreground" : sustainable ? "bg-brand/15 text-success" : "bg-danger/15 text-danger"
-            }`}
-          >
-            <span
-              className={`size-1.5 rounded-full ${
-                provisional ? "bg-muted-foreground" : sustainable ? "bg-success" : "bg-danger"
-              }`}
-            />
-            {provisional ? "Provisional" : sustainable ? "On track" : "Shortfall"}
-          </span>
-          <p className="text-sm font-medium text-foreground">
-            {provisional
-              ? "Add your balances to see if you're on track."
-              : sustainable
-                ? `Funds £${plan.inputs.targetAnnualIncome.toLocaleString()}/yr to age ${horizon}.`
-                : `Falls short from age ${firstShortfall}.`}
-          </p>
-        </div>
-      </div>
-
-      {!readOnly && <PlanChecklist />}
       {!readOnly && <QuickLevers />}
 
       {/* Projection */}
       <Card padding="md" id="confidence" className="scroll-mt-24">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <MonoLabel>Projection</MonoLabel>
+          <div className="flex items-center gap-3">
+            <MonoLabel>Projection</MonoLabel>
+            {showRealToggle && (
+              <div className="no-print inline-flex items-center gap-1 rounded-full border border-border bg-surface-muted p-1">
+                {(
+                  [
+                    { v: true, label: "Today's money" },
+                    { v: false, label: "Future money" },
+                  ] as const
+                ).map((o) => (
+                  <button
+                    key={o.label}
+                    type="button"
+                    onClick={() => setRealTerms(o.v)}
+                    aria-pressed={realTerms === o.v}
+                    title={
+                      o.v
+                        ? "Show figures in today's money (deflated by inflation)"
+                        : "Show the actual future pounds withdrawn"
+                    }
+                    className={`rounded-full px-2.5 py-0.5 text-[0.7rem] font-semibold transition-colors ${
+                      realTerms === o.v
+                        ? "bg-foreground text-background"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <Segmented
             value={chartTab}
             onChange={setChartTab}
@@ -208,9 +240,9 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
           className="mt-4 focus-visible:outline-none"
         >
           {chartTab === "assets" ? (
-            <AssetTimelineChart result={plan} realTerms={true} />
+            <AssetTimelineChart result={plan} realTerms={real} />
           ) : chartTab === "income" ? (
-            <IncomeSafetyChart result={plan} />
+            <IncomeSafetyChart result={plan} realTerms={realTerms} />
           ) : (
             <ConfidencePanel inputs={inputs} />
           )}
@@ -219,7 +251,7 @@ export function FireDashboard({ sharedParam }: { sharedParam?: string } = {}) {
         <AiInsights result={plan} isProvisional={provisional} isReadOnly={readOnly} />
       </Card>
 
-      <OverviewPanel result={plan} />
+      <OverviewPanel result={plan} realTerms={real} />
 
       <p className="px-1 text-xs text-muted-foreground">
         Estimates based on simplified assumptions — not financial advice.{" "}

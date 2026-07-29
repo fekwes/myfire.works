@@ -1,229 +1,309 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Receipt,
-  Route,
-  ShieldCheck,
-  Zap,
-  CheckCircle2,
-  XCircle,
-  ArrowUpRight,
-  Sparkles,
-} from "lucide-react";
-import { useRegion } from "@/components/RegionProvider";
+import { ArrowRight, Check, Receipt, Route, ShieldCheck, Sparkles, X } from "lucide-react";
+import { usePlan } from "@/components/PlanProvider";
 
 export function LandingFeatures() {
-  const { region, details } = useRegion();
+  const { activeRegion } = usePlan();
+  const isUs = activeRegion === "us";
+  const isEs = activeRegion === "es";
 
-  const isUk = region === "uk";
-
-  const FEATURES = [
+  const features = [
     {
       Icon: Receipt,
-      badge: isUk ? "UK Tax Engine 2026/27" : "US Federal Tax 2026",
-      title: "The tax you'll actually pay",
-      body: isUk
-        ? "Generic 4% tools ignore tax drag. Fireworks models progressive UK income tax bands, personal allowance tapers above £100k, CGT above the £3,000 exemption, and the 25% SIPP tax-free allowance year by year."
-        : "Generic 4% tools ignore tax drag. Fireworks models 2026 US Federal tax brackets, Standard Deduction ($15,000), Long-Term Capital Gains exemptions (0%/15%/20%), and tax-free Roth withdrawals year by year.",
+      tag: isEs ? "IRPF Anual" : "Yearly Tax Solver",
+      badgeColor: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+      title: isEs ? "Renta Neta Exacta" : "Exact Net Take-Home",
+      body: isUs
+        ? "Solves year-by-year federal & state tax brackets so you know your true spendable cashflow."
+        : isEs
+        ? "Resuelve la escala del IRPF año a año y la tributación del ahorro para calcular tu renta neta real disponible."
+        : "Solves year-by-year HMRC tax bands and CGT exemptions so you know your true spendable cashflow.",
     },
     {
       Icon: Route,
-      badge: isUk ? "ISA & SIPP Bridge" : "Roth & 401(k) Bridge",
-      title: "The liquidity bridge years",
-      body: isUk
-        ? "Watch your ISA and GIA carry living expenses from your retirement date until your SIPP unlocks at age 57 and State Pension starts at age 67 — closing multi-decade liquidity gaps safely."
-        : "Watch your Roth IRA and Taxable Brokerage carry living expenses from retirement date until your 401(k)/IRA unlocks penalty-free at age 59½ and Social Security starts at age 67 — closing multi-decade liquidity gaps safely.",
+      tag: isEs ? "Etapa Puente" : "Access Age Bridge",
+      badgeColor: "border-sky-500/30 bg-sky-500/10 text-sky-400",
+      title: isEs ? "Rescate Eficiente" : "Penalty-Free Unlock",
+      body: isUs
+        ? "Funds early retirement via Roth IRA and brokerage until your 401(k) unlocks penalty-free at age 59½."
+        : isEs
+        ? "Financia la jubilación temprana con tus PIAS y fondos hasta que desbloquees tu Plan de Pensiones."
+        : "Funds early retirement via ISA and GIA until your SIPP unlocks penalty-free at statutory age 57.",
     },
     {
       Icon: ShieldCheck,
-      badge: "Monte Carlo Stress-Testing",
-      title: "Sequence risk & market confidence",
-      body: "Static 7% growth assumptions fail in real market drawdowns. Fireworks runs 2,000 randomized Monte Carlo market paths to measure exact plan survival rates against historical volatility.",
+      tag: isEs ? "Monte Carlo" : "Sequence Risk",
+      badgeColor: "border-indigo-500/30 bg-indigo-500/10 text-indigo-400",
+      title: isEs ? "2.000 Escenarios de Mercado" : "2,000 Market Runs",
+      body: isEs
+        ? "Pon a prueba tu cartera ante caídas de mercado para garantizar que una mala década no rompa tu plan."
+        : "Stress-tests your portfolio against market crashes so one bad decade won't break your plan.",
     },
     {
-      Icon: Zap,
-      badge: "Coast & Barista FIRE",
-      title: "Coast FIRE & part-time transitions",
-      body: "Find your Coast FIRE milestone — the exact pot where contributions can drop to zero — or model Barista FIRE with part-time income easing you into full retirement.",
+      Icon: Sparkles,
+      tag: isEs ? "Pensión Pública" : "Statutory Offsets",
+      badgeColor: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+      title: isUs
+        ? "Social Security & Part-Time"
+        : isEs
+        ? "Pensión y Trabajo Parcial"
+        : "State Pension & Part-Time",
+      body: isUs
+        ? "Layers Social Security benefits and part-time earnings to lower your required pot size."
+        : isEs
+        ? "Suma la Pensión Pública de Jubilación e ingresos parciales para reducir el capital objetivo necesario."
+        : "Layers triple-lock State Pension income and part-time earnings to lower your required pot size.",
     },
   ];
 
-  const COMPARISON_ROWS = [
+  const comparison = [
     {
-      category: "Post-Retirement Taxation",
-      generic: "Assumes 0% tax or static gross withdrawal rate",
-      fireworks: isUk
-        ? "Solves UK Income Tax, CGT exemptions, £100k taper & SIPP 25% tax-free lump sum year by year"
-        : "Solves US Federal tax brackets, Standard Deduction, LTCG rates (0%/15%/20%) & tax-free Roth withdrawals year by year",
+      feature: isEs
+        ? "Resolución progresiva del IRPF año a año"
+        : "Year-by-year progressive tax solver",
+      fireworks: true,
+      standard: false,
+      note: isEs
+        ? "Calcula el gasto neto real, no estimaciones brutas"
+        : "Computes net take-home spending, not gross pot guesses",
     },
     {
-      category: isUk ? "Pension Access & Liquidity Gap" : "Retirement Accounts & Liquidity Gap",
-      generic: "Treats total wealth as 100% accessible liquid cash from day one",
-      fireworks: isUk
-        ? "Sequences ISA/GIA bridge withdrawals until SIPP (age 57) and State Pension (age 67)"
-        : "Sequences Taxable & Roth basis bridge withdrawals until 401(k)/IRA (age 59½) and Social Security (age 67)",
+      feature: isUs
+        ? "401(k) & IRA 59½ penalty-free bridge"
+        : isEs
+        ? "Puente de rescate para Plan de Pensiones"
+        : "SIPP age 57 unlock bridge",
+      fireworks: true,
+      standard: false,
+      note: isEs
+        ? "Modela edades y tramos fiscales reales"
+        : "Models exact statutory penalty-free access ages",
     },
     {
-      category: "Sequence-of-Returns Risk",
-      generic: "Assumes fixed nominal returns every single year (e.g. static 7%)",
-      fireworks: "2,000 Monte Carlo stochastic market simulations with guardrail withdrawal strategies",
+      feature: isUs
+        ? "Social Security benefit offset"
+        : isEs
+        ? "Compensación por Pensión Pública de Jubilación"
+        : "State Pension triple-lock offset",
+      fireworks: true,
+      standard: false,
+      note: isEs
+        ? "Reduce la necesidad de rescate al activarse la pensión"
+        : "Reduces pot drawdown once statutory benefits start",
     },
     {
-      category: "Privacy & Model Access",
-      generic: "Requires email signup, account creation, credit card, or bank account linking",
-      fireworks: "Free & Unlimited · No Registration Required · 100% Private Client-Side Model",
+      feature: isEs
+        ? "Reventa e ingresos inmobiliarios"
+        : "Downsizing & real estate sale proceeds",
+      fireworks: true,
+      standard: false,
+      note: isEs
+        ? "Exención por vivienda habitual e impuestos de plusvalía"
+        : "Primary residence exemption & capital gains tax",
     },
     {
-      category: "Advanced FIRE Strategies",
-      generic: "Single static target pot number only",
-      fireworks: "Coast FIRE milestones, Barista FIRE income offsets, & property downsizing logic",
+      feature: isEs
+        ? "Simulación Monte Carlo de secuencia de retornos"
+        : "Monte Carlo sequence-of-returns testing",
+      fireworks: true,
+      standard: false,
+      note: isEs
+        ? "2.000 simulaciones de mercado con reglas de seguridad"
+        : "2,000 market simulations with guardrail rules",
+    },
+    {
+      feature: isEs
+        ? "Motor gratuito y privado en cliente"
+        : "Free & Private Client-Side Engine",
+      fireworks: true,
+      standard: false,
+      note: isEs
+        ? "Sin muros de pago, sin cuenta obligatoria, almacenamiento local"
+        : "No paywalls, zero accounts required, local browser storage only",
     },
   ];
 
   return (
-    <section className="mt-20 border-t border-border/60 pt-16 sm:mt-28 sm:pt-20">
-      {/* Section Header */}
-      <div className="max-w-2xl">
-        <span className="inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-primary dark:text-brand shadow-xs">
-          <Sparkles className="size-3 text-brand" />
-          Engineered for {details.label} FIRE
-        </span>
-        <h2 className="mt-4 font-display text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-          Most calculators stop at a pot size.{" "}
-          <span className="text-muted-foreground font-normal">This one models reality.</span>
-        </h2>
-        <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-          A single &ldquo;you need {details.currencySymbol}1.2M&rdquo; hides the decisions that matter — when
-          your money unlocks, how tax impacts drawdowns, and whether your plan survives a market crash.
-        </p>
-      </div>
+    <div className="mt-20 space-y-24">
+      {/* Editorial features grid */}
+      <section className="grid grid-cols-1 gap-10 border-t border-border/80 pt-14 lg:grid-cols-12 lg:gap-12">
+        <div className="flex flex-col justify-between lg:col-span-5">
+          <div>
+            <span className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-brand font-semibold mb-2 block">
+              {isEs ? "Por Qué Fallan las Reglas Básicas" : "Why Standard Rules Fail"}
+            </span>
+            <h2 data-launch-quiet className="font-display text-2xl font-bold tracking-tight text-balance sm:text-3xl">
+              {isEs ? (
+                <>
+                  La mayoría de calculadoras solo dan una cifra objetivo.
+                  <span className="text-muted-foreground"> Esta modela todo el camino.</span>
+                </>
+              ) : (
+                <>
+                  Most calculators stop at a pot size.
+                  <span className="text-muted-foreground"> This one models the journey.</span>
+                </>
+              )}
+            </h2>
+            <p data-launch-quiet className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              {isEs
+                ? "Las calculadoras estáticas del 4% ignoran impuestos y edades de rescate. Fireworks modela la mecánica exacta de retirada para que tu plan sea real."
+                : "Static 4% calculators ignore taxes and access ages. Fireworks models exact drawdown mechanics so your plan actually holds."}
+            </p>
+          </div>
 
-      {/* Feature Grid */}
-      <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {FEATURES.map((f) => (
-          <div
-            key={f.title}
-            className="group relative flex flex-col justify-between rounded-2xl border border-border/70 bg-surface/75 p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_12px_32px_-8px_rgba(255,138,61,0.15)] dark:border-white/10 dark:bg-surface/40 dark:hover:border-brand/40 dark:hover:bg-surface/60"
-          >
-            {/* Soft gradient accent line on hover */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          {/* Visual Model Advantage Graphic */}
+          <div className="mt-6 rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/10 via-surface/80 to-surface-muted/50 p-5 backdrop-blur-xl shadow-lg">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[0.65rem] font-bold uppercase tracking-wider text-brand">
+                {isEs ? "Ventaja del Modelo" : "Model Advantage"}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 font-mono text-[0.65rem] text-emerald-400 font-semibold">
+                {isEs ? "Motor Fiscal Eficiente" : "Tax-Aware Engine"}
+              </span>
+            </div>
             
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="flex size-10 items-center justify-center rounded-xl border border-primary/20 bg-brand/10 text-primary dark:text-brand transition-all duration-300 group-hover:scale-105 group-hover:border-primary/40 group-hover:bg-brand/20">
-                  <f.Icon className="size-5" strokeWidth={1.75} />
-                </span>
-                <span className="rounded-full border border-border/80 bg-surface-muted/60 px-2.5 py-0.5 font-mono text-[0.65rem] font-semibold text-muted-foreground dark:bg-surface-muted/30">
-                  {f.badge}
-                </span>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="font-display text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-brand to-accent">
+                {isUs ? "+$140,000+" : isEs ? "+120.000 €+" : "+£110,000+"}
+              </span>
+              <span className="text-xs text-muted-foreground font-medium">
+                {isUs
+                  ? "in tax savings & bridge optimization"
+                  : isEs
+                  ? "en optimización fiscal del IRPF y fondos"
+                  : "in ISA & pension tax savings"}
+              </span>
+            </div>
+
+            {/* Visual Mini Comparison Bars */}
+            <div className="mt-4 space-y-2.5">
+              <div>
+                <div className="flex justify-between text-[0.68rem] text-muted-foreground mb-1 font-mono">
+                  <span>{isEs ? "Calculadora Estática 4%" : "Static 4% Calculator"}</span>
+                  <span className="text-danger/80 font-semibold">{isEs ? "Agotado a los 74 años ⚠️" : "Ran out at age 74 ⚠️"}</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-surface-muted overflow-hidden">
+                  <div className="h-full w-[65%] rounded-full bg-danger/60" />
+                </div>
               </div>
-              <h3 className="mt-5 font-display text-lg font-bold tracking-tight text-foreground">
-                {f.title}
-              </h3>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                {f.body}
-              </p>
+
+              <div>
+                <div className="flex justify-between text-[0.68rem] text-foreground mb-1 font-mono font-medium">
+                  <span>{isEs ? "Motor Fiscal Fireworks" : "Fireworks Tax Engine"}</span>
+                  <span className="text-success font-semibold">{isEs ? "Sostenible hasta los 95+ años ✓" : "Sustainable to Age 95+ ✓"}</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-surface-muted overflow-hidden">
+                  <div className="h-full w-[95%] rounded-full bg-gradient-to-r from-brand via-primary to-emerald-400" />
+                </div>
+              </div>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
 
-      {/* Visual Comparison Table */}
-      <div className="mt-20">
-        <div className="text-center sm:text-left max-w-xl">
-          <h3 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Why tax-aware modeling matters ({details.flag} {details.id.toUpperCase()})
-          </h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Compare traditional FIRE calculators with the Fireworks tax-aware drawdown engine.
+        <ul className="lg:col-span-7 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {features.map((f) => (
+            <li
+              key={f.title}
+              className="group flex flex-col justify-start rounded-2xl border border-border/60 bg-surface-muted/30 p-5 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:bg-surface-muted/60 hover:shadow-xl hover:shadow-brand/5"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="flex size-9 items-center justify-center rounded-xl border border-primary/20 bg-brand/5 text-primary transition-colors duration-300 group-hover:border-primary/40 group-hover:bg-brand/15">
+                  <f.Icon className="size-4" strokeWidth={1.75} />
+                </span>
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 font-mono text-[0.65rem] font-semibold uppercase tracking-wider ${f.badgeColor}`}>
+                  {f.tag}
+                </span>
+              </div>
+              <div className="flex flex-col flex-1 justify-start">
+                <h3 className="font-display text-base font-bold tracking-tight text-foreground leading-snug min-h-[1.5rem] flex items-center">
+                  {f.title}
+                </h3>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  {f.body}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* Comparison table */}
+      <section className="rounded-3xl border border-border/60 bg-surface/60 p-6 sm:p-8 backdrop-blur-xl">
+        <div className="text-center">
+          <span className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-brand font-semibold">
+            {isEs ? "Comparativa de Funcionalidades" : "Feature Comparison"}
+          </span>
+          <h2 className="mt-2 font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
+            {isEs ? "Fireworks vs. Calculadoras Estáticas del 4%" : "Fireworks vs. Standard 4% Rule Calculators"}
+          </h2>
+          <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+            {isEs
+              ? "Las calculadoras estáticas suponen un porcentaje fijo e ignoran los tramos del IRPF. Así resuelve Fireworks el proceso real."
+              : "Static calculators assume fixed withdrawal rates and ignore real tax brackets. Here is how Fireworks solves the actual mechanics."}
           </p>
         </div>
 
-        <div className="mt-8 overflow-hidden rounded-2xl border border-border/70 bg-surface/75 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-surface/40 dark:shadow-2xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[640px]">
-              <thead>
-                <tr className="border-b border-border/70 bg-surface-muted/60 text-xs font-mono uppercase tracking-wider text-muted-foreground dark:bg-surface-muted/30">
-                  <th className="py-4 px-6 font-semibold w-1/3">Capability</th>
-                  <th className="py-4 px-6 font-semibold w-1/3 text-muted-foreground/80">
-                    Generic FIRE Calculators
-                  </th>
-                  <th className="py-4 px-6 font-bold w-1/3 text-primary dark:text-brand bg-brand/10 dark:bg-brand/15 border-x border-brand/20">
-                    Fireworks Engine ({details.id.toUpperCase()})
-                  </th>
+        <div className="mt-8 overflow-x-auto">
+          <table className="w-full min-w-[32rem] border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr className="border-b border-border text-left">
+                <th className="pb-3 pr-4 font-semibold text-foreground">{isEs ? "Funcionalidad" : "Feature"}</th>
+                <th className="pb-3 px-4 font-semibold text-brand text-center">Fireworks</th>
+                <th className="pb-3 px-4 font-semibold text-muted-foreground text-center">{isEs ? "Calculadoras Básicas" : "Basic 4% Calculators"}</th>
+                <th className="pb-3 pl-4 font-semibold text-muted-foreground hidden md:table-cell">{isEs ? "Por Qué Importa" : "Why It Matters"}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/40">
+              {comparison.map((row) => (
+                <tr key={row.feature} className="transition-colors hover:bg-surface-muted/40">
+                  <td className="py-3.5 pr-4 font-medium text-foreground">{row.feature}</td>
+                  <td className="py-3.5 px-4 text-center">
+                    <span className="inline-flex size-6 items-center justify-center rounded-full bg-success/15 text-success mx-auto">
+                      <Check className="size-3.5" />
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-center">
+                    <span className="inline-flex size-6 items-center justify-center rounded-full bg-danger/10 text-danger/70 mx-auto">
+                      <X className="size-3.5" />
+                    </span>
+                  </td>
+                  <td className="py-3.5 pl-4 text-xs text-muted-foreground hidden md:table-cell">{row.note}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60 text-sm">
-                {COMPARISON_ROWS.map((row, idx) => (
-                  <tr
-                    key={row.category}
-                    className={`transition-colors hover:bg-surface-muted/40 dark:hover:bg-surface-muted/20 ${
-                      idx % 2 === 1 ? "bg-surface-muted/20 dark:bg-surface-muted/10" : ""
-                    }`}
-                  >
-                    <td className="py-4 px-6 font-medium text-foreground">
-                      {row.category}
-                    </td>
-                    <td className="py-4 px-6 text-muted-foreground text-xs leading-relaxed">
-                      <div className="flex items-start gap-2">
-                        <XCircle className="size-4 text-muted-foreground/50 shrink-0 mt-0.5" />
-                        <span>{row.generic}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 font-medium text-foreground bg-brand/[0.04] dark:bg-brand/[0.08] border-x border-brand/15 text-xs leading-relaxed">
-                      <div className="flex items-start gap-2">
-                        <CheckCircle2 className="size-4 text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" />
-                        <span>{row.fireworks}</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Statutory Legal Disclaimer Notice */}
+      <footer className="border-t border-border/40 pt-6 text-xs text-muted-foreground">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-3xl leading-relaxed">
+            <strong className="font-semibold text-foreground">{isEs ? "Aviso Legal:" : "Statutory Disclosure:"}</strong>{" "}
+            {isEs
+              ? "Fireworks es una herramienta de simulación educativa, no un asesor financiero o gestor regulado (CNMV/FCA/SEC). Todas las proyecciones son ilustrativas e hipotéticas. Consulta con un profesional cualificado antes de tomar decisiones financieras."
+              : "Fireworks is an educational simulation tool, not a regulated financial adviser, broker-dealer, or fiduciary under US (SEC/FINRA) or UK (FCA) standards; all market projections, stochastic distributions, and tax estimates are hypothetical, illustrative, and non-guaranteed. Outputs do not constitute personalized investment, legal, or tax advice—please consult a licensed professional before making financial decisions."}
+          </p>
+          <div className="flex shrink-0 items-center gap-4 font-medium">
+            <Link
+              href="/disclaimer"
+              className="inline-flex items-center gap-1 text-foreground hover:text-brand transition-colors underline decoration-border underline-offset-4"
+            >
+              <span>{isEs ? "Aviso Legal" : "Disclaimer"}</span>
+              <ArrowRight className="size-3" />
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-muted-foreground hover:text-foreground transition-colors underline decoration-border underline-offset-4"
+            >
+              <span>{isEs ? "Política de Privacidad" : "Privacy policy"}</span>
+            </Link>
           </div>
         </div>
-      </div>
-
-      {/* Sleek, Low-Profile Legal & Regulatory Disclaimer */}
-      <div className="mt-16 sm:mt-20 border-t border-border/50 pt-8">
-        <div className="rounded-2xl border border-border/50 bg-surface/40 p-5 sm:px-6 sm:py-5 backdrop-blur-md transition-all duration-300 hover:border-border/80 dark:bg-surface-muted/20 dark:border-white/5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3.5">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-surface-muted/50 text-muted-foreground/80 dark:bg-surface-muted/40">
-                <ShieldCheck className="size-4" strokeWidth={1.75} />
-              </span>
-              <p className="text-[0.725rem] leading-relaxed text-muted-foreground max-w-3xl">
-                <strong className="font-semibold text-foreground/90">Educational Model Notice:</strong> Fireworks is an independent planning tool for exploring {details.id.toUpperCase()} FIRE scenarios. It does not provide regulated financial, investment, or tax advice. Calculations rely on {details.taxYearBadge} rules and client-side deterministic models — explore complete engine mechanics in our{" "}
-                <Link
-                  href="/methodology"
-                  className="font-medium text-foreground underline decoration-border/80 underline-offset-2 hover:decoration-brand hover:text-primary transition-colors"
-                >
-                  Methodology
-                </Link>
-                . Your calculations stay 100% private in your local browser storage.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-4 shrink-0 font-mono text-[0.68rem] text-muted-foreground self-end sm:self-center border-t sm:border-t-0 border-border/40 pt-3 sm:pt-0 w-full sm:w-auto justify-end">
-              <Link
-                href="/privacy"
-                className="hover:text-foreground transition-colors"
-              >
-                Privacy Policy
-              </Link>
-              <span className="text-border/70" aria-hidden="true">&bull;</span>
-              <Link
-                href="/disclaimer"
-                className="inline-flex items-center gap-1 font-semibold text-foreground/90 hover:text-primary transition-colors"
-              >
-                <span>Disclaimer</span>
-                <ArrowUpRight className="size-3 text-muted-foreground" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+      </footer>
+    </div>
   );
 }

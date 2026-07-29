@@ -86,6 +86,6 @@ describe("engine derives growth from holdings", () => {
     });
 
     // Holdings should collapse to the identical projection.
-    near(scalar.timeline[10].isaBalanceEnd, holdings.timeline[10].isaBalanceEnd, 1e-6);
+    near(scalar.timeline[10].pots.isa.end, holdings.timeline[10].pots.isa.end, 1e-6);
   });
 });

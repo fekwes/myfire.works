@@ -7,11 +7,78 @@ import type { FireInputs } from "./fire-engine";
  */
 export const PLAN_STORAGE_KEY = "onfire:plan";
 
+export function getActiveRegionLocal(): "uk" | "es" | "us" {
+  if (typeof window === "undefined") return "uk";
+  
+  // 1. Explicit local storage preference
+  const saved = window.localStorage.getItem("onfire:region");
+  if (saved === "uk" || saved === "es" || saved === "us") return saved;
+  
+  // 2. Stored plan country attribute
+  try {
+    const raw = window.localStorage.getItem(PLAN_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.country === "us" || parsed.country === "es" || parsed.country === "uk") {
+        window.localStorage.setItem("onfire:region", parsed.country);
+        return parsed.country;
+      }
+    }
+  } catch {}
+
+  // 3. Server-set IP Geo Cookie (x-detected-region)
+  try {
+    const cookies = document.cookie.split(";").map((c) => c.trim());
+    const geoCookie = cookies.find((c) => c.startsWith("x-detected-region="));
+    if (geoCookie) {
+      const val = geoCookie.split("=")[1];
+      if (val === "us" || val === "es" || val === "uk") {
+        window.localStorage.setItem("onfire:region", val);
+        return val;
+      }
+    }
+  } catch {}
+
+  // 4. Browser locale (navigator.language)
+  try {
+    const lang = (navigator.language || (navigator.languages && navigator.languages[0]) || "").toLowerCase();
+    if (lang.includes("es") || lang.endsWith("-es")) {
+      window.localStorage.setItem("onfire:region", "es");
+      return "es";
+    }
+    if (lang.endsWith("-us")) {
+      window.localStorage.setItem("onfire:region", "us");
+      return "us";
+    }
+  } catch {}
+
+  // 5. Timezone inference (Intl.DateTimeFormat)
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz && tz.startsWith("America/")) {
+      window.localStorage.setItem("onfire:region", "us");
+      return "us";
+    }
+    if (tz && (tz.startsWith("Europe/Madrid") || tz.startsWith("Atlantic/Canary"))) {
+      window.localStorage.setItem("onfire:region", "es");
+      return "es";
+    }
+  } catch {}
+
+  window.localStorage.setItem("onfire:region", "uk");
+  return "uk";
+}
+
+export function setActiveRegionLocal(region: "uk" | "es" | "us"): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem("onfire:region", region);
+}
+
 /** Persist an assembled plan so the planner can pick it up. Safe on the server. */
-export function savePlanLocal(inputs: FireInputs): void {
+export function savePlanLocal(region: "uk" | "es" | "us", inputs: FireInputs): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(inputs));
+    window.localStorage.setItem(`${PLAN_STORAGE_KEY}:${region}`, JSON.stringify(inputs));
   } catch {
     // Storage can be unavailable (private mode, quota) — degrade silently.
   }
@@ -73,6 +140,7 @@ const AGE_FIELDS = [
   "rentalSaleAge",
   "partTimeUntilAge",
   "downsizeAge",
+  "contributionsUntilAge",
 ] as const;
 
 const MONEY_FIELDS = [
@@ -211,15 +279,55 @@ export function sanitisePlanInput(parsed: unknown): FireInputs | null {
     if (holdings) clean[key] = holdings;
     else delete clean[key];
   }
+  if (typeof source.country === "string" && (source.country === "uk" || source.country === "es" || source.country === "us")) {
+    clean.country = source.country;
+  }
+  if (typeof source.region === "string") {
+    clean.region = source.region;
+  }
+  if (typeof source.filingStatus === "string" && (source.filingStatus === "single" || source.filingStatus === "married-joint")) {
+    clean.filingStatus = source.filingStatus;
+  }
+  if (typeof source.pots === "object" && source.pots !== null) {
+    const safePots: NonNullable<FireInputs["pots"]> = {};
+    for (const [potId, pot] of Object.entries(source.pots)) {
+      if (typeof pot === "object" && pot !== null) {
+        safePots[potId] = {
+          balance: typeof pot.balance === "number" ? pot.balance : 0,
+          monthlyContribution: typeof pot.monthlyContribution === "number" ? pot.monthlyContribution : 0,
+          growth: typeof pot.growth === "number" ? pot.growth : 0.05,
+        };
+        const holdings = sanitiseHoldings(pot.holdings);
+        if (holdings) safePots[potId].holdings = holdings;
+      }
+    }
+    clean.pots = safePots;
+  }
   clampRanges(clean);
   return clean as unknown as FireInputs;
 }
 
 /** Read a previously-saved plan, or `null` if none/invalid. Safe on the server. */
-export function loadPlanLocal(): FireInputs | null {
+export function loadPlanLocal(region: "uk" | "es" | "us"): FireInputs | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(PLAN_STORAGE_KEY);
+    let raw = window.localStorage.getItem(`${PLAN_STORAGE_KEY}:${region}`);
+    
+    // Migration: if the region-specific key doesn't exist, try the legacy key
+    if (!raw) {
+      const legacyRaw = window.localStorage.getItem(PLAN_STORAGE_KEY);
+      if (legacyRaw) {
+        const parsed = JSON.parse(legacyRaw);
+        const legacyRegion = parsed.country === "us" ? "us" : parsed.country === "es" ? "es" : "uk";
+        if (legacyRegion === region) {
+          raw = legacyRaw;
+          // Clean up by saving to the new key and optionally deleting the old one
+          window.localStorage.setItem(`${PLAN_STORAGE_KEY}:${region}`, legacyRaw);
+          window.localStorage.removeItem(PLAN_STORAGE_KEY);
+        }
+      }
+    }
+
     if (!raw) return null;
     return sanitisePlanInput(JSON.parse(raw));
   } catch {
@@ -228,10 +336,18 @@ export function loadPlanLocal(): FireInputs | null {
 }
 
 /** Forget any stored plan. Safe on the server. */
-export function clearPlanLocal(): void {
+export function clearPlanLocal(region?: "uk" | "es" | "us"): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.removeItem(PLAN_STORAGE_KEY);
+    if (region) {
+      window.localStorage.removeItem(`${PLAN_STORAGE_KEY}:${region}`);
+    } else {
+      window.localStorage.removeItem(`${PLAN_STORAGE_KEY}:uk`);
+      window.localStorage.removeItem(`${PLAN_STORAGE_KEY}:es`);
+      window.localStorage.removeItem(`${PLAN_STORAGE_KEY}:us`);
+      window.localStorage.removeItem(PLAN_STORAGE_KEY);
+      window.localStorage.removeItem("onfire:region");
+    }
   } catch {
     // no-op
   }

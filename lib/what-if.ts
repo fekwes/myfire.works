@@ -1,29 +1,74 @@
 import { smallestPassing } from "./bisect";
-import { type FireInputs, simulateFire } from "./fire-engine";
+import { type FireInputs, type WrapperInput, simulateFire } from "./fire-engine";
 import { computeFireNumber } from "./fire-number";
 
+function totalMonthlyContributions(inputs: FireInputs): number {
+  if (inputs.pots) {
+    return Object.values(inputs.pots).reduce((sum, p) => sum + (p.monthlyContribution ?? 0), 0);
+  }
+  return (inputs.isaMonthlyContribution ?? 0) + (inputs.giaMonthlyContribution ?? 0) + (inputs.sippMonthlyContribution ?? 0);
+}
+
 /**
- * Minimum total monthly contribution (ISA + SIPP, split in the plan's current
- * proportions) that makes the plan sustainable to life expectancy at a given
- * retirement age. `simulateFire` is monotonic in contributions, so we bisect.
- * Returns `Infinity` if no amount of saving can make that age work.
+ * Minimum total monthly contribution that makes the plan sustainable to life expectancy
+ * at a given retirement age. Supports v2 pots and all country packs.
  */
 export function minMonthlyForSustainable(
   inputs: FireInputs,
   retireAge: number,
 ): number {
-  const currentTotal =
-    inputs.isaMonthlyContribution + inputs.sippMonthlyContribution;
-  const isaFrac =
-    currentTotal > 0 ? inputs.isaMonthlyContribution / currentTotal : 0.5;
+  const currentTotal = totalMonthlyContributions(inputs);
+  const isUS = inputs.country === "us";
+  const isES = inputs.country === "es";
 
-  const sustainsAt = (monthly: number) =>
-    simulateFire({
+  let bridgeContrib = 0;
+  let pensionContrib = 0;
+
+  if (inputs.pots) {
+    if (isUS) {
+      bridgeContrib = inputs.pots.brokerage?.monthlyContribution ?? 0;
+      pensionContrib = (inputs.pots["401k"]?.monthlyContribution ?? 0) + (inputs.pots["roth"]?.monthlyContribution ?? 0);
+    } else if (isES) {
+      bridgeContrib = (inputs.pots.pias?.monthlyContribution ?? 0) + (inputs.pots["cuenta-valores"]?.monthlyContribution ?? 0);
+      pensionContrib = inputs.pots["plan-pensiones"]?.monthlyContribution ?? 0;
+    } else {
+      bridgeContrib = (inputs.pots.isa?.monthlyContribution ?? 0) + (inputs.pots.gia?.monthlyContribution ?? 0);
+      pensionContrib = inputs.pots.sipp?.monthlyContribution ?? 0;
+    }
+  } else {
+    bridgeContrib = (inputs.isaMonthlyContribution ?? 0) + (inputs.giaMonthlyContribution ?? 0);
+    pensionContrib = inputs.sippMonthlyContribution ?? 0;
+  }
+
+  const bridgeFrac = currentTotal > 0 ? bridgeContrib / currentTotal : 0.4;
+  const pensionFrac = currentTotal > 0 ? pensionContrib / currentTotal : 0.6;
+
+  const sustainsAt = (monthly: number) => {
+    const testInputs: FireInputs = {
       ...inputs,
       retirementAge: retireAge,
-      isaMonthlyContribution: monthly * isaFrac,
-      sippMonthlyContribution: monthly * (1 - isaFrac),
-    }).sustainableToLifeExpectancy;
+      isaMonthlyContribution: monthly * bridgeFrac,
+      giaMonthlyContribution: 0,
+      sippMonthlyContribution: monthly * pensionFrac,
+    };
+
+    if (testInputs.pots) {
+      const pots: Record<string, WrapperInput> = { ...testInputs.pots };
+      if (isUS) {
+        if (pots.brokerage) pots.brokerage = { ...pots.brokerage, monthlyContribution: monthly * bridgeFrac };
+        if (pots["401k"]) pots["401k"] = { ...pots["401k"], monthlyContribution: monthly * pensionFrac };
+      } else if (isES) {
+        if (pots.pias) pots.pias = { ...pots.pias, monthlyContribution: monthly * bridgeFrac };
+        if (pots["plan-pensiones"]) pots["plan-pensiones"] = { ...pots["plan-pensiones"], monthlyContribution: monthly * pensionFrac };
+      } else {
+        if (pots.isa) pots.isa = { ...pots.isa, monthlyContribution: monthly * bridgeFrac };
+        if (pots.sipp) pots.sipp = { ...pots.sipp, monthlyContribution: monthly * pensionFrac };
+      }
+      testInputs.pots = pots;
+    }
+
+    return simulateFire(testInputs).sustainableToLifeExpectancy;
+  };
 
   if (sustainsAt(0)) return 0;
   return (
@@ -42,7 +87,7 @@ export interface RequiredContributions {
 }
 
 export function requiredContributions(inputs: FireInputs): RequiredContributions | null {
-  const currentTotal = inputs.isaMonthlyContribution + (inputs.giaMonthlyContribution ?? 0) + inputs.sippMonthlyContribution;
+  const currentTotal = totalMonthlyContributions(inputs);
   const needed = minMonthlyForSustainable(inputs, inputs.retirementAge);
   
   if (!Number.isFinite(needed)) {
@@ -64,15 +109,13 @@ export function requiredContributions(inputs: FireInputs): RequiredContributions
   if (bridgeGap > 0) {
     extraIsaGia = extraNeeded; // Direct the extra to the bridge pots first
   } else {
-    const currentTotalIsaSipp = inputs.isaMonthlyContribution + inputs.sippMonthlyContribution;
-    const isaFrac = currentTotalIsaSipp > 0 ? inputs.isaMonthlyContribution / currentTotalIsaSipp : 0.5;
-    extraIsaGia = extraNeeded * isaFrac;
-    extraSipp = extraNeeded * (1 - isaFrac);
+    extraIsaGia = extraNeeded * 0.5;
+    extraSipp = extraNeeded * 0.5;
   }
 
-  const sippAccessAge = inputs.sippAccessAge ?? 57;
+  const pensionAccessAge = inputs.sippAccessAge ?? (inputs.country === "es" ? 65 : 57);
   // Handle zero-length bridge case
-  if (inputs.retirementAge >= sippAccessAge) {
+  if (inputs.retirementAge >= pensionAccessAge) {
     extraIsaGia = 0;
     extraSipp = extraNeeded;
   }
@@ -83,25 +126,16 @@ export function requiredContributions(inputs: FireInputs): RequiredContributions
 export interface RetirementSensitivity {
   currentRetirementAge: number;
   currentMonthly: number;
-  /** Retiring one year earlier: extra £/mo needed to stay on track, or null
-   *  if no amount of extra saving can make it work (or the age is < today). */
   earlierAge: number | null;
   earlierExtraMonthly: number | null;
-  /** Retiring one year later: £/mo you could stop contributing and stay on track. */
   laterAge: number;
   laterSavingMonthly: number;
 }
 
-/**
- * "What if I retire a year earlier / later?" — the extra monthly saving needed
- * to pull retirement forward a year, and the saving you could drop by pushing
- * it back a year, both while keeping the plan sustainable.
- */
 export function retirementSensitivity(
   inputs: FireInputs,
 ): RetirementSensitivity {
-  const currentMonthly =
-    inputs.isaMonthlyContribution + inputs.sippMonthlyContribution;
+  const currentMonthly = totalMonthlyContributions(inputs);
   const earlierAge = inputs.retirementAge - 1;
   const laterAge = inputs.retirementAge + 1;
 

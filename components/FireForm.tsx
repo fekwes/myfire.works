@@ -4,13 +4,16 @@ import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { PortfolioEditor, type ReuseSource } from "@/components/PortfolioEditor";
-import { holdingsNetGrowth } from "@/lib/assets";
+import { holdingsNetGrowth, type Holding } from "@/lib/assets";
 import {
   DEFAULT_ASSUMPTIONS,
   DEFAULT_INFLATION_RATE,
   type FireInputs,
   type PensionStrategy,
+  type WrapperInput,
 } from "@/lib/fire-engine";
+import { ukPack } from "@/lib/countries/uk";
+import { usPack } from "@/lib/countries/us";
 
 export const DEFAULT_FIRE_FORM_VALUES: FireInputs = {
   currentAge: 35,
@@ -24,11 +27,11 @@ export const DEFAULT_FIRE_FORM_VALUES: FireInputs = {
   giaMonthlyContribution: 0,
   giaGrowth: 0.05,
   rentalValue: 0,
-  rentalGrowth: 0.03,
+  rentalGrowth: 0.025,
   rentalMonthlyIncome: 0,
   rentalSaleAge: 0,
   homeValue: 0,
-  homeGrowth: 0.03,
+  homeGrowth: 0.025,
   downsizeAge: 0,
   downsizeReleaseFraction: 0,
   sippBalance: 80000,
@@ -46,7 +49,6 @@ interface FireFormProps {
   onChange: (inputs: FireInputs) => void;
   /** Which section is visible — the finances page shows one tab at a time. */
   activeSection: string;
-  highlightedFields?: Record<string, boolean>;
 }
 
 /**
@@ -80,13 +82,11 @@ function Tooltip({ text, label }: { text: string; label?: string }) {
 export function Field({
   label,
   tooltip,
-  highlighted,
   children,
   className,
 }: {
   label: string;
   tooltip?: string;
-  highlighted?: boolean;
   children: ReactNode;
   className?: string;
 }) {
@@ -95,15 +95,8 @@ export function Field({
       <span className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
         {label}
         {tooltip && <Tooltip text={tooltip} label={label} />}
-        {highlighted && (
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold text-primary animate-pulse">
-            Imported
-          </span>
-        )}
       </span>
-      <div className={highlighted ? "rounded-lg ring-2 ring-primary/60 bg-primary/5 p-0.5 transition-all duration-300" : ""}>
-        {children}
-      </div>
+      {children}
     </label>
   );
 }
@@ -352,21 +345,70 @@ function WrapperPortfolio({
   );
 }
 
-export function FireForm({ value, onChange, activeSection, highlightedFields }: FireFormProps) {
+export function FireForm({ value, onChange, activeSection }: FireFormProps) {
   const set = <K extends keyof FireInputs>(key: K, next: FireInputs[K]) =>
     onChange({ ...value, [key]: next });
 
+  const country = value.country ?? "uk";
+  const pack = country === "us" ? usPack : ukPack;
+
+  const getPot = (id: string): WrapperInput => {
+    if (value.pots?.[id]) return value.pots[id];
+    // fallback to legacy
+    if (country === "uk") {
+      if (id === "isa") return { balance: value.isaBalance ?? 0, monthlyContribution: value.isaMonthlyContribution ?? 0, growth: value.isaGrowth ?? 0.05, holdings: value.isaHoldings ?? [] };
+      if (id === "sipp") return { balance: value.sippBalance ?? 0, monthlyContribution: value.sippMonthlyContribution ?? 0, growth: value.sippGrowth ?? 0.05, holdings: value.sippHoldings ?? [] };
+      if (id === "gia") return { balance: value.giaBalance ?? 0, monthlyContribution: value.giaMonthlyContribution ?? 0, growth: value.giaGrowth ?? 0.05, holdings: value.giaHoldings ?? [] };
+    }
+    return { balance: 0, monthlyContribution: 0, growth: 0.05, holdings: [] };
+  };
+
+  const setPot = (id: string, partial: Partial<WrapperInput>) => {
+    const current = getPot(id);
+    const nextPot = { ...current, ...partial };
+    
+    // Also sync to legacy if it's UK for backward compatibility on UI state
+    const overrides: Partial<FireInputs> = {};
+    if (country === "uk") {
+      if (id === "isa") {
+        if (partial.balance !== undefined) overrides.isaBalance = partial.balance;
+        if (partial.monthlyContribution !== undefined) overrides.isaMonthlyContribution = partial.monthlyContribution;
+        if (partial.growth !== undefined) overrides.isaGrowth = partial.growth;
+        if (partial.holdings !== undefined) overrides.isaHoldings = partial.holdings;
+      }
+      if (id === "sipp") {
+        if (partial.balance !== undefined) overrides.sippBalance = partial.balance;
+        if (partial.monthlyContribution !== undefined) overrides.sippMonthlyContribution = partial.monthlyContribution;
+        if (partial.growth !== undefined) overrides.sippGrowth = partial.growth;
+        if (partial.holdings !== undefined) overrides.sippHoldings = partial.holdings;
+      }
+      if (id === "gia") {
+        if (partial.balance !== undefined) overrides.giaBalance = partial.balance;
+        if (partial.monthlyContribution !== undefined) overrides.giaMonthlyContribution = partial.monthlyContribution;
+        if (partial.growth !== undefined) overrides.giaGrowth = partial.growth;
+        if (partial.holdings !== undefined) overrides.giaHoldings = partial.holdings;
+      }
+    }
+    
+    onChange({
+      ...value,
+      ...overrides,
+      pots: {
+        ...(value.pots || {}),
+        [id]: nextPot
+      }
+    });
+  };
+
   // The other wrappers whose portfolio can be copied into this one.
-  const reuseFor = (self: "isa" | "sipp" | "gia"): ReuseSource[] =>
-    (
-      [
-        { id: "isa", label: "ISA", holdings: value.isaHoldings },
-        { id: "sipp", label: "SIPP", holdings: value.sippHoldings },
-        { id: "gia", label: "GIA", holdings: value.giaHoldings },
-      ] as const
-    )
-      .filter((w) => w.id !== self && w.holdings && w.holdings.length > 0)
-      .map((w) => ({ id: w.id, label: w.label, holdings: w.holdings ?? [] }));
+  const reuseFor = (self: string): ReuseSource[] =>
+    pack.wrappers
+      .filter((w) => w.id !== self)
+      .map(w => {
+        const p = getPot(w.id);
+        return { id: w.id, label: w.label, holdings: p.holdings || [] };
+      })
+      .filter((w) => w.holdings && w.holdings.length > 0);
 
   // Part-time work is off unless it's earning something. The engine has always
   // read "0" as "none", so the switch stays derived from the figures rather
@@ -404,18 +446,13 @@ export function FireForm({ value, onChange, activeSection, highlightedFields }: 
     num(value.lifeExpectancyAge, DEFAULT_ASSUMPTIONS.lifeExpectancyAge) <
     value.currentAge;
 
-  // Set a wrapper's holdings and its derived growth in ONE update — two separate
-  // set() calls would each read the same stale `value` and clobber each other.
-  const setPortfolio = (
-    hKey: "isaHoldings" | "sippHoldings" | "giaHoldings",
-    gKey: "isaGrowth" | "sippGrowth" | "giaGrowth",
-    h: FireInputs["isaHoldings"],
-  ) =>
-    onChange({
-      ...value,
-      [hKey]: h,
-      [gKey]: h && h.length > 0 ? holdingsNetGrowth(h) : value[gKey],
+  const setPortfolio = (id: string, h: Holding[] | undefined) => {
+    const current = getPot(id);
+    setPot(id, {
+      holdings: h,
+      growth: h && h.length > 0 ? holdingsNetGrowth(h) : current.growth,
     });
+  };
 
   return (
     <div>
@@ -425,6 +462,36 @@ export function FireForm({ value, onChange, activeSection, highlightedFields }: 
         description="Ages and the income you're aiming for."
         hidden={activeSection !== "basics"}
       >
+        
+        {country === "us" && (
+          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 mb-4">
+            <Field label="Filing Status" tooltip="Married Filing Jointly models pooled inputs using MFJ brackets.">
+              <div className="flex items-center rounded-lg border border-border bg-background transition-colors hover:border-muted-foreground/40 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30 p-1">
+                <select
+                  value={value.filingStatus ?? "single"}
+                  onChange={(e) => set("filingStatus", e.target.value as "single" | "married-joint")}
+                  className="w-full min-w-0 bg-transparent px-2 py-1 text-sm outline-none font-medium"
+                >
+                  <option value="single">Single</option>
+                  <option value="married-joint">Married Filing Jointly</option>
+                </select>
+              </div>
+            </Field>
+            <Field label="State" tooltip="State income tax modeling.">
+              <div className="flex items-center rounded-lg border border-border bg-background transition-colors hover:border-muted-foreground/40 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30 p-1">
+                <select
+                  value={value.region ?? "zero-tax"}
+                  onChange={(e) => set("region", e.target.value)}
+                  className="w-full min-w-0 bg-transparent px-2 py-1 text-sm outline-none font-medium"
+                >
+                  {usPack.regions.map(r => (
+                    <option key={r.id} value={r.id}>{r.label}</option>
+                  ))}
+                </select>
+              </div>
+            </Field>
+          </div>
+        )}
         <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
           <Field label="Current age">
             <NumberInput
@@ -436,7 +503,7 @@ export function FireForm({ value, onChange, activeSection, highlightedFields }: 
           </Field>
           <Field
             label="Retirement age"
-            tooltip="When you plan to stop working. Your ISA/GIA bridges income until your SIPP unlocks."
+            tooltip={pack.labels.retirementAgeTooltip}
           >
             <NumberInput
               value={value.retirementAge}
@@ -449,16 +516,55 @@ export function FireForm({ value, onChange, activeSection, highlightedFields }: 
 
         <Field
           label="Target retirement income"
-          tooltip="The take-home income you want to spend each year in retirement — after tax, in today's money. Your State Pension is already counted towards this."
+          tooltip={pack.labels.targetIncomeTooltip}
         >
           <NumberInput
             value={value.targetAnnualIncome}
             onChange={(v) => set("targetAnnualIncome", v)}
-            prefix="£"
+            prefix={pack.currency.symbol}
             suffix="/ yr"
             step={500}
           />
         </Field>
+
+        <Block
+          title="Coast FIRE"
+          tooltip="Stop saving early and let your pots grow on their own."
+        >
+          <Field
+            label="Stop contributions at age"
+            tooltip="Age at which you stop adding to your pots. Leave at 0 to keep contributing until retirement."
+          >
+            <NumberInput
+              value={num(value.contributionsUntilAge, 0)}
+              onChange={(v) => set("contributionsUntilAge", v || undefined)}
+              suffix="0 = keep going"
+            />
+          </Field>
+        </Block>
+
+        <Block
+          title="Part-time transition"
+          tooltip={pack.labels.partTimeTooltip}
+        >
+          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
+            <Field label="Part-time until age">
+              <NumberInput
+                value={num(value.partTimeUntilAge, 0)}
+                onChange={(v) => set("partTimeUntilAge", v)}
+                suffix="0 = none"
+              />
+            </Field>
+            <Field label="Part-time income">
+              <NumberInput
+                value={num(value.partTimeAnnualIncome, 0)}
+                onChange={(v) => set("partTimeAnnualIncome", v)}
+                prefix={pack.currency.symbol}
+                step={1000}
+              />
+            </Field>
+          </div>
+        </Block>
       </Section>
 
       <Section
@@ -466,100 +572,45 @@ export function FireForm({ value, onChange, activeSection, highlightedFields }: 
         title="Balances & contributions"
         hidden={activeSection !== "balances"}
       >
-        {/* Dots match the chart's fixed account→hue binding: ISA ember,
-            SIPP violet, GIA teal. Keep these in step with AssetTimelineChart. */}
-        <Block
-          title="ISA — tax-free bridge"
-          dotClass="bg-data-1"
-          tooltip="Individual Savings Account — 100% tax-free to withdraw at any age, so it's drawn first (and bridges you until your pension unlocks)."
-          footer={
-            <WrapperPortfolio
-              label="ISA"
-              growth={value.isaGrowth}
-              holdings={value.isaHoldings}
-              onGrowth={(v) => set("isaGrowth", v)}
-              onPortfolio={(h) => setPortfolio("isaHoldings", "isaGrowth", h)}
-              reuseSources={reuseFor("isa")}
-            />
-          }
-        >
-          <Field label="Current balance" highlighted={highlightedFields?.isaBalance}>
-            <NumberInput
-              value={value.isaBalance}
-              onChange={(v) => set("isaBalance", v)}
-              prefix="£"
-            />
-          </Field>
-          <Field label="Monthly contribution" highlighted={highlightedFields?.isaMonthlyContribution}>
-            <NumberInput
-              value={value.isaMonthlyContribution}
-              onChange={(v) => set("isaMonthlyContribution", v)}
-              prefix="£"
-            />
-          </Field>
-        </Block>
-
-        <Block
-          title="SIPP — the pension"
-          dotClass="bg-data-2"
-          tooltip="Self-Invested Personal Pension (plus any workplace pensions). Locked until your access age — 57 from 2028 — then 25% is tax-free and the rest is taxable income, topped up by your State Pension."
-          footer={
-            <WrapperPortfolio
-              label="SIPP"
-              growth={value.sippGrowth}
-              holdings={value.sippHoldings}
-              onGrowth={(v) => set("sippGrowth", v)}
-              onPortfolio={(h) => setPortfolio("sippHoldings", "sippGrowth", h)}
-              reuseSources={reuseFor("sipp")}
-            />
-          }
-        >
-          <Field label="Current balance" highlighted={highlightedFields?.sippBalance}>
-            <NumberInput
-              value={value.sippBalance}
-              onChange={(v) => set("sippBalance", v)}
-              prefix="£"
-            />
-          </Field>
-          <Field label="Monthly contribution">
-            <NumberInput
-              value={value.sippMonthlyContribution}
-              onChange={(v) => set("sippMonthlyContribution", v)}
-              prefix="£"
-            />
-          </Field>
-        </Block>
-
-        <Block
-          title="Other investments — GIA"
-          dotClass="bg-data-3"
-          tooltip="A General Investment Account: drawn after the ISA, with Capital Gains Tax on gains above the £3,000 exemption."
-          footer={
-            <WrapperPortfolio
-              label="GIA"
-              growth={value.giaGrowth}
-              holdings={value.giaHoldings}
-              onGrowth={(v) => set("giaGrowth", v)}
-              onPortfolio={(h) => setPortfolio("giaHoldings", "giaGrowth", h)}
-              reuseSources={reuseFor("gia")}
-            />
-          }
-        >
-          <Field label="Current balance" highlighted={highlightedFields?.giaBalance}>
-            <NumberInput
-              value={num(value.giaBalance, 0)}
-              onChange={(v) => set("giaBalance", v)}
-              prefix="£"
-            />
-          </Field>
-          <Field label="Monthly contribution">
-            <NumberInput
-              value={num(value.giaMonthlyContribution, 0)}
-              onChange={(v) => set("giaMonthlyContribution", v)}
-              prefix="£"
-            />
-          </Field>
-        </Block>
+        {pack.wrappers.map((w, idx) => {
+          const pot = getPot(w.id);
+          const dotClasses = ["bg-data-1", "bg-data-2", "bg-data-3", "bg-data-4", "bg-data-5"];
+          const dotClass = dotClasses[idx % dotClasses.length];
+          
+          return (
+            <Block
+              key={w.id}
+              title={w.label}
+              dotClass={dotClass}
+              tooltip={`Treatment: ${w.treatment}. ${w.annualContributionLimit ? 'Limit: ' + w.annualContributionLimit + '/yr.' : ''}`}
+              footer={
+                <WrapperPortfolio
+                  label={w.label}
+                  growth={pot.growth}
+                  holdings={pot.holdings}
+                  onGrowth={(v) => setPot(w.id, { growth: v })}
+                  onPortfolio={(h) => setPortfolio(w.id, h)}
+                  reuseSources={reuseFor(w.id)}
+                />
+              }
+            >
+              <Field label="Current balance">
+                <NumberInput
+                  value={pot.balance}
+                  onChange={(v) => setPot(w.id, { balance: v })}
+                  prefix={pack.currency.code === 'USD' ? '$' : '£'}
+                />
+              </Field>
+              <Field label="Monthly contribution">
+                <NumberInput
+                  value={pot.monthlyContribution}
+                  onChange={(v) => setPot(w.id, { monthlyContribution: v })}
+                  prefix={pack.currency.code === 'USD' ? '$' : '£'}
+                />
+              </Field>
+            </Block>
+          );
+        })}
       </Section>
 
       <Section
@@ -571,31 +622,31 @@ export function FireForm({ value, onChange, activeSection, highlightedFields }: 
         <Block
           title="Rental property"
           dotClass="bg-muted-foreground/60"
-          tooltip="Rental income is taxed as income and offsets your target in retirement. Optionally sell it later — residential CGT applies and the net proceeds move into your GIA."
+          tooltip={pack.labels.rentalSaleTooltip ?? "Rental income is taxed as income and offsets your target in retirement. Optionally sell it later."}
         >
           <Field label="Current value">
             <NumberInput
               value={num(value.rentalValue, 0)}
               onChange={(v) => set("rentalValue", v)}
-              prefix="£"
+              prefix={pack.currency.symbol}
             />
           </Field>
           <Field label="Monthly rent">
             <NumberInput
               value={num(value.rentalMonthlyIncome, 0)}
               onChange={(v) => set("rentalMonthlyIncome", v)}
-              prefix="£"
+              prefix={pack.currency.symbol}
             />
           </Field>
           <Field label="Expected growth">
             <PercentInput
-              value={num(value.rentalGrowth, 0.03)}
+              value={num(value.rentalGrowth, 0.025)}
               onChange={(v) => set("rentalGrowth", v)}
             />
           </Field>
           <Field
             label="Sell at age"
-            tooltip="Leave at 0 to keep it. Otherwise it's sold at this age (residential CGT), proceeds go to your GIA, and the rent stops."
+            tooltip={pack.labels.rentalSaleTooltip ?? "Leave at 0 to keep it. Otherwise it's sold at this age, proceeds go to your brokerage, and the rent stops."}
           >
             <NumberInput
               value={num(value.rentalSaleAge, 0)}
@@ -607,18 +658,18 @@ export function FireForm({ value, onChange, activeSection, highlightedFields }: 
 
         <Block
           title="Home you live in"
-          tooltip="Counts as net worth and grows, but isn't drawn for income — unless you downsize, which releases tax-free cash (primary-residence relief) into your GIA."
+          tooltip={pack.labels.homeTooltip}
         >
           <Field label="Current value">
             <NumberInput
               value={num(value.homeValue, 0)}
               onChange={(v) => set("homeValue", v)}
-              prefix="£"
+              prefix={pack.currency.symbol}
             />
           </Field>
           <Field label="Expected growth">
             <PercentInput
-              value={num(value.homeGrowth, 0.03)}
+              value={num(value.homeGrowth, 0.025)}
               onChange={(v) => set("homeGrowth", v)}
             />
           </Field>
@@ -648,17 +699,19 @@ export function FireForm({ value, onChange, activeSection, highlightedFields }: 
         description="How you take your pension, and any part-time work."
         hidden={activeSection !== "scenario"}
       >
-        <Field
-          label="Pension access"
-          tooltip="Gradual (UFPLS): 25% of every withdrawal is tax-free — usually the most tax-efficient. Lump sum: take the 25% tax-free cash up front (it goes into your GIA)."
-        >
-          <PensionStrategyToggle
-            value={value.pensionStrategy ?? DEFAULT_ASSUMPTIONS.pensionStrategy}
-            onChange={(v) => {
-              set("pensionStrategy", v);
-            }}
-          />
-        </Field>
+        {pack.labels.hasPensionStrategyToggle && (
+          <Field
+            label="Pension access"
+            tooltip="Gradual (UFPLS): 25% of every withdrawal is tax-free — usually the most tax-efficient. Lump sum: take the 25% tax-free cash up front (it goes into your GIA)."
+          >
+            <PensionStrategyToggle
+              value={value.pensionStrategy ?? DEFAULT_ASSUMPTIONS.pensionStrategy}
+              onChange={(v) => {
+                set("pensionStrategy", v);
+              }}
+            />
+          </Field>
+        )}
 
         <Block
           title="Part-time work — Barista FIRE"
@@ -681,7 +734,7 @@ export function FireForm({ value, onChange, activeSection, highlightedFields }: 
                 <NumberInput
                   value={num(value.partTimeAnnualIncome, 0)}
                   onChange={(v) => set("partTimeAnnualIncome", v)}
-                  prefix="£"
+                  prefix={pack.currency.symbol}
                   suffix="/ yr"
                   step={1000}
                 />
@@ -711,8 +764,8 @@ export function FireForm({ value, onChange, activeSection, highlightedFields }: 
       >
         <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
           <Field
-            label="SIPP access age"
-            tooltip="UK minimum pension age is 55 today, rising to 57 in April 2028 — the default here."
+            label={country === "us" ? "401(k) / IRA access age" : "SIPP access age"}
+            tooltip={country === "us" ? "US standard access age is 59.5 without penalties." : "UK minimum pension age is 55 today, rising to 57 in April 2028 — the default here."}
           >
             <NumberInput
               value={num(value.sippAccessAge, DEFAULT_ASSUMPTIONS.sippAccessAge)}
@@ -747,8 +800,8 @@ export function FireForm({ value, onChange, activeSection, highlightedFields }: 
 
         <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
           <Field
-            label="State Pension age"
-            tooltip="66 today, rising to 67 (2026–2028) then 68. Default is 67."
+            label={country === "us" ? "Social Security age" : "State Pension age"}
+            tooltip={country === "us" ? "FRA is typically 67." : "66 today, rising to 67 (2026–2028) then 68. Default is 67."}
           >
             <NumberInput
               value={num(
@@ -760,8 +813,8 @@ export function FireForm({ value, onChange, activeSection, highlightedFields }: 
             />
           </Field>
           <Field
-            label="State Pension"
-            tooltip="Full new State Pension for 2026/27 is £12,548/yr. Lower it if your National Insurance record is incomplete."
+            label={country === "us" ? "Social Security" : "State Pension"}
+            tooltip={country === "us" ? "Your expected Social Security benefit." : "Full new State Pension for 2026/27 is £12,548/yr. Lower it if your National Insurance record is incomplete."}
           >
             <NumberInput
               value={num(
@@ -769,7 +822,7 @@ export function FireForm({ value, onChange, activeSection, highlightedFields }: 
                 DEFAULT_ASSUMPTIONS.statePensionAnnual,
               )}
               onChange={(v) => set("statePensionAnnual", v)}
-              prefix="£"
+              prefix={pack.currency.symbol}
               suffix="/ yr"
               step={100}
             />

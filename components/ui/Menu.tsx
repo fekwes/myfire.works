@@ -13,6 +13,7 @@ import {
 export interface MenuItem {
   label: string;
   icon?: ReactNode;
+  badge?: ReactNode;
   onSelect?: () => void;
   href?: string;
   tone?: "default" | "danger";
@@ -21,8 +22,7 @@ export interface MenuItem {
 /**
  * An accessible dropdown menu (WAI-ARIA menu pattern): `role="menu"` with
  * `menuitem`s, roving focus, arrow / Home / End / Escape keyboard support,
- * focus returned to the trigger on close, and click-outside dismissal. Replaces
- * the app's previously hand-rolled dropdowns.
+ * focus returned to the trigger on close, and click-outside dismissal.
  */
 export function Menu({
   trigger,
@@ -30,12 +30,14 @@ export function Menu({
   items,
   align = "right",
   menuLabel = "Menu",
+  widthClassName = "w-64",
 }: {
   trigger: ReactNode;
   triggerClassName?: string;
   items: MenuItem[];
   align?: "left" | "right";
   menuLabel?: string;
+  widthClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -72,7 +74,6 @@ export function Menu({
 
   const activate = (item: MenuItem) => {
     item.onSelect?.();
-    // Links navigate on their own; either way, dismiss without stealing focus.
     close(false);
   };
 
@@ -132,24 +133,34 @@ export function Menu({
       </button>
 
       {open && (
-        // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled at item level
         <div
           id={menuId}
           role="menu"
           aria-label={menuLabel}
           onKeyDown={onMenuKeyDown}
           className={clsx(
-            "absolute top-full z-40 mt-2 w-52 overflow-hidden rounded-xl border border-border bg-surface p-1 shadow-[var(--shadow-lg)]",
-            align === "right" ? "right-0" : "left-0",
+            "absolute top-full z-40 mt-2 overflow-hidden rounded-xl border border-border bg-surface/95 p-1.5 backdrop-blur-xl shadow-2xl",
+            widthClassName,
+            align === "right" ? "right-0" : "left-0"
           )}
         >
           {items.map((item, i) => {
             const cls = clsx(
-              "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium transition-colors focus:outline-none",
+              "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-xs font-medium transition-colors focus:outline-none",
               item.tone === "danger"
                 ? "text-danger hover:bg-danger/10 focus-visible:bg-danger/10"
-                : "text-muted-foreground hover:bg-surface-muted hover:text-foreground focus-visible:bg-surface-muted focus-visible:text-foreground",
+                : "text-muted-foreground hover:bg-surface-muted hover:text-foreground focus-visible:bg-surface-muted focus-visible:text-foreground"
             );
+            const content = (
+              <>
+                <span className="flex items-center gap-2 min-w-0 truncate">
+                  {item.icon}
+                  <span className="truncate">{item.label}</span>
+                </span>
+                {item.badge && <span className="shrink-0">{item.badge}</span>}
+              </>
+            );
+
             const common = {
               role: "menuitem" as const,
               tabIndex: active === i ? 0 : -1,
@@ -166,8 +177,7 @@ export function Menu({
                 onClick={() => activate(item)}
                 {...common}
               >
-                {item.icon}
-                {item.label}
+                {content}
               </Link>
             ) : (
               <button
@@ -179,8 +189,7 @@ export function Menu({
                 onClick={() => activate(item)}
                 {...common}
               >
-                {item.icon}
-                {item.label}
+                {content}
               </button>
             );
           })}

@@ -447,9 +447,9 @@ type WrapperView = {
 
 function wrapperViews(inputs: FireInputs): WrapperView[] {
   return [
-    { balance: inputs.isaBalance, holdings: inputs.isaHoldings },
-    { balance: inputs.giaBalance ?? 0, holdings: inputs.giaHoldings },
-    { balance: inputs.sippBalance, holdings: inputs.sippHoldings },
+    { balance: (inputs.pots?.isa?.balance ?? inputs.isaBalance ?? 0), holdings: (inputs.pots?.isa?.holdings ?? inputs.isaHoldings ?? []) },
+    { balance: (inputs.pots?.gia?.balance ?? inputs.giaBalance ?? 0) ?? 0, holdings: (inputs.pots?.gia?.holdings ?? inputs.giaHoldings ?? []) },
+    { balance: (inputs.pots?.sipp?.balance ?? inputs.sippBalance ?? 0), holdings: (inputs.pots?.sipp?.holdings ?? inputs.sippHoldings ?? []) },
   ];
 }
 
@@ -506,6 +506,7 @@ function wrapperOcf(w: WrapperView): number {
  * for "what fees cost you".
  */
 export function estimateFeeDrag(inputs: FireInputs): number {
+  if (inputs.currentAge >= inputs.retirementAge) return 0;
   const fallback = inputs.growthRate ?? DEFAULT_ASSUMPTIONS.growthRate;
   const wrappers = wrapperViews(inputs);
 
@@ -522,9 +523,9 @@ export function estimateFeeDrag(inputs: FireInputs): number {
 
   const gross: FireInputs = {
     ...inputs,
-    isaGrowth: grossGrowth(wrappers[0], inputs.isaGrowth),
-    giaGrowth: grossGrowth(wrappers[1], inputs.giaGrowth),
-    sippGrowth: grossGrowth(wrappers[2], inputs.sippGrowth),
+    isaGrowth: grossGrowth(wrappers[0], (inputs.pots?.isa?.growth ?? inputs.isaGrowth ?? inputs.growthRate ?? 0)),
+    giaGrowth: grossGrowth(wrappers[1], (inputs.pots?.gia?.growth ?? inputs.giaGrowth ?? inputs.growthRate ?? 0)),
+    sippGrowth: grossGrowth(wrappers[2], (inputs.pots?.sipp?.growth ?? inputs.sippGrowth ?? inputs.growthRate ?? 0)),
     // Drop holdings so the counterfactual runs on the fee-free scalar above.
     isaHoldings: undefined,
     giaHoldings: undefined,
@@ -536,7 +537,8 @@ export function estimateFeeDrag(inputs: FireInputs): number {
     const snap =
       [...result.timeline].reverse().find((y) => y.age < r) ??
       result.timeline[result.timeline.length - 1];
-    return snap.isaBalanceEnd + snap.giaBalanceEnd + snap.sippBalanceEnd;
+    if (!snap || !snap.pots) return 0;
+    return Object.values(snap.pots).reduce((sum, p) => sum + (p?.end ?? 0), 0);
   };
 
   const withFees = potAtRetirement(simulateFire(inputs));

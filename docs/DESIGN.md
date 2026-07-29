@@ -42,6 +42,11 @@ is what keeps "celebratory" from tipping into "gimmicky".
 
 ## Logo & wordmark
 
+The backdrop's spark drift (`.app-backdrop::after`) is composed **per theme, not
+gated to one**. Light specks on the night ground read as sparks immediately;
+anything darker than cream reads as dust, so the light drift is fewer, larger,
+warmer and softer — embers hanging in a bright sky rather than stars.
+
 - **Mark — "Trajectory Burst"** (`components/Logo.tsx`, `app/icon.svg`): an ember
   launch trail (a real growth curve) rising into a gold burst, on a night-indigo
   tile. Self-contained so it reads in both themes and down to favicon size.
@@ -59,7 +64,31 @@ is what keeps "celebratory" from tipping into "gimmicky".
   (periwinkle violet — the counter-spark), `--muted-foreground`, `--success`,
   `--danger`, and a `--data-1/2/3` chart ramp (ember · violet · teal). Exposed to
   Tailwind via `@theme inline` as `bg-surface`, `text-muted-foreground`, etc.
-  Dark (a deep-indigo night sky) is the default theme; light is a warm paper.
+  Dark (a deep-indigo night sky) is the **served** default — `ThemeProvider` in
+  `app/layout.tsx` uses `defaultTheme="dark" enableSystem={false}`, so a visitor
+  with no stored preference gets dark whatever their OS says. Light is a warm
+  paper, reached through the header toggle and remembered from then on.
+  `enableSystem` is off on purpose: `ThemeToggle` only ever sets `light` or
+  `dark`, so a reachable `system` state would be one no control can produce.
+
+## Theme support tiers
+
+The two themes are not peers, and saying so is what keeps the cost honest.
+
+- **Showcase — dark.** What a first-time visitor sees, and where the identity is
+  spent. Browser-verify it on **every** change that touches UI.
+- **Supported — light.** Must stay complete and accessible: every semantic token
+  resolves to a light value, and text meets WCAG AA. Browser-verify it when
+  **tokens change** (any diff to the `:root` / `.dark` blocks in
+  `app/globals.css`) or when **page layout or responsive behaviour changes** —
+  and before a release. Not required for copy or logic changes.
+- **Print is its own consumer.** `@media print` overrides *both* `:root` and
+  `.dark`, so it does not depend on light being the active theme — but it does
+  depend on the light values. Review the print block in any change that touches
+  light tokens.
+
+The triggers are mechanical on purpose, so "did this need a light pass?" has an
+answer you can check rather than argue about.
 - **Type**: Bricolage Grotesque (`font-display`) for headings, Geist
   (`font-sans`) for body, Geist Mono (`font-mono`) for micro-labels **and every
   money figure** (use `.tabular` so columns of pounds align).
@@ -94,6 +123,38 @@ is what keeps "celebratory" from tipping into "gimmicky".
 `Field` + `NumberInput` (`components/FireForm.tsx`), `StatTile` + `Segmented`
 (`components/FireDashboard.tsx`), `Chip` + `ProgressBar` + `useCountUp`
 (`components/quiz/QuizPrimitives.tsx`).
+
+## The landing gesture — one firework, three beats
+
+The launch trail is not decoration beside the product; it *is* the product's
+shape. On the landing page it runs as one continuous line:
+
+1. **Ignition** (`LaunchPad`, `components/LaunchTrail.tsx`) — a lit ember at the
+   foot of the page, in the differentiators section. It's a real button: this is
+   the page's one celebratory gesture, and being able to set it off again is the
+   point. Under `prefers-reduced-motion` it degrades to an inert marker.
+2. **The climb** (`LaunchTrail`) — an arc from that ember up to the hero's
+   preview card. The path is **measured, not hand-drawn**: it reads the ignition
+   point and the card on mount and on resize, and re-derives the curve. A static
+   path cannot stay joined, because the card's position depends on page height,
+   breakpoint and how much copy sits above it. It aims 28px *behind* the card's
+   left edge, at the height the sparkline starts, so the join is hidden.
+3. **The carry and the burst** (`LandingHeroPreview`) — the card's own sparkline,
+   real engine output, picks the arc up and carries it to the top right, where
+   the burst goes off. The burst lives *in the chart*, not floating above it, so
+   the FI moment lands on the number rather than near it.
+
+The three beats hand over in time (`0.25s → 1.7s → 2.5s` in `globals.css`) so the
+eye reads one unbroken line rather than three things animating near each other.
+The trail only exists from `lg` up, where there's room for the arc to cross the
+page without fighting the copy; below that the card's sparkline carries the whole
+gesture alone.
+
+**Don't put the burst back in a `slice`-scaled background SVG.** It lived there
+once and was clipped into a visible rectangle: with `preserveAspectRatio="slice"`
+the visible window is `containerHeight / (containerWidth / viewBoxWidth)` user
+units tall, which was 509 against a composition spanning 570, so the bloom lost
+its transparent outer stop to the crop.
 
 ## Data-viz
 

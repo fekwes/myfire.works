@@ -1,72 +1,88 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { Term } from "@/components/Glossary";
+import { useEffect } from "react";
+import { ShieldCheck, Sparkles } from "lucide-react";
 import { LandingCta } from "@/components/LandingCta";
 import { LandingHeroPreview } from "@/components/LandingHeroPreview";
-import { useRegion } from "@/components/RegionProvider";
-import { RegionToggle } from "@/components/RegionToggle";
+import { usePlan } from "@/components/PlanProvider";
+import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
+import { getTranslations } from "@/lib/i18n";
 
 export function LandingHero() {
-  const { region, details } = useRegion();
-  const [isFireworksActive, setIsFireworksActive] = useState(false);
+  const { activeRegion } = usePlan();
+  const isEs = activeRegion === "es";
 
-  const handleTriggerFireworks = useCallback(() => {
-    setIsFireworksActive(true);
-    const timer = setTimeout(() => {
-      setIsFireworksActive(false);
-    }, 2800);
-    return () => clearTimeout(timer);
-  }, []);
+  const t = getTranslations(isEs ? "es-ES" : "en-GB");
+
+  useEffect(() => {
+    trackEvent(ANALYTICS_EVENTS.LANDING_PAGE_VIEWED, { region: activeRegion });
+  }, [activeRegion]);
 
   return (
-    <section className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
-      {/* Left Column — Value Proposition & Action */}
-      <div className="relative z-10 lg:col-span-7">
-        <div className="landing-rise flex flex-wrap items-center gap-2.5 sm:gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 font-mono text-[0.72rem] font-bold uppercase tracking-[0.12em] text-primary shadow-xs">
-            <span className="size-2 rounded-full bg-primary animate-pulse shrink-0" />
-            {details.heroBadge}
+    <section className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-8 xl:gap-12">
+      <div className="relative z-10 min-w-0 lg:col-span-7">
+        {/* Ambient background glow highlights */}
+        <div className="absolute -left-20 top-20 -z-10 h-72 w-72 rounded-full bg-brand/15 blur-[100px] pointer-events-none" />
+        <div className="absolute -right-20 top-0 -z-10 h-72 w-72 rounded-full bg-accent/15 blur-[100px] pointer-events-none" />
+
+        {/* Professional Eyebrow Badges */}
+        <div className="landing-rise flex flex-wrap items-center gap-2 sm:gap-2.5">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/10 px-3 py-1 font-mono text-[0.7rem] font-bold uppercase tracking-[0.14em] text-brand backdrop-blur-md">
+            <Sparkles className="size-3 text-brand" />
+            {isEs ? "Acceso Gratuito y Libre" : "Free & Open Access"}
           </span>
-          <RegionToggle />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-emerald-400 backdrop-blur-md">
+            <ShieldCheck className="size-3 text-emerald-400" />
+            {isEs ? "Motor 100% Privado en Cliente" : "100% Private Client Engine"}
+          </span>
         </div>
 
-        <h1 className="landing-rise mt-6 font-display text-4xl font-extrabold leading-[1.04] tracking-tight text-balance sm:text-[3.75rem]">
-          Know your number. Know when.
-          <br />
-          Know{" "}
-          <span className="relative whitespace-nowrap text-primary">
-            it&apos;ll hold
-            <span className="absolute -bottom-1.5 left-0 h-[3px] w-full rounded-full bg-gradient-to-r from-brand to-primary opacity-85" />
-          </span>
-          .
-        </h1>
-
-        <p className="landing-rise mt-5 max-w-xl text-base leading-relaxed text-muted-foreground [animation-delay:120ms] sm:text-lg sm:leading-relaxed">
-          <Term term="FIRE">FIRE</Term> — financial independence, retire early — is having enough invested that work becomes optional. Fireworks models your complete drawdown (
-          {region === "uk" ? (
+        {/* Core Headline — Responsive, Bulletproof Non-Overlapping Layout */}
+        <h1 className="landing-rise mt-5 font-display text-3xl font-extrabold leading-[1.06] tracking-tight text-balance [animation-delay:60ms] sm:text-4xl lg:text-[2.65rem] xl:text-[3.25rem] 2xl:text-[3.5rem]">
+          {isEs ? (
             <>
-              <Term>ISA</Term>, <Term>GIA</Term>, <Term>SIPP</Term>, <Term>State Pension</Term> and property
+              Calcula cuándo
+              <br />
+              <span className="relative inline">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-brand to-accent drop-shadow-[0_2px_12px_rgba(255,194,75,0.25)]">
+                  podrías dejar de trabajar
+                </span>
+                <span className="absolute -bottom-1 left-0 h-[3px] w-full rounded-full bg-gradient-to-r from-amber-400 via-brand to-accent opacity-90 shadow-sm" />
+              </span>
+              .
             </>
           ) : (
             <>
-              <Term>Roth IRA</Term>, <Term term="Taxable Brokerage">Taxable Brokerage</Term>, <Term term="401(k)">401(k)/IRA</Term>, <Term>Social Security</Term> and real estate
+              Know exactly when
+              <br />
+              you can{" "}
+              <span className="relative inline">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-brand to-accent drop-shadow-[0_2px_12px_rgba(255,194,75,0.25)]">
+                  stop working
+                </span>
+                <span className="absolute -bottom-1 left-0 h-[3.5px] w-full rounded-full bg-gradient-to-r from-amber-400 via-brand to-accent opacity-90 shadow-sm" />
+              </span>
+              .
             </>
           )}
-          ) {details.heroCopy.mechanics}
+        </h1>
+
+        {/* Value Proposition */}
+        <p
+          data-launch-quiet
+          className="landing-rise mt-5 max-w-xl text-base leading-relaxed text-muted-foreground [animation-delay:120ms] sm:text-lg"
+        >
+          {t.hero.subtitle}
         </p>
 
-        <div className="landing-rise [animation-delay:180ms]">
+        {/* CTA Section */}
+        <div data-launch-quiet className="landing-rise mt-8 [animation-delay:180ms]">
           <LandingCta />
         </div>
       </div>
 
-      {/* Right Column — Interactive Hero Chart Visual Piece */}
-      <div className="relative z-10 lg:col-span-5">
-        <LandingHeroPreview
-          onTriggerFireworks={handleTriggerFireworks}
-          isFireworksActive={isFireworksActive}
-        />
+      <div className="relative z-10 min-w-0 lg:col-span-5">
+        <LandingHeroPreview />
       </div>
     </section>
   );

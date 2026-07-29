@@ -1,0 +1,93 @@
+import { Translations } from "../types";
+
+export const enGB: Translations = {
+  nav: {
+    planner: "Planner",
+    finances: "Your Finances",
+    methodology: "Methodology",
+    privacy: "Privacy",
+    disclaimer: "Disclaimer",
+    contact: "Contact",
+    signIn: "Sign in",
+    signOut: "Sign out",
+    selectRegion: "Select Region",
+    comingSoon: "Coming Soon",
+    spainComingSoon: "Spain (Coming Soon)",
+    ukActive: "United Kingdom",
+  },
+  hero: {
+    badge: "UK FIRE & Early Retirement Engine",
+    titlePrefix: "Plan your early retirement with ",
+    titleHighlight: "real tax math",
+    titleSuffix: " — not rough rules of thumb.",
+    subtitle:
+      "Model your drawdown across ISAs, GIAs, SIPPs, State Pension and property with net tax precision, Coast FIRE targets, and Monte Carlo confidence.",
+    ctaStart: "Start planning free",
+    ctaExplore: "Explore methodology",
+    liveInUk: "Currently available in the UK",
+    spainLaunchingSoon: "Spain launching soon",
+  },
+  features: {
+    title: "Everything you need to retire early with confidence",
+    subtitle: "Built specifically for realistic multi-phase retirement drawdowns.",
+    bridgeTitle: "ISA & GIA Bridge",
+    bridgeDesc: "Draw down tax-free ISAs and taxable GIAs until your pension unlocks.",
+    pensionTitle: "SIPP & Lump Sum",
+    pensionDesc: "Take 25% tax-free lump sums and model true progressive income tax bands.",
+    statePensionTitle: "State Pension Offset",
+    statePensionDesc: "See exactly when state pension kicks in to reduce drawdown demand.",
+    monteCarloTitle: "Monte Carlo Stress Testing",
+    monteCarloDesc: "Test your plan against 1,000 sequence-of-returns scenarios.",
+  },
+  quiz: {
+    stepLabel: "Step",
+    next: "Next",
+    back: "Back",
+    finish: "Calculate my plan",
+    skip: "Skip quiz",
+    currentAgeTitle: "What is your current age?",
+    retireAgeTitle: "At what age do you want to retire?",
+    targetIncomeTitle: "Desired net income per year in retirement?",
+    currentSavingsTitle: "What are your total current savings & investments?",
+    monthlySavingsTitle: "How much do you save each month?",
+    seeMyPlan: "See my FIRE plan",
+  },
+  finances: {
+    title: "Edit your financial plan",
+    subtitle: "Fine-tune your accounts, growth rates, contributions and property details.",
+    savePlan: "Save plan",
+    saved: "Saved",
+    export: "Export plan",
+    importAi: "Import with AI",
+  },
+  dashboard: {
+    fireNumber: "FIRE Target Number",
+    netWorth: "Projected Net Worth",
+    bridgeDuration: "Bridge Phase Duration",
+    confidenceScore: "Monte Carlo Confidence",
+    coastFire: "Coast FIRE Target",
+    timelineTitle: "Portfolio Drawdown Timeline",
+    incomeSafetyTitle: "Income & Tax Safety Waterfall",
+  },
+  comingSoon: {
+    badge: "Expansion",
+    title: "Spain is coming soon!",
+    description:
+      "We are building a tailored Spanish version of Fireworks, fully configured for IRPF tax bands, Plans de Pensiones, PIAS, and local retirement regulations.",
+    note: "The UK version is currently our default active experience. Stay tuned for Spain launch updates!",
+    button: "Got it — return to UK planner",
+  },
+  legal: {
+    analyticsNoticeTitle: "Privacy-first, cookieless analytics",
+    analyticsNoticeDesc:
+      "We use cookieless Umami Analytics to measure aggregate site usage without storing cookies, user IDs, or personal data.",
+    disclaimerTitle: "Important Legal & Financial Disclaimer",
+    disclaimerBody:
+      "Fireworks is a financial planning and simulation tool for educational purposes only. It does not provide regulated financial or tax advice.",
+  },
+  errors: {
+    generic: "An unexpected error occurred. Please try again.",
+    invalidNumber: "Please enter a valid number.",
+    planSaveFailed: "Failed to save plan. Please try again.",
+  },
+};

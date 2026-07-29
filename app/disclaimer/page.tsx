@@ -197,24 +197,32 @@ export default function DisclaimerPage() {
         {/* Section 7 */}
         <DisclaimerSection
           id="regulatory-disclosures"
-          title="7. Regulatory Disclosures (US SEC/FINRA & UK FCA Context)"
+          title="7. Regulatory Disclosures (UK FCA, Spain CNMV & US SEC Context)"
           icon={Building2}
         >
           <div className="space-y-4">
             <div>
               <h3 className="font-display font-semibold text-foreground text-sm">
-                United States Regulatory Context (SEC & FINRA)
-              </h3>
-              <p className="mt-1 text-xs sm:text-sm">
-                Fireworks is not registered as an Investment Adviser under the US Investment Advisers Act of 1940 or applicable state securities laws. Fireworks is not a broker-dealer and is not registered with the US Securities and Exchange Commission (SEC) or the Financial Industry Regulatory Authority (FINRA). Software tools and financial calculators provided by Fireworks do not constitute personalized investment recommendations or solicitation of securities transactions.
-              </p>
-            </div>
-            <div className="border-t border-border/40 pt-3">
-              <h3 className="font-display font-semibold text-foreground text-sm">
                 United Kingdom Regulatory Context (FCA & FSMA)
               </h3>
               <p className="mt-1 text-xs sm:text-sm">
                 Fireworks is not authorized or regulated by the UK Financial Conduct Authority (FCA) under the Financial Services and Markets Act 2000 (FSMA). Fireworks does not carry out regulated financial activities within the meaning of the Financial Services and Markets Act 2000 (Regulated Activities) Order 2001. The Service operates as an un-regulated financial modeling tool for self-directed personal educational use.
+              </p>
+            </div>
+            <div className="border-t border-border/40 pt-3">
+              <h3 className="font-display font-semibold text-foreground text-sm">
+                Spain Regulatory Context (CNMV & Agencia Tributaria)
+              </h3>
+              <p className="mt-1 text-xs sm:text-sm">
+                Fireworks is not registered as an investment firm or financial advisor with the Spanish National Securities Market Commission (Comisión Nacional del Mercado de Valores - CNMV). Model outputs based on the Spanish IRPF scale, Planes de Pensiones, and PIAS are automated simulations for educational evaluation only and do not constitute regulated tax or financial advice under Spanish law.
+              </p>
+            </div>
+            <div className="border-t border-border/40 pt-3">
+              <h3 className="font-display font-semibold text-foreground text-sm">
+                United States Regulatory Context (SEC & FINRA)
+              </h3>
+              <p className="mt-1 text-xs sm:text-sm">
+                Fireworks is not registered as an Investment Adviser under the US Investment Advisers Act of 1940 or applicable state securities laws. Fireworks is not a broker-dealer and is not registered with the US Securities and Exchange Commission (SEC) or the Financial Industry Regulatory Authority (FINRA). Software tools and financial calculators provided by Fireworks do not constitute personalized investment recommendations or solicitation of securities transactions.
               </p>
             </div>
           </div>

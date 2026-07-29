@@ -6,9 +6,6 @@
  * works?" `simulateFire` is monotonic in each of those inputs (more money, or
  * more contribution, never makes a plan fail that already passed), so binary
  * search finds the boundary.
- *
- * They each carried their own copy of this loop with its own iteration count.
- * One copy means one place to reason about precision.
  */
 
 /** Smallest amount in `[0, hi]` where `passes` holds, to within `tolerance`. */
@@ -23,18 +20,18 @@ export function smallestPassing(
     tolerance?: number;
   },
 ): number | null {
+  if (passes(0)) return 0;
+  
   const tolerance = options.tolerance ?? 1;
 
   let lo = 0;
   let hi = options.initialHi;
   while (!passes(hi)) {
-    hi *= 2;
-    if (hi > options.maxHi) return null;
+    if (hi >= options.maxHi) return null;
+    hi = Math.min(hi * 2, options.maxHi);
   }
 
   // Each step halves the bracket, so the loop is bounded by log2(hi/tolerance)
-  // — about 21 steps for a £2M range at £1. The cap is a backstop against a
-  // predicate that isn't actually monotonic, not the normal exit.
   for (let i = 0; i < 64 && hi - lo > tolerance; i++) {
     const mid = (lo + hi) / 2;
     if (passes(mid)) hi = mid;

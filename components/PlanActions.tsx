@@ -20,7 +20,7 @@ function download(filename: string, text: string, mime: string) {
 
 /** Plan-level actions surfaced on the Planner: share and export. */
 export function PlanActions() {
-  const { inputs } = usePlan();
+  const { inputs, activePack } = usePlan();
   const [copied, setCopied] = useState(false);
 
   const share = async () => {
@@ -67,7 +67,7 @@ export function PlanActions() {
             onSelect: () =>
               download(
                 "fireworks-plan.csv",
-                planTimelineCsv(simulateFire(inputs)),
+                planTimelineCsv(simulateFire(inputs), activePack.labels),
                 "text/csv",
               ),
           },

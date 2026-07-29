@@ -20,20 +20,29 @@
   --surface-muted: #f4eee2;
   --border: #eae3d6;
 
-  /* Signature accent — burnt ember, readable on warm-paper surfaces */
-  --primary: #c2560a;
+  /* Signature accent — burnt ember, readable on warm-paper surfaces. Darkened
+   * from #c2560a so small text still clears AA on a `bg-brand/10` tint (the
+   * beta badge), not just on bare paper. This is the *UI* ember; the chart
+   * ramp's `--data-1` is a separate token and is deliberately unchanged. */
+  --primary: #b04e08;
   --primary-foreground: #ffffff;
 
   /* Bright ember for highlight fills / badges */
   --brand: #ff8a3d;
+  --brand-foreground: #241005;
 
   /* Secondary spark — periwinkle violet (links / secondary data) */
   --accent: #5b4bd6;
 
   --muted-foreground: #6a6480;
 
-  --danger: #dc2626;
-  --success: #17803d;
+  /* Status colours, darkened for AA on light's tinted grounds. Status text is
+   * small and often sits on a 15% wash of its own hue ("Shortfall", "On track")
+   * or on `--surface-muted` ("Age 56"), where the originals (#dc2626 / #17803d)
+   * landed at 3.8–4.3. These match the print palette's reds and greens, so the
+   * system carries one darker pair rather than two near-identical ones. */
+  --danger: #b91c1c;
+  --success: #157637;
 
   /* Chart data ramp — ember · violet · teal. These are the *mark* colours, a
    * step apart from the UI accents above (which are tuned for text on this
@@ -78,6 +87,7 @@
 
   /* Bright gold for highlight fills / the "burst" */
   --brand: #ffc24b;
+  --brand-foreground: #241005;
 
   /* Secondary spark — periwinkle violet */
   --accent: #9e8cff;
@@ -117,6 +127,7 @@
   --color-primary-foreground: var(--primary-foreground);
 
   --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
 
@@ -180,6 +191,15 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Recharts paints legend labels with their series colour via an inline style.
+ * The design system reserves colour for the *mark* — text always wears a text
+ * token (docs/DESIGN.md, Data-viz). Left alone, the SIPP violet label measured
+ * 3.55:1 on the night surface, under AA. `!important` because the offending
+ * declaration is inline. */
+.recharts-legend-item-text {
+  color: var(--foreground) !important;
 }
 
 /* Utility: tabular figures for money/stat readouts */
@@ -252,8 +272,12 @@ body {
   animation: landing-rise 0.6s var(--ease-out) both;
 }
 
-/* Signature brand moment — a single ember "launch trail" draws itself in once
- * as the hero loads (the growth curve rising to a burst), then the spark pops.
+/* Signature brand moment — one continuous gesture told in three beats. The
+ * decorative launch trail draws itself from the lower-left and slips behind the
+ * preview card (beat 1); the card's own sparkline — real engine output — picks
+ * the arc up and carries it to the top-right (beat 2); the burst goes off at
+ * its end (beat 3). The beats are timed to hand over, so the eye reads one
+ * unbroken line rather than three elements animating near each other.
  * Path length is normalised via pathLength="1" so it's geometry-independent.
  * Fully disabled under reduced-motion (drawn state shown statically). */
 @keyframes trail-draw {
@@ -265,6 +289,27 @@ body {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
   animation: trail-draw 1.5s var(--ease-out) 0.25s both;
+}
+
+/* Beat 2 — starts as the trail lands behind the card (0.25s + 1.5s). */
+.hero-chart-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: trail-draw 0.9s var(--ease-out) 1.7s both;
+}
+
+/* The area fill has no line to draw, so it simply arrives with it. */
+.hero-chart-fill {
+  animation: chart-fill-in 0.9s var(--ease-out) 1.7s both;
+}
+
+@keyframes chart-fill-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes spark-pop {
@@ -281,17 +326,20 @@ body {
     transform: scale(1);
   }
 }
+/* Beat 3 — fires as the sparkline reaches its final point (1.7s + 0.9s). */
 .spark-pop {
   transform-box: fill-box;
   transform-origin: center;
-  animation: spark-pop 0.5s var(--ease-spring) 1.55s both;
+  animation: spark-pop 0.5s var(--ease-spring) 2.5s both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-trail {
+  .hero-trail,
+  .hero-chart-draw {
     stroke-dashoffset: 0;
     animation: none;
   }
+  .hero-chart-fill,
   .spark-pop {
     opacity: 1;
     animation: none;
@@ -314,8 +362,8 @@ body {
  *      and a warm ember wash, over the night/paper ground;
  *   2. a faint financial-blueprint grid, finer than before and masked to
  *      a soft dome so it frames the hero rather than wallpapering;
- *   3. (dark only) a drift of firework sparks up in the sky, gently
- *      twinkling, with a whisper of grain for depth.
+ *   3. a drift of firework sparks up in the sky, gently twinkling — tuned
+ *      per theme rather than gated to one (see below).
  * Purely decorative, non-interactive, and reduced-motion aware.
  * ------------------------------------------------------------------ */
 .app-backdrop {
@@ -324,17 +372,19 @@ body {
   z-index: -10;
   pointer-events: none;
   overflow: hidden;
+  /* Add a vignette effect to fade the edges seamlessly */
+  box-shadow: inset 0 0 120px 40px var(--background);
   background:
-    radial-gradient(ellipse 58% 48% at 50% -10%, var(--glow), transparent 60%),
+    radial-gradient(ellipse 65% 55% at 50% -10%, var(--glow), transparent 60%),
     radial-gradient(
-      ellipse 42% 40% at 84% 4%,
-      color-mix(in srgb, var(--accent) 15%, transparent),
-      transparent 62%
+      ellipse 50% 45% at 85% 0%,
+      color-mix(in srgb, var(--accent) 22%, transparent),
+      transparent 65%
     ),
     radial-gradient(
-      ellipse 48% 44% at 6% 20%,
-      color-mix(in srgb, var(--primary) 9%, transparent),
-      transparent 60%
+      ellipse 55% 50% at 10% 15%,
+      color-mix(in srgb, var(--primary) 12%, transparent),
+      transparent 65%
     );
 }
 
@@ -359,32 +409,31 @@ body {
   );
 }
 
-/* Firework sparks — night sky only. A drift of embers, top-weighted so they
- * read as sky, gently twinkling. */
-.dark .app-backdrop::after {
+/* Firework sparks. A drift of embers, top-weighted so they read as sky, gently
+ * twinkling. Both themes carry the layer — the product is called Fireworks, and
+ * having the sparks only at night made light a composition-by-omission rather
+ * than a decision. The two differ in more than hue: on the night ground the
+ * specks are *lighter* than their surroundings and read as sparks immediately,
+ * whereas anything darker than cream reads as dust. So the light drift is
+ * fewer, larger, warmer and softer — embers hanging in a bright sky. */
+.app-backdrop::after {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.7;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cg fill='%23ffc24b'%3E%3Ccircle cx='40' cy='60' r='1.2' opacity='0.9'/%3E%3Ccircle cx='120' cy='34' r='0.8' opacity='0.6'/%3E%3Ccircle cx='214' cy='78' r='1' opacity='0.8'/%3E%3Ccircle cx='286' cy='42' r='0.7' opacity='0.5'/%3E%3Ccircle cx='70' cy='150' r='0.9' opacity='0.7'/%3E%3Ccircle cx='176' cy='132' r='1.3' opacity='0.85'/%3E%3Ccircle cx='300' cy='176' r='0.8' opacity='0.6'/%3E%3Ccircle cx='30' cy='240' r='1' opacity='0.75'/%3E%3Ccircle cx='150' cy='274' r='0.7' opacity='0.5'/%3E%3Ccircle cx='240' cy='244' r='1.1' opacity='0.8'/%3E%3Ccircle cx='104' cy='206' r='0.6' opacity='0.45'/%3E%3Ccircle cx='262' cy='120' r='0.6' opacity='0.5'/%3E%3C/g%3E%3Cg fill='%239e8cff'%3E%3Ccircle cx='96' cy='96' r='0.8' opacity='0.55'/%3E%3Ccircle cx='198' cy='208' r='0.7' opacity='0.5'/%3E%3Ccircle cx='320' cy='300' r='0.6' opacity='0.45'/%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.55;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cstyle%3E@keyframes t { 0%25, 100%25 { opacity: 0.1; } 50%25 { opacity: 0.7; } } .a { animation: t 4s ease-in-out infinite; } .b { animation: t 5s ease-in-out infinite -1.5s; } .c { animation: t 6s ease-in-out infinite -3s; } .d { animation: t 4.5s ease-in-out infinite -2s; } @media (prefers-reduced-motion: reduce) %7B * %7B animation: none !important; %7D %7D%3C/style%3E%3Cg fill='%23e07a1f'%3E%3Ccircle class='a' cx='44' cy='58' r='1.9'/%3E%3Ccircle class='b' cx='214' cy='78' r='1.6'/%3E%3Ccircle class='c' cx='176' cy='132' r='2.1'/%3E%3Ccircle class='d' cx='300' cy='176' r='1.5'/%3E%3Ccircle class='a' cx='30' cy='240' r='1.7'/%3E%3Ccircle class='b' cx='240' cy='244' r='1.8'/%3E%3C/g%3E%3Cg fill='%236f5cd8'%3E%3Ccircle class='c' cx='96' cy='96' r='1.6'/%3E%3Ccircle class='d' cx='262' cy='120' r='1.3'/%3E%3Ccircle class='a' cx='150' cy='274' r='1.4'/%3E%3C/g%3E%3C/svg%3E");
   background-size: 320px 320px;
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 86%);
   mask-image: linear-gradient(to bottom, #000 0%, #000 40%, transparent 86%);
-  animation: spark-twinkle 7s var(--ease-out) infinite;
 }
 
-@keyframes spark-twinkle {
-  0%,
-  100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 0.78;
-  }
+/* The night drift — denser and brighter, because light specks on a dark ground
+ * carry much further than dark specks on a light one. */
+.dark .app-backdrop::after {
+  opacity: 0.7;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cstyle%3E@keyframes t { 0%25, 100%25 { opacity: 0.1; } 50%25 { opacity: 1; } } .a { animation: t 4s ease-in-out infinite; } .b { animation: t 5s ease-in-out infinite -1.5s; } .c { animation: t 6s ease-in-out infinite -3s; } .d { animation: t 4.5s ease-in-out infinite -2s; } @media (prefers-reduced-motion: reduce) %7B * %7B animation: none !important; %7D %7D%3C/style%3E%3Cg fill='%23ffc24b'%3E%3Ccircle class='a' cx='40' cy='60' r='1.2'/%3E%3Ccircle class='b' cx='120' cy='34' r='0.8'/%3E%3Ccircle class='c' cx='214' cy='78' r='1'/%3E%3Ccircle class='d' cx='286' cy='42' r='0.7'/%3E%3Ccircle class='a' cx='70' cy='150' r='0.9'/%3E%3Ccircle class='b' cx='176' cy='132' r='1.3'/%3E%3Ccircle class='c' cx='300' cy='176' r='0.8'/%3E%3Ccircle class='d' cx='30' cy='240' r='1'/%3E%3Ccircle class='a' cx='150' cy='274' r='0.7'/%3E%3Ccircle class='b' cx='240' cy='244' r='1.1'/%3E%3Ccircle class='c' cx='104' cy='206' r='0.6'/%3E%3Ccircle class='d' cx='262' cy='120' r='0.6'/%3E%3C/g%3E%3Cg fill='%239e8cff'%3E%3Ccircle class='c' cx='96' cy='96' r='0.8'/%3E%3Ccircle class='d' cx='198' cy='208' r='0.7'/%3E%3Ccircle class='a' cx='320' cy='300' r='0.6'/%3E%3C/g%3E%3C/svg%3E");
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .dark .app-backdrop::after {
-    animation: none;
-  }
-}
+
+
+

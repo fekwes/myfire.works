@@ -2,7 +2,11 @@
 
 import { FileText, Sparkles, Upload, X } from "lucide-react";
 import { useCallback, useState } from "react";
-import { parsePlanFromText, type PlanImportFallbackResult } from "@/lib/plan-import-fallback";
+import { parsePlanFromText } from "@/lib/plan-import-fallback";
+
+export type ImportPayload =
+  | { type: "text"; text: string }
+  | { type: "file"; data: string; mimeType: string };
 
 export interface ImportPlanData {
   wrappers: {
@@ -22,19 +26,24 @@ export interface ImportPlanData {
 }
 
 interface DropPasteInputProps {
-  onPlanImported: (data: ImportPlanData) => void;
+  onPlanImported?: (data: ImportPlanData) => void;
+  onPayload?: (payload: ImportPayload) => void;
+  onError?: (message: string) => void;
+  busy?: boolean;
+  placeholder?: string;
   onClose?: () => void;
 }
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB limit for multi-page PDFs
 
-export function DropPasteInput({ onPlanImported, onClose }: DropPasteInputProps) {
+export function DropPasteInput({ onPlanImported, onPayload, onError, busy: busyProp, placeholder, onClose }: DropPasteInputProps) {
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [internalBusy, setInternalBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const busy = busyProp ?? internalBusy;
 
   const processFile = useCallback((selectedFile: File) => {
     if (selectedFile.size > MAX_FILE_BYTES) {
@@ -71,13 +80,51 @@ export function DropPasteInput({ onPlanImported, onClose }: DropPasteInputProps)
     }
   };
 
+  const reportError = (message: string) => {
+    setError(message);
+    onError?.(message);
+  };
+
   async function handleImport() {
     if (!text.trim() && !file) {
-      setError("Please paste statement text or drop/select a PDF/CSV file.");
+      reportError("Please paste statement text or drop/select a PDF/CSV file.");
       return;
     }
 
-    setBusy(true);
+    if (onPayload) {
+      if (file) {
+        if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+          const reader = new FileReader();
+          const payload = await new Promise<ImportPayload>((resolve, reject) => {
+            reader.onload = () => {
+              const result = String(reader.result ?? "");
+              const data = result.split(",")[1];
+              resolve({ type: "file", data: data ?? "", mimeType: file.type || "application/pdf" });
+            };
+            reader.onerror = () => reject(new Error("Failed to read file."));
+            reader.readAsDataURL(file);
+          });
+          onPayload(payload);
+          return;
+        }
+
+        const reader = new FileReader();
+        const payload = await new Promise<ImportPayload>((resolve, reject) => {
+          reader.onload = () => resolve({ type: "text", text: String(reader.result ?? "") });
+          reader.onerror = () => reject(new Error("Failed to read file."));
+          reader.readAsText(file);
+        });
+        onPayload(payload);
+        return;
+      }
+
+      onPayload({ type: "text", text });
+      return;
+    }
+
+    if (busyProp === undefined) {
+      setInternalBusy(true);
+    }
     setError(null);
     setWarning(null);
 
@@ -119,7 +166,7 @@ export function DropPasteInput({ onPlanImported, onClose }: DropPasteInputProps)
         // Soft fallback if server endpoint unavailable/fails
         if (textContent) {
           const fallback = parsePlanFromText(textContent);
-          onPlanImported({
+          onPlanImported?.({
             wrappers: fallback.wrappers,
             holdings: fallback.holdings,
             warning: fallback.confidenceScore < 0.8 ? "We caught some figures, but please verify these fields." : null,
@@ -151,7 +198,7 @@ export function DropPasteInput({ onPlanImported, onClose }: DropPasteInputProps)
         importedData.warning = fallback.confidenceScore < 0.8 ? "We caught some figures, but please verify these fields." : null;
       }
 
-      onPlanImported(importedData);
+      onPlanImported?.(importedData);
       setWarning(importedData.warning ?? null);
 
       if (onClose) onClose();
@@ -159,7 +206,7 @@ export function DropPasteInput({ onPlanImported, onClose }: DropPasteInputProps)
       // Local fallback parsing attempt on error if text is available
       if (text.trim()) {
         const fallback = parsePlanFromText(text);
-        onPlanImported({
+        onPlanImported?.({
           wrappers: fallback.wrappers,
           holdings: fallback.holdings,
           warning: fallback.confidenceScore < 0.8 ? "We caught some figures, but please verify these fields." : null,
@@ -168,9 +215,11 @@ export function DropPasteInput({ onPlanImported, onClose }: DropPasteInputProps)
         if (onClose) onClose();
         return;
       }
-      setError(err instanceof Error ? err.message : "Document import failed.");
+      reportError(err instanceof Error ? err.message : "Document import failed.");
     } finally {
-      setBusy(false);
+      if (busyProp === undefined) {
+        setInternalBusy(false);
+      }
     }
   }
 

@@ -163,7 +163,7 @@ export function StepShell({
   why?: string;
   children: ReactNode;
   onBack?: () => void;
-  onContinue: () => void;
+  onContinue?: () => void;
   continueLabel?: string;
   continueIcon?: ReactNode;
   canContinue?: boolean;
@@ -196,16 +196,18 @@ export function StepShell({
             Back
           </Button>
         )}
-        <Button
-          type="button"
-          variant="brand"
-          onClick={onContinue}
-          disabled={!canContinue}
-          className="flex-1"
-        >
-          {continueLabel}
-          {continueIcon}
-        </Button>
+        {onContinue && (
+          <Button
+            type="button"
+            variant="brand"
+            onClick={onContinue}
+            disabled={!canContinue}
+            className="flex-1"
+          >
+            {continueLabel}
+            {continueIcon}
+          </Button>
+        )}
       </div>
     </div>
   );

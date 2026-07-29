@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/Button";
 import type { FireSimulationResult } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
 
+import { generateDeterministicTips } from "@/lib/deterministic-tips";
+
 interface Tip {
   title: string;
   detail: string;
@@ -17,22 +19,22 @@ const cache = new Map<string, Tip[]>();
 export function AiInsights({ result, isProvisional, isReadOnly }: { result: FireSimulationResult, isProvisional: boolean, isReadOnly: boolean }) {
   const [tips, setTips] = useState<Tip[] | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const fire = useMemo(() => computeFireNumber(result.inputs), [result.inputs]);
+  const [isFallback, setIsFallback] = useState(false);
+  const fire = useMemo(() => computeFireNumber(result.inputs), [result]);
 
   // Compute a simple signature of the inputs to use as a cache key
-  const { inputs } = result;
   const signature = useMemo(() => {
+    const { inputs } = result;
     return JSON.stringify({
       currentAge: inputs.currentAge,
       retirementAge: inputs.retirementAge,
       targetAnnualIncome: inputs.targetAnnualIncome,
-      isaBalance: inputs.isaBalance,
-      isaMonthlyContribution: inputs.isaMonthlyContribution,
-      sippBalance: inputs.sippBalance,
-      sippMonthlyContribution: inputs.sippMonthlyContribution,
+      isaBalance: inputs.pots?.isa?.balance ?? 0,
+      isaMonthlyContribution: inputs.pots?.isa?.monthlyContribution ?? 0,
+      sippBalance: inputs.pots?.sipp?.balance ?? 0,
+      sippMonthlyContribution: inputs.pots?.sipp?.monthlyContribution ?? 0,
     });
-  }, [inputs]);
+  }, [result]);
 
   const handleAnalyze = async (force: boolean = false) => {
     if (!force && cache.has(signature)) {
@@ -40,7 +42,6 @@ export function AiInsights({ result, isProvisional, isReadOnly }: { result: Fire
       return;
     }
     setLoading(true);
-    setError(null);
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -49,11 +50,11 @@ export function AiInsights({ result, isProvisional, isReadOnly }: { result: Fire
           currentAge: result.inputs.currentAge,
           retirementAge: result.inputs.retirementAge,
           targetAnnualIncome: result.inputs.targetAnnualIncome,
-          isaBalance: result.inputs.isaBalance,
-          isaMonthlyContribution: result.inputs.isaMonthlyContribution,
-          giaBalance: result.inputs.giaBalance ?? 0,
-          sippBalance: result.inputs.sippBalance,
-          sippMonthlyContribution: result.inputs.sippMonthlyContribution,
+          isaBalance: result.inputs.pots?.isa?.balance ?? 0,
+          isaMonthlyContribution: result.inputs.pots?.isa?.monthlyContribution ?? 0,
+          giaBalance: result.inputs.pots?.gia?.balance ?? 0,
+          sippBalance: result.inputs.pots?.sipp?.balance ?? 0,
+          sippMonthlyContribution: result.inputs.pots?.sipp?.monthlyContribution ?? 0,
           propertyValue: (result.inputs.rentalValue ?? 0) + (result.inputs.homeValue ?? 0),
           fireNumber: Math.round(fire.fireNumber),
           projectedAtRetirement: Math.round(fire.projectedAtRetirement),
@@ -67,18 +68,37 @@ export function AiInsights({ result, isProvisional, isReadOnly }: { result: Fire
       });
 
       if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(
-          (body as { error?: string } | null)?.error ??
-            `Request failed (${res.status})`,
-        );
+        throw new Error(`Status ${res.status}`);
       }
 
-      const data = (await res.json()) as { tips: Tip[] };
+      const data = (await res.json()) as { tips: Tip[]; isFallback?: boolean };
       cache.set(signature, data.tips);
       setTips(data.tips);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setIsFallback(Boolean(data.isFallback));
+    } catch {
+      // Complete client-side safety net: generate smart rule-based tips
+      const fallbackTips = generateDeterministicTips({
+        currentAge: result.inputs.currentAge,
+        retirementAge: result.inputs.retirementAge,
+        targetAnnualIncome: result.inputs.targetAnnualIncome,
+        isaBalance: result.inputs.pots?.isa?.balance ?? 0,
+        isaMonthlyContribution: result.inputs.pots?.isa?.monthlyContribution ?? 0,
+        giaBalance: result.inputs.pots?.gia?.balance ?? 0,
+        sippBalance: result.inputs.pots?.sipp?.balance ?? 0,
+        sippMonthlyContribution: result.inputs.pots?.sipp?.monthlyContribution ?? 0,
+        propertyValue: (result.inputs.rentalValue ?? 0) + (result.inputs.homeValue ?? 0),
+        fireNumber: Math.round(fire.fireNumber),
+        projectedAtRetirement: Math.round(fire.projectedAtRetirement),
+        sippAccessAge: result.inputs.sippAccessAge ?? 57,
+        statePensionAge: result.inputs.statePensionAge ?? 67,
+        taxFreeLumpSum: result.taxFreeLumpSum,
+        sustainableToLifeExpectancy: result.sustainableToLifeExpectancy,
+        isaDepletedAge: result.isaDepletedAge,
+        sippDepletedAge: result.sippDepletedAge,
+      });
+      cache.set(signature, fallbackTips);
+      setTips(fallbackTips);
+      setIsFallback(true);
     } finally {
       setLoading(false);
     }
@@ -91,7 +111,6 @@ export function AiInsights({ result, isProvisional, isReadOnly }: { result: Fire
       setTimeout(() => setTips(cache.get(signature)!), 0);
       return;
     }
-    // Auto-run once
     // eslint-disable-next-line react-hooks/set-state-in-effect
     handleAnalyze();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -107,7 +126,7 @@ export function AiInsights({ result, isProvisional, isReadOnly }: { result: Fire
         <div className="flex items-center gap-2">
           <Sparkles aria-hidden className="size-4 text-primary" />
           <h3 className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            AI strategy tips
+            {isFallback ? "Strategy tips" : "AI strategy tips"}
           </h3>
         </div>
         <Button
@@ -120,8 +139,6 @@ export function AiInsights({ result, isProvisional, isReadOnly }: { result: Fire
           {loading ? "Analysing…" : tips ? "Regenerate" : "Get tips"}
         </Button>
       </div>
-
-      {error && <p className="mt-3 text-xs text-danger">{error}</p>}
 
       {tips && (
         <ul className="mt-4 space-y-3.5">

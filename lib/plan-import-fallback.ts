@@ -3,6 +3,24 @@ import { ASSET_CLASSES, type AssetClass, isAssetClass } from "./assets";
 /**
  * Result structure returned by fallback text stream parsing.
  */
+export interface ExtractedPlan {
+  currentAge?: number;
+  retirementAge?: number;
+  targetAnnualIncome?: number;
+  isaBalance?: number;
+  isaMonthlyContribution?: number;
+  sippBalance?: number;
+  sippMonthlyContribution?: number;
+  giaBalance?: number;
+  giaMonthlyContribution?: number;
+  homeValue?: number;
+  rentalValue?: number;
+  rentalMonthlyIncome?: number;
+  partTimeAnnualIncome?: number;
+  sippAccessAge?: number;
+  statePensionAge?: number;
+}
+
 export interface ExtractedWrapperBalances {
   sipp: number | null;
   isa: number | null;
@@ -32,6 +50,28 @@ export interface PlanImportFallbackResult {
  * - Unifies line breaks and spaces.
  * - Removes non-printable characters.
  */
+export function formatExtractedTotalsSummary(plan: Partial<ExtractedPlan>, currencySymbol = "£"): string {
+  const items: string[] = [];
+  const formatValue = (value: number) => `${currencySymbol}${value.toLocaleString("en-GB")}`;
+
+  if (plan.isaBalance) items.push(`ISA: ${formatValue(plan.isaBalance)}`);
+  if (plan.isaMonthlyContribution) items.push(`ISA Contrib: ${formatValue(plan.isaMonthlyContribution)}/mo`);
+  if (plan.sippBalance) items.push(`SIPP: ${formatValue(plan.sippBalance)}`);
+  if (plan.sippMonthlyContribution) items.push(`SIPP Contrib: ${formatValue(plan.sippMonthlyContribution)}/mo`);
+  if (plan.giaBalance) items.push(`GIA: ${formatValue(plan.giaBalance)}`);
+  if (plan.giaMonthlyContribution) items.push(`GIA Contrib: ${formatValue(plan.giaMonthlyContribution)}/mo`);
+  if (plan.homeValue) items.push(`Home: ${formatValue(plan.homeValue)}`);
+  if (plan.rentalValue) items.push(`Rental: ${formatValue(plan.rentalValue)}`);
+  if (plan.rentalMonthlyIncome) items.push(`Rental Rent: ${formatValue(plan.rentalMonthlyIncome)}/mo`);
+  if (plan.partTimeAnnualIncome) items.push(`Side Income: ${formatValue(plan.partTimeAnnualIncome)}/yr`);
+
+  if (items.length === 0) {
+    return "Plan imported with AI! Asset balances and contributions have been updated in your finances below.";
+  }
+
+  return `Plan imported with AI! Updated totals: ${items.join(" • ")}`;
+}
+
 export function normalizeTextStream(raw: string): string {
   if (!raw) return "";
   return raw

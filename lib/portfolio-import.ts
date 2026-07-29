@@ -143,3 +143,47 @@ export function parseImportRequest(
     return { ok: false, status: 400, error: "Paste your holdings first." };
   }
 }
+
+/**
+ * Rule-based fallback classifier for portfolio import when AI services are offline,
+ * unconfigured, or rate-limited. Parses fund names line-by-line with keyword matching.
+ */
+export function parseTextHoldingsFallback(text: string): EstimatedHolding[] {
+  const lines = text
+    .split(/[\r\n]+/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 2 && !/^(total|portfolio|summary|balance)/i.test(l));
+
+  if (lines.length === 0) return [];
+
+  const holdings: EstimatedHolding[] = [];
+  for (const line of lines.slice(0, MAX_HOLDINGS)) {
+    const lower = line.toLowerCase();
+    let assetClass: AssetClass = "global-equity";
+
+    if (/lifestrategy 100|80% equity|multi-asset 80|ls80/i.test(lower)) {
+      assetClass = "multi-asset-80";
+    } else if (/lifestrategy 60|60% equity|multi-asset 60|ls60/i.test(lower)) {
+      assetClass = "multi-asset-60";
+    } else if (/lifestrategy|multi-asset 100|ls100/i.test(lower)) {
+      assetClass = "multi-asset-100";
+    } else if (/s&p|sp500|us equity|nasdaq|vti|voo/i.test(lower)) {
+      assetClass = "us-equity";
+    } else if (/bond|gilt|treasury|fixed income|bnd/i.test(lower)) {
+      assetClass = "global-bonds";
+    } else if (/cash|money market|liquidity|deposit|interest/i.test(lower)) {
+      assetClass = "cash";
+    } else if (/all cap|all-world|vwrl|msci world|global|ftse/i.test(lower)) {
+      assetClass = "global-equity";
+    }
+
+    holdings.push({
+      label: line.slice(0, MAX_LABEL),
+      assetClass,
+      ocf: DEFAULT_OCF,
+      weight: 1,
+    });
+  }
+
+  return normaliseWeights(holdings);
+}

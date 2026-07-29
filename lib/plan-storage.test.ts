@@ -40,23 +40,23 @@ describe("plan-storage", () => {
   });
 
   it("round-trips a plan through save → load", () => {
-    savePlanLocal(sample);
-    expect(loadPlanLocal()).toEqual(sample);
+    savePlanLocal("uk", sample);
+    expect(loadPlanLocal("uk")).toEqual(sample);
   });
 
   it("returns null when nothing has been saved", () => {
-    expect(loadPlanLocal()).toBeNull();
+    expect(loadPlanLocal("uk")).toBeNull();
   });
 
   it("clears a saved plan", () => {
-    savePlanLocal(sample);
-    clearPlanLocal();
-    expect(loadPlanLocal()).toBeNull();
+    savePlanLocal("uk", sample);
+    clearPlanLocal("uk");
+    expect(loadPlanLocal("uk")).toBeNull();
   });
 
   it("returns null on corrupt JSON rather than throwing", () => {
-    window.localStorage.setItem("onfire:plan", "{ not json");
-    expect(loadPlanLocal()).toBeNull();
+    window.localStorage.setItem("onfire:plan:uk", "{ not json");
+    expect(loadPlanLocal("uk")).toBeNull();
   });
 
   /**
@@ -69,7 +69,7 @@ describe("plan-storage", () => {
       "onfire:plan",
       JSON.stringify({ ...sample, currentAge: null }),
     );
-    expect(loadPlanLocal()).toBeNull();
+    expect(loadPlanLocal("uk")).toBeNull();
   });
 
   it("drops a broken optional field instead of the whole plan", () => {
@@ -77,7 +77,7 @@ describe("plan-storage", () => {
       "onfire:plan",
       JSON.stringify({ ...sample, giaBalance: null, homeValue: 250000 }),
     );
-    const loaded = loadPlanLocal();
+    const loaded = loadPlanLocal("uk");
     expect(loaded).not.toBeNull();
     expect(loaded).not.toHaveProperty("giaBalance");
     expect(loaded?.homeValue).toBe(250000);

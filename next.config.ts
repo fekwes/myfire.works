@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
    * entirely. Pinning it keeps builds identical wherever they run.
    */
   outputFileTracingRoot: import.meta.dirname,
+  experimental: {
+    optimizePackageImports: ["recharts", "lucide-react"],
+  },
 };
 
 export default nextConfig;
