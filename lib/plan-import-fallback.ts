@@ -83,10 +83,27 @@ export function parseTextPlanFallback(text: string): ExtractedPlan {
     }
   }
 
+  // SIPP / Pension Balance & Monthly Contribution (Vanguard Personal Pension, NPR, Workplace Pension)
+  const sippMatch =
+    cleaned.match(/\b(?:vanguard personal pension|personal pension|sipp|workplace pension|npr|401k|ira)\b[^\d]*?([£$]?\d[\d,\.]*k?m?)/i) ||
+    cleaned.match(/([£$]?\d[\d,\.]*k?m?)[^\d]*?\b(?:vanguard personal pension|personal pension|sipp|401k|ira)\b/i);
+  if (sippMatch) {
+    const val = parseAmount(sippMatch[1] || sippMatch[2]);
+    if (val !== undefined && val > 0) plan.sippBalance = val;
+  }
+
+  const sippContrib =
+    cleaned.match(/(?:sipp|pension)[^\d]*?([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly)/i) ||
+    cleaned.match(/([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly)[^\d]*?(?:sipp|pension)/i);
+  if (sippContrib) {
+    const val = parseAmount(sippContrib[1]);
+    if (val !== undefined && val > 0) plan.sippMonthlyContribution = val;
+  }
+
   // ISA Balance & Monthly Contribution
   const isaMatch =
-    cleaned.match(/\b(?:isa|stocks and shares isa|s&s isa)\b[^\d]*?([£$]?\d[\d,\.]*k?m?)/i) ||
-    cleaned.match(/([£$]?\d[\d,\.]*k?m?)[^\d]*?\bisa\b/i);
+    cleaned.match(/\b(?:stocks\/shares|stocks and shares isa|s&s isa|\bisa\b)\b[^\d]*?([£$]?\d[\d,\.]*k?m?)/i) ||
+    cleaned.match(/([£$]?\d[\d,\.]*k?m?)[^\d]*?\b(?:stocks\/shares|\bisa\b)\b/i);
   if (isaMatch) {
     const val = parseAmount(isaMatch[1] || isaMatch[2]);
     if (val !== undefined && val > 0) plan.isaBalance = val;
@@ -100,29 +117,12 @@ export function parseTextPlanFallback(text: string): ExtractedPlan {
     if (val !== undefined && val > 0) plan.isaMonthlyContribution = val;
   }
 
-  // SIPP / Pension Balance & Monthly Contribution
-  const sippMatch =
-    cleaned.match(/\b(?:sipp|pension|workplace pension|personal pension|401k|ira)\b[^\d]*?([£$]?\d[\d,\.]*k?m?)/i) ||
-    cleaned.match(/([£$]?\d[\d,\.]*k?m?)[^\d]*?\b(?:sipp|pension|401k|ira)\b/i);
-  if (sippMatch) {
-    const val = parseAmount(sippMatch[2] || sippMatch[1]);
-    if (val !== undefined && val > 0) plan.sippBalance = val;
-  }
-
-  const sippContrib =
-    cleaned.match(/(?:sipp|pension)[^\d]*?([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly)/i) ||
-    cleaned.match(/([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly)[^\d]*?(?:sipp|pension)/i);
-  if (sippContrib) {
-    const val = parseAmount(sippContrib[1]);
-    if (val !== undefined && val > 0) plan.sippMonthlyContribution = val;
-  }
-
-  // GIA / Taxable Brokerage Balance & Monthly Contribution
+  // GIA / Taxable Brokerage Balance & Monthly Contribution (Non-ISA Savings, Personal Portfolio)
   const giaMatch =
-    cleaned.match(/\b(?:gia|taxable|brokerage|general investment account|cuenta valores)\b[^\d]*?([£$]?\d[\d,\.]*k?m?)/i) ||
-    cleaned.match(/([£$]?\d[\d,\.]*k?m?)[^\d]*?\b(?:gia|taxable|brokerage)\b/i);
+    cleaned.match(/\b(?:non-isa|personal portfolio|gia|taxable|brokerage|general investment account|cuenta valores)\b[^\d]*?([£$]?\d[\d,\.]*k?m?)/i) ||
+    cleaned.match(/([£$]?\d[\d,\.]*k?m?)[^\d]*?\b(?:non-isa|personal portfolio|gia|taxable|brokerage)\b/i);
   if (giaMatch) {
-    const val = parseAmount(giaMatch[2] || giaMatch[1]);
+    const val = parseAmount(giaMatch[1] || giaMatch[2]);
     if (val !== undefined && val > 0) plan.giaBalance = val;
   }
 

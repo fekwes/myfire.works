@@ -56,11 +56,17 @@ const PLAN_SCHEMA = {
   },
 };
 
-const SYSTEM_INSTRUCTION = `You are a financial data extractor. Extract the user's financial plan figures from the provided text, spreadsheet cells, statement PDF, or screenshot.
-Identify current age, target retirement age, target annual income, balances, monthly contributions, and holdings for each wrapper: ISA, SIPP (pension), and GIA (General Investment Account), plus home value, rental property details, and part-time income.
-Only extract facts explicitly stated. Do not estimate, guess, or invent numbers not present.
-If a holding list is provided for a wrapper, classify each holding (assetClass, ocf, weight).
-Output the extracted JSON matching the schema.`;
+const SYSTEM_INSTRUCTION = `You are an expert UK financial data extractor. Extract the user's financial plan figures from the provided text, statement PDF, image, or spreadsheet.
+Identify wrapper balances, monthly contributions, and holdings:
+- ISA / Stocks & Shares ISA -> isaBalance
+- SIPP / Personal Pension / Workplace Pension / NPR -> sippBalance
+- GIA / Non-ISA Savings / Personal Portfolio / Taxable Account -> giaBalance
+- Primary Home Property Value -> homeValue
+- Rental Property Value & Rent -> rentalValue, rentalMonthlyIncome
+- Part-time / Side Income -> partTimeAnnualIncome
+- Target Annual Income, Current Age, Target Retirement Age if present.
+For statements (e.g. Vanguard UK, Hargreaves Lansdown, AJ Bell, Fidelity), inspect the portfolio valuation by wrapper summary tables and pie charts to extract the exact total balances for each wrapper.
+Only extract facts explicitly stated. Do not invent numbers. Output the extracted JSON matching the schema.`;
 
 export async function POST(request: Request) {
   let body;

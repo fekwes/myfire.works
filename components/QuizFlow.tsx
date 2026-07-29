@@ -161,7 +161,23 @@ export function QuizFlow() {
               </div>
             )}
             {importError && (
-              <p className="text-xs text-danger font-medium">{importError}</p>
+              <div className="rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger space-y-2">
+                <p className="font-medium">{importError}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setState((s) => ({
+                      ...s,
+                      savingsProvided: true,
+                      importedPlan: s.importedPlan ?? {},
+                    }));
+                    setStep(4);
+                  }}
+                  className="block font-semibold underline hover:text-foreground transition-colors"
+                >
+                  👉 Continue to enter your figures manually in Asset Review →
+                </button>
+              </div>
             )}
             <div className="pt-2 text-center">
               <button
