@@ -159,7 +159,27 @@ export async function POST(request: Request) {
     const text = response.text;
     if (!text) throw new Error("Empty response from AI");
 
-    const parsedPlan = JSON.parse(text);
+    const cleanedText = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+    let parsedPlan: Record<string, unknown> = {};
+    try {
+      parsedPlan = JSON.parse(cleanedText);
+    } catch {
+      const match = cleanedText.match(/\{[\s\S]*\}/);
+      if (match) {
+        parsedPlan = JSON.parse(match[0]);
+      }
+    }
+
+    // Convert stringified numbers e.g. "337856.14" to Numbers
+    for (const [key, val] of Object.entries(parsedPlan)) {
+      if (typeof val === "string") {
+        const num = parseFloat(val.replace(/[,£$]/g, ""));
+        if (!isNaN(num)) {
+          parsedPlan[key] = num;
+        }
+      }
+    }
+
     // If AI returns empty plan but combinedText exists, attempt rule-based extraction
     const hasNumbers = Object.values(parsedPlan).some((v) => typeof v === "number" && v > 0);
     if (!hasNumbers && combinedText) {
