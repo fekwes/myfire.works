@@ -98,8 +98,8 @@ export function parseTextPlanFallback(text: string): ExtractedPlan {
         const sameLineMatches = line.match(/(?:[£$]\s*)?\b\d[\d,]*(?:\.\d+)?[kKmM]?\b/g);
         if (sameLineMatches) {
           for (const m of sameLineMatches) {
-            const isAccountNo = !m.includes("£") && !m.includes("$") && !m.includes(".") && /^\d{7,10}$/.test(m.replace(/[,]/g, ""));
-            if (isAccountNo) continue;
+            const isYearOrAccountNo = !m.includes("£") && !m.includes("$") && !m.includes(".") && (/^\d{7,10}$/.test(m.replace(/[,]/g, "")) || /^(?:19\d\d|20\d\d)$/.test(m));
+            if (isYearOrAccountNo) continue;
             const val = parseAmount(m);
             if (val !== undefined && val >= 50 && val < 50_000_000) {
               return val;
@@ -128,8 +128,8 @@ export function parseTextPlanFallback(text: string): ExtractedPlan {
         const moneyMatches = windowText.match(/(?:[£$]\s*)?\b\d[\d,]*(?:\.\d+)?[kKmM]?\b/g);
         if (moneyMatches) {
           for (const m of moneyMatches) {
-            const isAccountNo = !m.includes("£") && !m.includes("$") && !m.includes(".") && /^\d{7,10}$/.test(m.replace(/[,]/g, ""));
-            if (isAccountNo) continue;
+            const isYearOrAccountNo = !m.includes("£") && !m.includes("$") && !m.includes(".") && (/^\d{7,10}$/.test(m.replace(/[,]/g, "")) || /^(?:19\d\d|20\d\d)$/.test(m));
+            if (isYearOrAccountNo) continue;
             const val = parseAmount(m);
             if (val !== undefined && val >= 50 && val < 50_000_000) {
               return val;
@@ -148,14 +148,18 @@ export function parseTextPlanFallback(text: string): ExtractedPlan {
   plan.sippBalance = extractWrapperBalanceNearKeyword(cleaned, [
     "vanguard personal pension",
     "personal pension",
+    "self-invested personal pension",
     "sipp",
     "workplace pension",
+    "drawdown pension",
+    "drawdown sipp",
+    "stakeholder pension",
     "npr",
   ]);
 
   for (const line of lines) {
-    if (/\b(?:sipp|pension)\b/i.test(line)) {
-      const idx = line.search(/\b(?:sipp|pension)\b/i);
+    if (/\b(?:sipp|pension|npr|wpp)\b/i.test(line)) {
+      const idx = line.search(/\b(?:sipp|pension|npr|wpp)\b/i);
       const subLine = idx >= 0 ? line.slice(idx) : line;
       const match = subLine.match(/(?:contrib|put in|pay|add|deposit|monthly|\b)?\s*?([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly|\/month)/i);
       if (match) {
@@ -172,13 +176,19 @@ export function parseTextPlanFallback(text: string): ExtractedPlan {
   plan.isaBalance = extractWrapperBalanceNearKeyword(cleaned, [
     "stocks/shares isa",
     "stocks and shares isa",
+    "stocks & shares isa",
+    "stocks/shares",
     "s&s isa",
+    "lifetime isa",
+    "cash isa",
+    "junior isa",
+    "lisa",
     "isa",
   ]);
 
   for (const line of lines) {
-    if (/\b(?:isa|stocks\/shares)\b/i.test(line) && !line.includes("non-isa")) {
-      const idx = line.search(/\b(?:isa|stocks\/shares)\b/i);
+    if (/\b(?:isa|stocks\/shares|lisa|jisa)\b/i.test(line) && !line.includes("non-isa")) {
+      const idx = line.search(/\b(?:isa|stocks\/shares|lisa|jisa)\b/i);
       const subLine = idx >= 0 ? line.slice(idx) : line;
       const match = subLine.match(/(?:contrib|put in|pay|add|deposit|monthly|\b)?\s*?([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly|\/month)/i);
       if (match) {
@@ -194,16 +204,25 @@ export function parseTextPlanFallback(text: string): ExtractedPlan {
   // GIA / Taxable Brokerage Balance & Monthly Contribution (Non-ISA Savings, Personal Portfolio)
   plan.giaBalance = extractWrapperBalanceNearKeyword(cleaned, [
     "personal portfolio",
+    "non-isa savings (cgt)",
+    "non-isa since 2025",
+    "non-isa savings",
     "non-isa",
-    "gia",
-    "taxable",
     "general investment account",
     "fund & share account",
+    "fund and share account",
+    "dealing account",
+    "trading account",
+    "investment account",
+    "taxable account",
+    "taxable brokerage",
+    "gia",
+    "taxable",
   ]);
 
   for (const line of lines) {
-    if (/\b(?:gia|taxable|brokerage|personal portfolio|general investment account|fund & share account)\b/i.test(line)) {
-      const idx = line.search(/\b(?:gia|taxable|brokerage|personal portfolio|general investment account|fund & share account)\b/i);
+    if (/\b(?:gia|taxable|brokerage|personal portfolio|general investment account|fund & share account|fund and share account|dealing account|trading account|investment account)\b/i.test(line)) {
+      const idx = line.search(/\b(?:gia|taxable|brokerage|personal portfolio|general investment account|fund & share account|fund and share account|dealing account|trading account|investment account)\b/i);
       const subLine = idx >= 0 ? line.slice(idx) : line;
       const match = subLine.match(/(?:contrib|put in|pay|add|deposit|monthly|\b)?\s*?([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly|\/month)/i);
       if (match) {

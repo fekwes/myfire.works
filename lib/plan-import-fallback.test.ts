@@ -61,4 +61,48 @@ describe("parseTextPlanFallback UK Broker Statements", () => {
     expect(plan.sippBalance).toBe(337856.14);
     expect(plan.isaBalance).toBe(166720.37);
   });
+
+  it("extracts Fidelity UK statements with Workplace Pension, Stocks & Shares ISA, and Investment Account", () => {
+    const fidelityStatement = `
+      Fidelity Personal Investing Portfolio Valuation
+      Account Overview:
+      Workplace Pension: £185,000.00
+      Stocks and Shares ISA: £92,000.00
+      Investment Account: £34,500.00
+    `;
+
+    const plan = parseTextPlanFallback(fidelityStatement);
+    expect(plan.sippBalance).toBe(185000);
+    expect(plan.isaBalance).toBe(92000);
+    expect(plan.giaBalance).toBe(34500);
+  });
+
+  it("extracts Interactive Investor statements with SIPP, Trading ISA, and Trading Account", () => {
+    const iiStatement = `
+      Interactive Investor Portfolio Statement
+      Self-Invested Personal Pension: £295,000.00
+      Stocks and Shares ISA: £140,000.00
+      Trading Account: £65,000.00
+    `;
+
+    const plan = parseTextPlanFallback(iiStatement);
+    expect(plan.sippBalance).toBe(295000);
+    expect(plan.isaBalance).toBe(140000);
+    expect(plan.giaBalance).toBe(65000);
+  });
+
+  it("extracts modern Vanguard UK terms including Non-ISA Since 2025", () => {
+    const modernVanguardText = `
+      Vanguard Investor Summary
+      Vanguard Personal Pension £210,000.00
+      Stocks & Shares ISA £80,000.00
+      Non-ISA Since 2025 £45,000.00
+    `;
+
+    const plan = parseTextPlanFallback(modernVanguardText);
+    expect(plan.sippBalance).toBe(210000);
+    expect(plan.isaBalance).toBe(80000);
+    expect(plan.giaBalance).toBe(45000);
+  });
 });
+
