@@ -50,6 +50,7 @@ export function FinancesPanel() {
   };
 
   const [importing, setImporting] = useState(false);
+  const [importSuccessMsg, setImportSuccessMsg] = useState<string | null>(null);
 
   return (
     <div className="space-y-5">
@@ -74,7 +75,10 @@ export function FinancesPanel() {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => setImporting(!importing)}
+              onClick={() => {
+                setImporting(!importing);
+                setImportSuccessMsg(null);
+              }}
               className="gap-2 text-brand"
             >
               <Sparkles className="size-4" />
@@ -85,14 +89,33 @@ export function FinancesPanel() {
         </div>
       </Card>
 
+      {importSuccessMsg && (
+        <div className="rounded-xl border border-success/30 bg-success/10 p-4 text-sm text-success font-medium flex items-center justify-between">
+          <span>✨ {importSuccessMsg}</span>
+          <button
+            type="button"
+            onClick={() => setImportSuccessMsg(null)}
+            className="text-xs text-muted-foreground hover:text-foreground underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {importing && (
         <Card padding="lg" className="border-brand/30 bg-brand/5 shadow-sm">
           <PlanImport
             onImport={(plan) => {
-              // Merge the imported figures with existing inputs,
-              // preserving fields the AI doesn't extract (like ages).
-              setInputs({ ...inputs, ...plan });
+              // Merge imported figures directly with existing inputs and update the finances form
+              setInputs({
+                ...inputs,
+                ...plan,
+                pots: plan.pots ?? inputs.pots,
+              });
               setImporting(false);
+              setImportSuccessMsg(
+                "Your plan was imported with AI! Asset balances and contributions have been updated directly in your finances below."
+              );
             }}
             onCancel={() => setImporting(false)}
           />
