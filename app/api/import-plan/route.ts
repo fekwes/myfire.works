@@ -1,9 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { NextResponse } from "next/server";
-import { AI_QUOTA_MESSAGE, isQuotaExhausted } from "@/lib/ai-errors";
 import { checkInOrder, clientIp, createRateLimiter } from "@/lib/rate-limit";
 import { ASSET_CLASSES } from "@/lib/portfolio-import";
 import { generateContentWithFallback } from "@/lib/ai-runner";
+import { parseTextPlanFallback } from "@/lib/plan-import-fallback";
 
 export const runtime = "nodejs";
 
@@ -57,22 +57,6 @@ If a holding list is provided for a wrapper, classify each holding (assetClass, 
 Never set a growth rate, inflation rate, return, or age. Just output the extracted JSON matching the schema.`;
 
 export async function POST(request: Request) {
-  const retryAfter = limited(request);
-  if (retryAfter !== null) {
-    return NextResponse.json(
-      { error: "AI import is busy — please enter your figures instead." },
-      { status: 429, headers: { "Retry-After": String(retryAfter) } },
-    );
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "AI import isn't enabled on this server." },
-      { status: 503 },
-    );
-  }
-
   let body;
   try {
     body = await request.json();
@@ -80,27 +64,39 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  const textInput = typeof body.text === "string" ? body.text.trim() : "";
+  const retryAfter = limited(request);
+  const apiKey =
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GOOGLE_GEMINI_API_KEY ||
+    process.env.GEMINI_KEY ||
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+  if (retryAfter !== null || !apiKey) {
+    if (textInput) {
+      const fallbackPlan = parseTextPlanFallback(textInput);
+      if (Object.keys(fallbackPlan).length > 0) {
+        return NextResponse.json({ plan: fallbackPlan });
+      }
+    }
+    return NextResponse.json(
+      { error: "Couldn't extract plan from the input — check the format and try again." },
+      { status: 422 },
+    );
+  }
 
   // Build a proper parts array for the Gemini SDK.
-  // The SDK's `contents` field accepts a string (single text turn) OR an array
-  // of Content objects with role + parts. When mixing text and inline files we
-  // must use the parts form.
   const parts: Array<{ text: string } | { inlineData: { data: string; mimeType: string } }> = [];
 
-  if (body.text) {
-    const trimmed = String(body.text).trim();
-    if (trimmed.length < 3) {
-      return NextResponse.json({ error: "Please paste your statement or figures first." }, { status: 400 });
-    }
-    if (trimmed.length > 20000) {
+  if (textInput) {
+    if (textInput.length > 20000) {
       return NextResponse.json({ error: "Text is too long." }, { status: 413 });
     }
-    parts.push({ text: trimmed });
+    parts.push({ text: textInput });
   }
 
   if (body.file && typeof body.file === "object" && typeof body.file.data === "string") {
-    // 5MB max base64
     if (body.file.data.length > 5 * 1024 * 1024 * 1.4) {
       return NextResponse.json({ error: "File is too large." }, { status: 413 });
     }
@@ -110,7 +106,6 @@ export async function POST(request: Request) {
         mimeType: body.file.mimeType ?? "application/pdf",
       },
     });
-    // Add a text prompt alongside the file so the model knows what to do
     if (parts.length === 1) {
       parts.unshift({ text: "Extract the financial plan figures from this document." });
     }
@@ -119,6 +114,8 @@ export async function POST(request: Request) {
   if (parts.length === 0) {
     return NextResponse.json({ error: "No content provided." }, { status: 400 });
   }
+
+  const ai = new GoogleGenAI({ apiKey });
 
   try {
     const response = await generateContentWithFallback(
@@ -140,13 +137,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ plan: JSON.parse(text) });
   } catch (err) {
-    if (isQuotaExhausted(err)) {
-      return NextResponse.json({ error: AI_QUOTA_MESSAGE }, { status: 429 });
+    console.warn("AI import failed, attempting rule-based fallback:", err);
+    if (textInput) {
+      const fallbackPlan = parseTextPlanFallback(textInput);
+      if (Object.keys(fallbackPlan).length > 0) {
+        return NextResponse.json({ plan: fallbackPlan });
+      }
     }
-    console.error("AI import failed:", err);
     return NextResponse.json(
-      { error: "Failed to extract plan from the input." },
-      { status: 500 },
+      { error: "Couldn't extract plan from the input — check the format and try again." },
+      { status: 422 },
     );
   }
 }
