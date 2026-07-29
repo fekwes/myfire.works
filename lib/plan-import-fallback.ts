@@ -201,7 +201,7 @@ export function parseTextPlanFallback(text: string): ExtractedPlan {
     }
   }
 
-  // GIA / Taxable Brokerage Balance & Monthly Contribution (Non-ISA Savings, Personal Portfolio)
+  // GIA / Taxable Brokerage Balance & Monthly Contribution (Non-ISA Savings, Personal Portfolio, Cash Accounts)
   plan.giaBalance = extractWrapperBalanceNearKeyword(cleaned, [
     "personal portfolio",
     "non-isa savings (cgt)",
@@ -216,6 +216,11 @@ export function parseTextPlanFallback(text: string): ExtractedPlan {
     "investment account",
     "taxable account",
     "taxable brokerage",
+    "unwrapped account",
+    "brokerage account",
+    "cash savings pot",
+    "cash savings",
+    "current account",
     "gia",
     "taxable",
   ]);

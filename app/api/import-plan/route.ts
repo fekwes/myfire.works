@@ -31,7 +31,6 @@ const HOLDING_SCHEMA = {
     ocf: { type: Type.NUMBER },
     weight: { type: Type.NUMBER },
   },
-  required: ["label", "assetClass", "ocf", "weight"],
 };
 
 const PLAN_SCHEMA = {
@@ -58,17 +57,20 @@ const PLAN_SCHEMA = {
   },
 };
 
-const SYSTEM_INSTRUCTION = `You are an expert UK financial data extractor. Extract the user's financial plan figures from the provided text, statement PDF, image, or spreadsheet.
-Identify wrapper balances, monthly contributions, and holdings:
-- SIPP / Personal Pension / Vanguard Personal Pension / Workplace Pension / NPR / Self-Invested Personal Pension / Drawdown Pension -> sippBalance
-- ISA / Stocks/Shares ISA / Stocks & Shares ISA / S&S ISA / Lifetime ISA / Cash ISA -> isaBalance
-- GIA / General Investment Account / Personal Portfolio / Non-ISA Savings (CGT) / Non-ISA Since 2025 / Fund & Share Account / Dealing Account / Investment Account / Trading Account / Taxable Account -> giaBalance
-- Primary Home Property Value -> homeValue
-- Rental Property Value & Rent -> rentalValue, rentalMonthlyIncome
-- Part-time / Side Income -> partTimeAnnualIncome
+const SYSTEM_INSTRUCTION = `You are a universal UK financial statement data extractor. Extract account wrapper balances, monthly contributions, and holdings from any UK bank or investment broker statement (PDF, screenshot, spreadsheet, or text paste).
+
+Map extracted totals accurately:
+- SIPP / Pension (SIPP, Personal Pension, Workplace Pension, Vanguard Personal Pension, NPR, Group Pension, Stakeholder Pension, Drawdown Account, Executive Pension, 401k, IRA) -> sippBalance
+- ISA (Stocks & Shares ISA, Stocks/Shares ISA, S&S ISA, ISA, Flexible ISA, Cash ISA, Lifetime ISA, LISA, Junior ISA, JISA) -> isaBalance
+- GIA / Taxable / Cash Savings (Personal Portfolio, General Investment Account, GIA, Non-ISA Savings, Non-ISA Since 2025, Fund & Share Account, Dealing Account, Trading Account, Investment Account, Unwrapped Account, Brokerage, Current Account, Cash Savings Pot) -> giaBalance
+- Primary Residence / Home Property -> homeValue
+- Rental Property Value & Monthly Rent -> rentalValue, rentalMonthlyIncome
+- Part-time / Side Hustle Annual Income -> partTimeAnnualIncome
 - Target Annual Income, Current Age, Target Retirement Age if present.
-For statements (e.g. Vanguard UK, Hargreaves Lansdown, AJ Bell, Fidelity, Interactive Investor), inspect the portfolio valuation by wrapper summary tables and pie charts to extract the exact total balances for each wrapper.
-Only extract facts explicitly stated. Do not invent numbers. Output the extracted JSON matching the schema.`;
+
+Inspect valuation summary tables, portfolio breakdown pie charts, and account summaries.
+Do NOT extract 8-digit account numbers, sort codes, policy numbers, or ISIN codes as monetary values.
+Only output explicit numerical facts. Output the JSON matching the schema.`;
 
 export async function POST(request: Request) {
   let body;

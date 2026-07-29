@@ -104,5 +104,33 @@ describe("parseTextPlanFallback UK Broker Statements", () => {
     expect(plan.isaBalance).toBe(80000);
     expect(plan.giaBalance).toBe(45000);
   });
+
+  it("extracts Nutmeg & digital wealth manager portfolios", () => {
+    const nutmegText = `
+      Nutmeg Portfolio Summary
+      Personal Pension Pot: £120,000.00
+      Stocks & Shares ISA: £65,000.00
+      Unwrapped Account: £25,000.00
+    `;
+
+    const plan = parseTextPlanFallback(nutmegText);
+    expect(plan.sippBalance).toBe(120000);
+    expect(plan.isaBalance).toBe(65000);
+    expect(plan.giaBalance).toBe(25000);
+  });
+
+  it("extracts UK Bank cash savings & current account balances", () => {
+    const bankStatementText = `
+      Barclays / Monzo Account Overview
+      Cash ISA: £20,000.00
+      Cash Savings Pot: £15,000.00
+      Workplace Pension: £110,000.00
+    `;
+
+    const plan = parseTextPlanFallback(bankStatementText);
+    expect(plan.isaBalance).toBe(20000);
+    expect(plan.giaBalance).toBe(15000);
+    expect(plan.sippBalance).toBe(110000);
+  });
 });
 
