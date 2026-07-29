@@ -267,18 +267,43 @@ export function parseTextPlanFallback(text: string): ExtractedPlan {
     if (val !== undefined && val > 0) plan.partTimeAnnualIncome = val * 12;
   }
 
-  // Pension Access Age
-  const accessAgeMatch = cleaned.match(/(?:pension access|sipp access|access age)[^\d]*?(\d{2})\b/i);
-  if (accessAgeMatch) {
-    const age = parseInt(accessAgeMatch[1], 10);
-    if (age >= 50 && age <= 68) plan.sippAccessAge = age;
-  }
+  // Backup Math Engine: Pie Chart Percentage Allocation Calculation
+  // If direct wrapper balances are missing but Total Portfolio Value + % splits exist:
+  const totalPortfolioMatch = cleaned.match(/(?:total portfolio value|total portfolio|portfolio valuation)[^\d]*?([£$]?\d[\d,\.]{4,15})/i);
+  if (totalPortfolioMatch) {
+    const totalVal = parseAmount(totalPortfolioMatch[1]);
+    if (totalVal && totalVal > 1000) {
+      // 1. SIPP / Pension % Match e.g. "Vanguard Personal Pension 48.18%" or "48.18%"
+      if (!plan.sippBalance) {
+        const pensionPctMatch = cleaned.match(/(?:vanguard personal pension|personal pension|sipp|npr)[^\d%]*?(\d{1,2}\.\d{1,2})\s*%/i);
+        if (pensionPctMatch) {
+          const pct = parseFloat(pensionPctMatch[1]);
+          if (!isNaN(pct) && pct > 0) plan.sippBalance = Math.round((totalVal * (pct / 100)) * 100) / 100;
+        }
+      }
 
-  // State Pension Age
-  const statePensionMatch = cleaned.match(/(?:state pension age|state pension)[^\d]*?(\d{2})\b/i);
-  if (statePensionMatch) {
-    const age = parseInt(statePensionMatch[1], 10);
-    if (age >= 60 && age <= 70) plan.statePensionAge = age;
+      // 2. ISA % Match e.g. "ISA 23.77%" or "Stocks & Shares ISA 23.77%"
+      if (!plan.isaBalance) {
+        const isaPctMatch = cleaned.match(/\bisa[^\d%]*?(\d{1,2}\.\d{1,2})\s*%/i);
+        if (isaPctMatch) {
+          const pct = parseFloat(isaPctMatch[1]);
+          if (!isNaN(pct) && pct > 0) plan.isaBalance = Math.round((totalVal * (pct / 100)) * 100) / 100;
+        }
+      }
+
+      // 3. GIA / Non-ISA % Matches e.g. "Non-ISA Savings 18.13%", "Non-ISA Since 2025 9.92%"
+      if (!plan.giaBalance) {
+        const giaPctMatches = Array.from(cleaned.matchAll(/(?:non-isa|personal portfolio|gia|taxable)[^%\n]{1,60}?(\d{1,2}\.\d{1,2})\s*%/gi));
+        if (giaPctMatches.length > 0) {
+          let sumPct = 0;
+          for (const m of giaPctMatches) {
+            const pct = parseFloat(m[1]);
+            if (!isNaN(pct)) sumPct += pct;
+          }
+          if (sumPct > 0) plan.giaBalance = Math.round((totalVal * (sumPct / 100)) * 100) / 100;
+        }
+      }
+    }
   }
 
   return plan;

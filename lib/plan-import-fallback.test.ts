@@ -132,5 +132,21 @@ describe("parseTextPlanFallback UK Broker Statements", () => {
     expect(plan.giaBalance).toBe(15000);
     expect(plan.sippBalance).toBe(110000);
   });
+
+  it("calculates wrapper balances mathematically from Product Wrapper Allocation pie chart percentages", () => {
+    const pieChartText = `
+      Total Portfolio Value: £701,293.56
+      Product Wrapper Allocation:
+      Vanguard Personal Pension: 48.18%
+      ISA: 23.77%
+      Non-ISA Savings (CGT): 18.13%
+      Non-ISA Since 2025 (CGT): 9.92%
+    `;
+
+    const plan = parseTextPlanFallback(pieChartText);
+    expect(plan.sippBalance).toBeCloseTo(337883.24, 0);
+    expect(plan.isaBalance).toBeCloseTo(166697.48, 0);
+    expect(plan.giaBalance).toBeCloseTo(196712.84, 0);
+  });
 });
 

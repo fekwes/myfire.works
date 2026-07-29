@@ -68,6 +68,9 @@ Map extracted totals accurately:
 - Part-time / Side Hustle Annual Income -> partTimeAnnualIncome
 - Target Annual Income, Current Age, Target Retirement Age if present.
 
+PIE CHARTS & PERCENTAGE BREAKDOWNS:
+If the document includes a Product Wrapper Allocation pie chart or table listing percentage splits (e.g. Personal Pension 48.18%, ISA 23.77%, Non-ISA Savings 18.13%, Non-ISA Since 2025 9.92%) and a Total Portfolio Value (e.g. £701,293.56), multiply the total portfolio value by each wrapper percentage to calculate the exact balances for sippBalance, isaBalance, and giaBalance!
+
 Inspect valuation summary tables, portfolio breakdown pie charts, and account summaries.
 Do NOT extract 8-digit account numbers, sort codes, policy numbers, or ISIN codes as monetary values.
 Only output explicit numerical facts. Output the JSON matching the schema.`;
