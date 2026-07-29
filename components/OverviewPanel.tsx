@@ -45,8 +45,58 @@ export function OverviewPanel({
   const mc = useMemo(() => runMonteCarlo(inputs, { equityFraction: eq }), [inputs, eq]);
   const flatStrat = mc.strategies.find((st) => st.key === "flat");
 
+  const mcWithExtra = useMemo(() => {
+    if (!req || req.extraNeeded <= 0) return null;
+    const currentIsa = inputs.pots?.isa?.monthlyContribution ?? (inputs as unknown as Record<string, number>).isaMonthlyContribution ?? 0;
+    const currentSipp = inputs.pots?.sipp?.monthlyContribution ?? (inputs as unknown as Record<string, number>).sippMonthlyContribution ?? 0;
+    const extraInputs = {
+      ...inputs,
+      isaMonthlyContribution: currentIsa + (req.extraIsaGia ?? 0),
+      sippMonthlyContribution: currentSipp + (req.extraSipp ?? 0),
+      pots: inputs.pots
+        ? {
+            ...inputs.pots,
+            isa: {
+              ...(inputs.pots.isa ?? { balance: 0, monthlyContribution: 0 }),
+              monthlyContribution: currentIsa + (req.extraIsaGia ?? 0),
+            },
+            sipp: {
+              ...(inputs.pots.sipp ?? { balance: 0, monthlyContribution: 0 }),
+              monthlyContribution: currentSipp + (req.extraSipp ?? 0),
+            },
+          }
+        : undefined,
+    };
+    return runMonteCarlo(extraInputs, { equityFraction: eq });
+  }, [inputs, req, eq]);
+
+  const extraFlatStrat = mcWithExtra?.strategies.find((st) => st.key === "flat");
+
   const sippAccessAge = inputs.sippAccessAge ?? 57;
   const hasBridge = inputs.retirementAge < sippAccessAge;
+
+  const renderConfidenceBadge = (rate: number, labelSuffix?: string) => {
+    const pct = Math.round(rate * 100);
+    if (rate >= 0.8) {
+      return (
+        <span className="font-semibold text-success inline-flex items-center gap-1">
+          {pct}% {labelSuffix ?? "Healthy"}
+        </span>
+      );
+    }
+    if (rate >= 0.5) {
+      return (
+        <span className="font-semibold text-amber-400 inline-flex items-center gap-1">
+          {pct}% Moderate Risk
+        </span>
+      );
+    }
+    return (
+      <span className="font-semibold text-danger inline-flex items-center gap-1">
+        {pct}% ⚠️ Action Needed
+      </span>
+    );
+  };
 
   return (
     <Card id="overview" padding="md">
@@ -124,10 +174,18 @@ export function OverviewPanel({
                     </div>
                   )}
                   {flatStrat && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Confidence</span>
-                      <span className="font-medium tabular text-foreground">
-                        {Math.round(flatStrat.successRate * 100)}% ({mc.startAge}–{mc.endAge})
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Baseline Confidence</span>
+                      <span className="font-medium tabular">
+                        {renderConfidenceBadge(flatStrat.successRate)}
+                      </span>
+                    </div>
+                  )}
+                  {extraFlatStrat && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">With Extra Savings</span>
+                      <span className="font-medium tabular">
+                        {renderConfidenceBadge(extraFlatStrat.successRate, "Target")}
                       </span>
                     </div>
                   )}
@@ -139,10 +197,10 @@ export function OverviewPanel({
                     <span className="font-medium tabular text-success">+{formatReal(fn.surplus)}</span>
                   </div>
                   {flatStrat && (
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Confidence</span>
-                      <span className="font-medium tabular text-foreground">
-                        {Math.round(flatStrat.successRate * 100)}% ({mc.startAge}–{mc.endAge})
+                      <span className="font-medium tabular">
+                        {renderConfidenceBadge(flatStrat.successRate)}
                       </span>
                     </div>
                   )}

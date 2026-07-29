@@ -143,7 +143,7 @@ export function QuizFlow() {
         <StepShell
           key="import"
           heading="Import your plan with AI"
-          helper="Paste a description of your savings, pensions, property, or drop a statement. Our AI will automatically parse your figures."
+          helper="Paste a description of your savings, pensions, property, or drop statements (CSV, PDF, photos). You can mention specific funds (e.g. Vanguard FTSE Global All Cap, HSBC FTSE 250), balances, or contributions for the tool to factor it all."
           why="Listing your actual savings, pensions, and income sources allows the engine to accurately project your FIRE timeline."
           onBack={back}
         >
@@ -152,7 +152,7 @@ export function QuizFlow() {
               busy={importing}
               onPayload={handlePayload}
               onError={setImportError}
-              placeholder="e.g. I have £35k in my Stocks & Shares ISA (adding £500/mo), £150k in a workplace SIPP (adding £1,000/mo), £20k GIA, £450k home value, and £800/mo rental income..."
+              placeholder="e.g. I have £35k in Stocks & Shares ISA in Vanguard FTSE Global All Cap (adding £500/mo), £150k SIPP in HSBC FTSE 250 (adding £1,000/mo), £20k GIA, £450k home value, and £800/mo rental income..."
             />
             {importing && (
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground animate-pulse py-2">
@@ -169,15 +169,14 @@ export function QuizFlow() {
                 onClick={() => {
                   setState((s) => ({
                     ...s,
-                    savings: 0,
-                    savingsProvided: false,
-                    importedPlan: undefined,
+                    savingsProvided: true,
+                    importedPlan: s.importedPlan ?? {},
                   }));
-                  setStep(REVEAL_STEP);
+                  setStep(4);
                 }}
-                className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                className="text-xs font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
               >
-                Skip for now
+                Skip AI & enter assets manually →
               </button>
             </div>
           </div>

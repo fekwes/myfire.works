@@ -345,7 +345,7 @@ export function PlanImport({
         onError={setError}
         placeholder={
           placeholder ??
-          "e.g. I have £35k in my Stocks & Shares ISA (adding £500/mo), £150k in a workplace SIPP (adding £1,000/mo), £20k GIA, £450k home value, and £800/mo rental income..."
+          "e.g. I have £35k in Stocks & Shares ISA in Vanguard FTSE Global All Cap (adding £500/mo), £150k SIPP in HSBC FTSE 250 (adding £1,000/mo), £20k GIA, £450k home value, and £800/mo rental income..."
         }
       />
 
