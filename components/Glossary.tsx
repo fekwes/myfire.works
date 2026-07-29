@@ -9,12 +9,20 @@ import { useId } from "react";
  */
 export const GLOSSARY: Record<string, string> = {
   FIRE: "Financial Independence, Retire Early — having enough invested that work becomes optional.",
-  ISA: "Individual Savings Account — savings and investments you can withdraw 100% tax-free, at any age.",
-  SIPP: "Self-Invested Personal Pension — a private pension you control. Locked until 57, then 25% comes out tax-free.",
-  GIA: "General Investment Account — an ordinary, taxable investment account, used once ISA and pension allowances are full.",
-  CGT: "Capital Gains Tax — tax on investment profit above the £3,000 yearly exemption, paid in a GIA.",
+  ISA: "Individual Savings Account — UK tax-efficient account with 100% tax-free growth and withdrawals at any age.",
+  SIPP: "Self-Invested Personal Pension — UK private pension locked until age 57, then 25% comes out tax-free.",
+  GIA: "General Investment Account — ordinary UK taxable investment account used when tax shelters are maxed.",
+  "State Pension": "UK government pension paid starting at state pension age (currently age 67).",
+  "Roth IRA": "Roth Individual Retirement Account — US tax-advantaged account with tax-free growth and tax-free retirement withdrawals.",
+  "401(k)": "Employer-sponsored US retirement plan with tax-deferred growth, accessible penalty-free at age 59½.",
+  "Taxable Brokerage": "Standard US taxable investment account used for flexible liquidity prior to retirement access age.",
+  "Brokerage": "Standard US taxable investment account used for flexible liquidity prior to retirement access age.",
+  "Social Security": "US federal retirement benefit based on lifetime earnings and PIA bend point calculations.",
+  CGT: "Capital Gains Tax — tax on investment profits paid in taxable accounts.",
   "Coast FIRE":
     "Coast FIRE — you've already saved enough that growth alone reaches your target, so you could stop adding new money.",
+  "Barista FIRE":
+    "Barista FIRE — combining investment drawdowns with part-time work to transition into retirement earlier.",
 };
 
 /**

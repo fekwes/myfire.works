@@ -54,16 +54,28 @@ function getCompactFormatter(locale: string, currency: string): Intl.NumberForma
 
 // ---- public API ------------------------------------------------------- //
 
-export function formatCurrency(value: number, opts?: CurrencyOpts): string {
-  const locale = opts?.locale ?? "en-GB";
-  const currency = opts?.currency ?? "GBP";
-  const safeValue = Number.isFinite(value) ? value : 0;
-  return getFormatter(locale, currency).format(safeValue);
+function resolveCurrencySettings(currencyOrOpts?: string | CurrencyOpts, locale?: string) {
+  if (typeof currencyOrOpts === "object" && currencyOrOpts !== null) {
+    return {
+      locale: currencyOrOpts.locale ?? (currencyOrOpts.currency === "USD" ? "en-US" : "en-GB"),
+      currency: currencyOrOpts.currency ?? "GBP",
+    };
+  }
+
+  const resolvedCurrency = currencyOrOpts ?? "GBP";
+  const resolvedLocale = locale ?? (resolvedCurrency === "USD" ? "en-US" : "en-GB");
+
+  return { locale: resolvedLocale, currency: resolvedCurrency };
 }
 
-export function formatCurrencyCompact(value: number, opts?: CurrencyOpts): string {
-  const locale = opts?.locale ?? "en-GB";
-  const currency = opts?.currency ?? "GBP";
+export function formatCurrency(value: number, currencyOrOpts?: string | CurrencyOpts, locale?: string): string {
+  const { locale: resolvedLocale, currency: resolvedCurrency } = resolveCurrencySettings(currencyOrOpts, locale);
   const safeValue = Number.isFinite(value) ? value : 0;
-  return getCompactFormatter(locale, currency).format(safeValue);
+  return getFormatter(resolvedLocale, resolvedCurrency).format(safeValue);
+}
+
+export function formatCurrencyCompact(value: number, currencyOrOpts?: string | CurrencyOpts, locale?: string): string {
+  const { locale: resolvedLocale, currency: resolvedCurrency } = resolveCurrencySettings(currencyOrOpts, locale);
+  const safeValue = Number.isFinite(value) ? value : 0;
+  return getCompactFormatter(resolvedLocale, resolvedCurrency).format(safeValue);
 }
