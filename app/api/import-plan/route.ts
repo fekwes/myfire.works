@@ -35,6 +35,9 @@ const HOLDING_SCHEMA = {
 const PLAN_SCHEMA = {
   type: Type.OBJECT,
   properties: {
+    currentAge: { type: Type.NUMBER },
+    retirementAge: { type: Type.NUMBER },
+    targetAnnualIncome: { type: Type.NUMBER },
     isaBalance: { type: Type.NUMBER },
     isaMonthlyContribution: { type: Type.NUMBER },
     isaHoldings: { type: Type.ARRAY, items: HOLDING_SCHEMA },
@@ -47,14 +50,17 @@ const PLAN_SCHEMA = {
     homeValue: { type: Type.NUMBER },
     rentalValue: { type: Type.NUMBER },
     rentalMonthlyIncome: { type: Type.NUMBER },
+    partTimeAnnualIncome: { type: Type.NUMBER },
+    sippAccessAge: { type: Type.NUMBER },
+    statePensionAge: { type: Type.NUMBER },
   },
 };
 
 const SYSTEM_INSTRUCTION = `You are a financial data extractor. Extract the user's financial plan figures from the provided text, spreadsheet cells, statement PDF, or screenshot.
-Identify balances, monthly contributions, and holdings for each wrapper: ISA, SIPP (pension), and GIA (General Investment Account), plus home value and rental property details.
+Identify current age, target retirement age, target annual income, balances, monthly contributions, and holdings for each wrapper: ISA, SIPP (pension), and GIA (General Investment Account), plus home value, rental property details, and part-time income.
 Only extract facts explicitly stated. Do not estimate, guess, or invent numbers not present.
 If a holding list is provided for a wrapper, classify each holding (assetClass, ocf, weight).
-Never set a growth rate, inflation rate, return, or age. Just output the extracted JSON matching the schema.`;
+Output the extracted JSON matching the schema.`;
 
 export async function POST(request: Request) {
   let body;
