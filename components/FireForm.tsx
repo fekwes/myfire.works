@@ -46,6 +46,7 @@ interface FireFormProps {
   onChange: (inputs: FireInputs) => void;
   /** Which section is visible — the finances page shows one tab at a time. */
   activeSection: string;
+  highlightedFields?: Record<string, boolean>;
 }
 
 /**
@@ -79,11 +80,13 @@ function Tooltip({ text, label }: { text: string; label?: string }) {
 export function Field({
   label,
   tooltip,
+  highlighted,
   children,
   className,
 }: {
   label: string;
   tooltip?: string;
+  highlighted?: boolean;
   children: ReactNode;
   className?: string;
 }) {
@@ -92,8 +95,15 @@ export function Field({
       <span className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
         {label}
         {tooltip && <Tooltip text={tooltip} label={label} />}
+        {highlighted && (
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold text-primary animate-pulse">
+            Imported
+          </span>
+        )}
       </span>
-      {children}
+      <div className={highlighted ? "rounded-lg ring-2 ring-primary/60 bg-primary/5 p-0.5 transition-all duration-300" : ""}>
+        {children}
+      </div>
     </label>
   );
 }
@@ -342,7 +352,7 @@ function WrapperPortfolio({
   );
 }
 
-export function FireForm({ value, onChange, activeSection }: FireFormProps) {
+export function FireForm({ value, onChange, activeSection, highlightedFields }: FireFormProps) {
   const set = <K extends keyof FireInputs>(key: K, next: FireInputs[K]) =>
     onChange({ ...value, [key]: next });
 
@@ -473,14 +483,14 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
             />
           }
         >
-          <Field label="Current balance">
+          <Field label="Current balance" highlighted={highlightedFields?.isaBalance}>
             <NumberInput
               value={value.isaBalance}
               onChange={(v) => set("isaBalance", v)}
               prefix="£"
             />
           </Field>
-          <Field label="Monthly contribution">
+          <Field label="Monthly contribution" highlighted={highlightedFields?.isaMonthlyContribution}>
             <NumberInput
               value={value.isaMonthlyContribution}
               onChange={(v) => set("isaMonthlyContribution", v)}
@@ -504,7 +514,7 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
             />
           }
         >
-          <Field label="Current balance">
+          <Field label="Current balance" highlighted={highlightedFields?.sippBalance}>
             <NumberInput
               value={value.sippBalance}
               onChange={(v) => set("sippBalance", v)}
@@ -535,7 +545,7 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
             />
           }
         >
-          <Field label="Current balance">
+          <Field label="Current balance" highlighted={highlightedFields?.giaBalance}>
             <NumberInput
               value={num(value.giaBalance, 0)}
               onChange={(v) => set("giaBalance", v)}

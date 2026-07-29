@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { DropPasteInput, type ImportPlanData } from "@/components/DropPasteInput";
 import { FeeDragCard } from "@/components/FeeDragCard";
 import {
   FINANCE_SECTIONS,
@@ -27,6 +29,9 @@ export function FinancesPanel() {
   const { inputs, setInputs } = usePlan();
   const { configured, user } = useAuth();
   const [active, setActive] = useState<FinanceSectionId>("basics");
+  const [showImport, setShowImport] = useState(false);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
+  const [highlightedFields, setHighlightedFields] = useState<Record<string, boolean>>({});
 
   // Deep-link support: the dashboard checklist links to /finances#balances,
   // #funds, #scenario, etc. Select the matching tab on load and whenever the
@@ -45,6 +50,49 @@ export function FinancesPanel() {
     setActive(id);
     // Reflect the tab in the URL without scrolling the page.
     window.history.replaceState(null, "", `#${id}`);
+  };
+
+  const applyImportedPlan = (data: ImportPlanData) => {
+    const nextInputs = {
+      ...inputs,
+      isaBalance:
+        data.wrappers.isa !== null && data.wrappers.isa > 0
+          ? data.wrappers.isa
+          : inputs.isaBalance,
+      sippBalance:
+        data.wrappers.sipp !== null && data.wrappers.sipp > 0
+          ? data.wrappers.sipp
+          : inputs.sippBalance,
+      giaBalance:
+        data.wrappers.gia !== null && data.wrappers.gia > 0
+          ? data.wrappers.gia
+          : inputs.giaBalance,
+      isaMonthlyContribution:
+        data.wrappers.monthlyContribution !== null && data.wrappers.monthlyContribution > 0
+          ? data.wrappers.monthlyContribution
+          : inputs.isaMonthlyContribution,
+      sippMonthlyContribution:
+        data.wrappers.monthlyContribution !== null && data.wrappers.monthlyContribution > 0
+          ? data.wrappers.monthlyContribution
+          : inputs.sippMonthlyContribution,
+      giaMonthlyContribution:
+        data.wrappers.monthlyContribution !== null && data.wrappers.monthlyContribution > 0
+          ? data.wrappers.monthlyContribution
+          : inputs.giaMonthlyContribution ?? 0,
+    };
+
+    setInputs(nextInputs);
+    setHighlightedFields({
+      isaBalance: data.wrappers.isa !== null && data.wrappers.isa > 0,
+      isaMonthlyContribution:
+        data.wrappers.monthlyContribution !== null && data.wrappers.monthlyContribution > 0,
+      sippBalance: data.wrappers.sipp !== null && data.wrappers.sipp > 0,
+      sippMonthlyContribution:
+        data.wrappers.monthlyContribution !== null && data.wrappers.monthlyContribution > 0,
+      giaBalance: data.wrappers.gia !== null && data.wrappers.gia > 0,
+    });
+    setImportNotice(data.warning ?? null);
+    setShowImport(false);
   };
 
   return (
@@ -97,10 +145,39 @@ export function FinancesPanel() {
         <FinancesNav active={active} onSelect={selectSection} />
         <div className="min-w-0 space-y-5">
           <Card padding="lg">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  Import balances
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Paste a Vanguard-style statement or a free-text valuation to pre-fill the review fields.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowImport((value) => !value)}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+              >
+                <Sparkles className="size-3.5" />
+                {showImport ? "Hide importer" : "Import statement"}
+              </button>
+            </div>
+            {showImport && (
+              <div className="mb-4 rounded-lg border border-border bg-surface-muted p-3">
+                <DropPasteInput onPlanImported={applyImportedPlan} onClose={() => setShowImport(false)} />
+              </div>
+            )}
+            {importNotice && (
+              <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                {importNotice}
+              </div>
+            )}
             <FireForm
               value={inputs}
               onChange={setInputs}
               activeSection={active}
+              highlightedFields={highlightedFields}
             />
           </Card>
           <FeeDragCard />
