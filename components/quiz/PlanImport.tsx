@@ -6,14 +6,273 @@ import { DropPasteInput, type ImportPayload } from "@/components/DropPasteInput"
 import type { FireInputs } from "@/lib/fire-engine";
 import { sanitisePlanInput } from "@/lib/plan-storage";
 
+/** Profile fields to filter out so the review table focuses exclusively on financial assets & income */
+const FILTERED_PROFILE_FIELDS = new Set([
+  "currentAge",
+  "retirementAge",
+  "targetAnnualIncome",
+  "contributionsUntilAge",
+  "partTimeUntilAge",
+  "inflationRate",
+  "growthRate",
+  "isaGrowth",
+  "giaGrowth",
+  "sippGrowth",
+  "homeGrowth",
+  "rentalGrowth",
+  "downsizeAge",
+  "downsizeReleaseFraction",
+  "rentalSaleAge",
+  "statePensionAge",
+  "sippAccessAge",
+  "pensionStrategy",
+  "lifeExpectancyAge",
+  "statePensionAnnual",
+]);
+
+export interface DisplayField {
+  key: string;
+  label: string;
+  category: string;
+  val: number;
+  prefix?: string;
+  suffix?: string;
+}
+
+export function getFinancialDisplayFields(
+  plan: FireInputs,
+  currencySymbol = "£"
+): DisplayField[] {
+  const definitions: {
+    key: string;
+    label: string;
+    category: string;
+    prefix?: string;
+    suffix?: string;
+  }[] = [
+    {
+      key: "isaBalance",
+      label: "Stocks & Shares ISA Balance",
+      category: "Account Wrappers",
+      prefix: currencySymbol,
+    },
+    {
+      key: "isaMonthlyContribution",
+      label: "ISA Monthly Contribution",
+      category: "Monthly Contributions",
+      prefix: currencySymbol,
+      suffix: "/mo",
+    },
+    {
+      key: "sippBalance",
+      label: "SIPP (Pension) Balance",
+      category: "Account Wrappers",
+      prefix: currencySymbol,
+    },
+    {
+      key: "sippMonthlyContribution",
+      label: "SIPP Monthly Contribution",
+      category: "Monthly Contributions",
+      prefix: currencySymbol,
+      suffix: "/mo",
+    },
+    {
+      key: "giaBalance",
+      label: "GIA (Taxable) Balance",
+      category: "Account Wrappers",
+      prefix: currencySymbol,
+    },
+    {
+      key: "giaMonthlyContribution",
+      label: "GIA Monthly Contribution",
+      category: "Monthly Contributions",
+      prefix: currencySymbol,
+      suffix: "/mo",
+    },
+    {
+      key: "homeValue",
+      label: "Home Property Value",
+      category: "Property & Real Estate",
+      prefix: currencySymbol,
+    },
+    {
+      key: "rentalValue",
+      label: "Rental Property Value",
+      category: "Property & Real Estate",
+      prefix: currencySymbol,
+    },
+    {
+      key: "rentalMonthlyIncome",
+      label: "Rental Monthly Income",
+      category: "Income Sources",
+      prefix: currencySymbol,
+      suffix: "/mo",
+    },
+    {
+      key: "partTimeAnnualIncome",
+      label: "Part-time / Side Income",
+      category: "Income Sources",
+      prefix: currencySymbol,
+      suffix: "/yr",
+    },
+  ];
+
+  const fields: DisplayField[] = [];
+  const planWithPots = plan as FireInputs & {
+    pots?: Record<string, { balance?: number; monthlyContribution?: number }>;
+  };
+
+  for (const def of definitions) {
+    if (FILTERED_PROFILE_FIELDS.has(def.key)) continue;
+
+    let val: number | undefined;
+
+    // Check pots dictionary fallback if present
+    if (
+      def.key === "isaBalance" ||
+      def.key === "isaMonthlyContribution" ||
+      def.key === "sippBalance" ||
+      def.key === "sippMonthlyContribution" ||
+      def.key === "giaBalance" ||
+      def.key === "giaMonthlyContribution"
+    ) {
+      const potKey = def.key.startsWith("isa")
+        ? "isa"
+        : def.key.startsWith("sipp")
+        ? "sipp"
+        : "gia";
+      const isContrib = def.key.endsWith("MonthlyContribution");
+      val = planWithPots.pots?.[potKey]?.[isContrib ? "monthlyContribution" : "balance"];
+    }
+
+    if (val === undefined) {
+      const rawVal = (plan as unknown as Record<string, unknown>)[def.key];
+      if (typeof rawVal === "number") val = rawVal;
+    }
+
+    if (val !== undefined && val > 0) {
+      fields.push({ ...def, val });
+    }
+  }
+
+  // If no non-zero financial fields were found, show core wrapper & contribution fields so user can input figures
+  if (fields.length === 0) {
+    return [
+      { key: "isaBalance", label: "Stocks & Shares ISA Balance", category: "Account Wrappers", val: plan.isaBalance ?? 0, prefix: currencySymbol },
+      { key: "isaMonthlyContribution", label: "ISA Monthly Contribution", category: "Monthly Contributions", val: plan.isaMonthlyContribution ?? 0, prefix: currencySymbol, suffix: "/mo" },
+      { key: "sippBalance", label: "SIPP (Pension) Balance", category: "Account Wrappers", val: plan.sippBalance ?? 0, prefix: currencySymbol },
+      { key: "sippMonthlyContribution", label: "SIPP Monthly Contribution", category: "Monthly Contributions", val: plan.sippMonthlyContribution ?? 0, prefix: currencySymbol, suffix: "/mo" },
+    ];
+  }
+
+  return fields;
+}
+
+export function PlanReview({
+  plan,
+  onChangePlan,
+  onAccept,
+  onBackToImport,
+  currencySymbol = "£",
+}: {
+  plan: FireInputs;
+  onChangePlan: (plan: FireInputs) => void;
+  onAccept: () => void;
+  onBackToImport?: () => void;
+  currencySymbol?: string;
+}) {
+  const fields = getFinancialDisplayFields(plan, currencySymbol);
+
+  const handleFieldChange = (key: string, rawVal: string) => {
+    const num = parseFloat(rawVal);
+    const val = isNaN(num) ? 0 : num;
+    const updated = { ...plan } as FireInputs & {
+      pots?: Record<string, { balance?: number; monthlyContribution?: number }>;
+    };
+
+    (updated as unknown as Record<string, unknown>)[key] = val;
+
+    if (
+      key === "isaBalance" ||
+      key === "isaMonthlyContribution" ||
+      key === "sippBalance" ||
+      key === "sippMonthlyContribution" ||
+      key === "giaBalance" ||
+      key === "giaMonthlyContribution"
+    ) {
+      const potKey = key.startsWith("isa") ? "isa" : key.startsWith("sipp") ? "sipp" : "gia";
+      const isContrib = key.endsWith("MonthlyContribution");
+      const pots = { ...(updated.pots ?? {}) };
+      const currentPot = pots[potKey] ?? { balance: 0, monthlyContribution: 0 };
+      pots[potKey] = {
+        ...currentPot,
+        [isContrib ? "monthlyContribution" : "balance"]: val,
+      };
+      updated.pots = pots;
+    }
+
+    onChangePlan(updated);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border bg-surface-muted p-3 space-y-1 text-sm">
+        <div className="divide-y divide-border/40">
+          {fields.map(({ key, label, category, val, prefix, suffix }) => (
+            <div key={key} className="flex items-center justify-between py-2.5 px-2">
+              <div className="flex flex-col min-w-0 pr-2">
+                <span className="text-xs font-semibold text-foreground truncate">{label}</span>
+                <span className="text-[0.65rem] text-muted-foreground">{category}</span>
+              </div>
+              <div className="shrink-0 inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-semibold focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
+                {prefix && <span className="text-muted-foreground font-mono text-xs">{prefix}</span>}
+                <input
+                  type="number"
+                  value={val === 0 ? "" : val}
+                  placeholder="0"
+                  onChange={(e) => handleFieldChange(key, e.target.value)}
+                  className="w-28 text-right bg-transparent text-xs font-bold text-foreground outline-none tabular-nums"
+                />
+                {suffix && <span className="text-muted-foreground font-mono text-xs">{suffix}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          type="button"
+          onClick={onAccept}
+          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground shadow transition-colors hover:bg-brand/90"
+        >
+          <Check className="size-4" />
+          Accept & Continue
+        </button>
+        {onBackToImport && (
+          <button
+            type="button"
+            onClick={onBackToImport}
+            className="rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-surface-muted"
+          >
+            Re-import
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function PlanImport({
   onImport,
   onCancel,
   placeholder,
+  currencySymbol = "£",
 }: {
   onImport: (plan: FireInputs) => void;
   onCancel: () => void;
   placeholder?: string;
+  currencySymbol?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +292,7 @@ export function PlanImport({
       if (!res.ok || !data.plan) {
         throw new Error(data.error ?? "Import failed.");
       }
-      
+
       const raw = data.plan;
       raw.currentAge = raw.currentAge ?? 35;
       raw.retirementAge = raw.retirementAge ?? 55;
@@ -50,135 +309,22 @@ export function PlanImport({
     }
   };
 
-  const handleFieldChange = (key: string, rawVal: string) => {
-    if (!reviewPlan) return;
-    const num = parseFloat(rawVal);
-    const val = isNaN(num) ? 0 : num;
-    const updated = { ...reviewPlan };
-
-    if (key === "currentAge") updated.currentAge = val;
-    else if (key === "retirementAge") updated.retirementAge = val;
-    else if (key === "targetAnnualIncome") updated.targetAnnualIncome = val;
-    else if (
-      key === "isaBalance" ||
-      key === "isaMonthlyContribution" ||
-      key === "sippBalance" ||
-      key === "sippMonthlyContribution" ||
-      key === "giaBalance" ||
-      key === "giaMonthlyContribution"
-    ) {
-      const potKey = key.startsWith("isa") ? "isa" : key.startsWith("sipp") ? "sipp" : "gia";
-      const isContrib = key.endsWith("MonthlyContribution");
-      const pots = { ...(updated.pots ?? {}) };
-      const currentPot = pots[potKey] ?? { balance: 0, monthlyContribution: 0 };
-      pots[potKey] = {
-        ...currentPot,
-        [isContrib ? "monthlyContribution" : "balance"]: val,
-      };
-      updated.pots = pots;
-      (updated as unknown as Record<string, unknown>)[key] = val;
-    } else {
-      (updated as unknown as Record<string, unknown>)[key] = val;
-    }
-
-    setReviewPlan(updated);
-  };
-
-  const getDisplayFields = () => {
-    if (!reviewPlan) return [];
-    const fields: { key: string; label: string; val: number; prefix?: string; suffix?: string }[] = [];
-
-    const fieldDefs: { key: string; label: string; prefix?: string; suffix?: string }[] = [
-      { key: "isaBalance", label: "ISA Balance", prefix: "£" },
-      { key: "isaMonthlyContribution", label: "ISA Monthly Savings", prefix: "£", suffix: "/mo" },
-      { key: "sippBalance", label: "SIPP (Pension) Balance", prefix: "£" },
-      { key: "sippMonthlyContribution", label: "SIPP Monthly Savings", prefix: "£", suffix: "/mo" },
-      { key: "giaBalance", label: "GIA (Taxable) Balance", prefix: "£" },
-      { key: "giaMonthlyContribution", label: "GIA Monthly Savings", prefix: "£", suffix: "/mo" },
-      { key: "homeValue", label: "Home Property Value", prefix: "£" },
-      { key: "rentalValue", label: "Rental Property Value", prefix: "£" },
-      { key: "rentalMonthlyIncome", label: "Rental Monthly Income", prefix: "£", suffix: "/mo" },
-      { key: "partTimeAnnualIncome", label: "Part-time Annual Income", prefix: "£", suffix: "/yr" },
-      { key: "sippAccessAge", label: "SIPP Access Age", suffix: "yrs" },
-      { key: "statePensionAge", label: "State Pension Age", suffix: "yrs" },
-    ];
-
-    for (const def of fieldDefs) {
-      let val: number | undefined;
-
-      if (
-        def.key === "isaBalance" ||
-        def.key === "isaMonthlyContribution" ||
-        def.key === "sippBalance" ||
-        def.key === "sippMonthlyContribution" ||
-        def.key === "giaBalance" ||
-        def.key === "giaMonthlyContribution"
-      ) {
-        const potKey = def.key.startsWith("isa") ? "isa" : def.key.startsWith("sipp") ? "sipp" : "gia";
-        const isContrib = def.key.endsWith("MonthlyContribution");
-        val = reviewPlan.pots?.[potKey]?.[isContrib ? "monthlyContribution" : "balance"];
-      }
-
-      if (val === undefined) {
-        const rawVal = (reviewPlan as unknown as Record<string, unknown>)[def.key];
-        if (typeof rawVal === "number") val = rawVal;
-      }
-
-      if (val !== undefined && val > 0) {
-        fields.push({ ...def, val });
-      }
-    }
-
-    return fields;
-  };
-
   if (reviewPlan) {
-    const fields = getDisplayFields();
-
     return (
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold">Review & Edit Imported Figures</h3>
-        <p className="text-xs text-muted-foreground">
-          Review what was extracted. You can edit any figure directly in the boxes below before confirming.
-        </p>
-        <div className="rounded-xl border border-border bg-surface-muted p-3 text-sm">
-          <table className="w-full text-left">
-            <tbody>
-              {fields.map(({ key, label, val, prefix, suffix }) => (
-                <tr key={key} className="border-b border-border/50 last:border-0">
-                  <td className="px-3 py-2.5 text-xs font-medium text-muted-foreground">{label}</td>
-                  <td className="px-3 py-2.5 text-right">
-                    <div className="inline-flex items-center justify-end gap-1">
-                      {prefix && <span className="text-xs text-muted-foreground font-mono">{prefix}</span>}
-                      <input
-                        type="number"
-                        value={val}
-                        onChange={(e) => handleFieldChange(key, e.target.value)}
-                        className="w-28 rounded-md border border-border bg-background px-2.5 py-1 text-right text-xs font-bold text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-                      />
-                      {suffix && <span className="text-xs text-muted-foreground font-mono">{suffix}</span>}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div>
+          <h3 className="text-sm font-semibold">Review & Validate Financial Assets</h3>
+          <p className="text-xs text-muted-foreground">
+            Review what was extracted. You can edit any figure directly in the inputs below.
+          </p>
         </div>
-        <div className="flex gap-2 pt-1">
-          <button
-            onClick={() => onImport(reviewPlan)}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
-          >
-            <Check className="inline-block size-4 mr-1" />
-            Accept & Continue
-          </button>
-          <button
-            onClick={() => setReviewPlan(null)}
-            className="rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-surface-muted transition-colors"
-          >
-            Try again
-          </button>
-        </div>
+        <PlanReview
+          plan={reviewPlan}
+          onChangePlan={setReviewPlan}
+          onAccept={() => onImport(reviewPlan)}
+          onBackToImport={() => setReviewPlan(null)}
+          currencySymbol={currencySymbol}
+        />
       </div>
     );
   }
@@ -190,22 +336,22 @@ export function PlanImport({
         <h3 className="text-sm font-semibold">Import your full plan</h3>
       </div>
       <p className="text-xs text-muted-foreground">
-        Paste a statement or drop a file (CSV, PDF, image). We&apos;ll extract your balances, contributions, and holdings using AI. Note: Data is sent to Google Gemini for processing.
+        Paste a statement or drop a file (CSV, PDF, image). We&apos;ll extract your balances, contributions, and holdings using AI.
       </p>
-      
+
       <DropPasteInput
         busy={busy}
         onPayload={handlePayload}
         onError={setError}
         placeholder={
           placeholder ??
-          "e.g. I have £35k in my Stocks & Shares ISA (adding £500/mo), £150k in a workplace SIPP (adding £1,000/mo), £20k GIA, a home worth £450k, and rental income of £800/mo..."
+          "e.g. I have £35k in my Stocks & Shares ISA (adding £500/mo), £150k in a workplace SIPP (adding £1,000/mo), £20k GIA, £450k home value, and £800/mo rental income..."
         }
       />
-      
-      {busy && <p className="text-xs text-muted-foreground">Reading plan with AI...</p>}
-      {error && <p className="text-xs text-danger">{error}</p>}
-      
+
+      {busy && <p className="text-xs text-muted-foreground animate-pulse">Reading plan with AI...</p>}
+      {error && <p className="text-xs text-danger font-medium">{error}</p>}
+
       {!busy && !reviewPlan && (
         <button
           type="button"

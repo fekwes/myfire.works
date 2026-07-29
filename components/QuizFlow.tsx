@@ -1,11 +1,10 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Spark } from "@/components/Logo";
 import { usePlan } from "@/components/PlanProvider";
-import type { FireInputs } from "@/lib/fire-engine";
 import { CountryPack } from "@/lib/countries/types";
 import {
   MiniAssetChart,
@@ -15,7 +14,9 @@ import {
   StepShell,
   useCountUp,
 } from "@/components/quiz/QuizPrimitives";
-import { PlanImport } from "@/components/quiz/PlanImport";
+import { PlanReview } from "@/components/quiz/PlanImport";
+import { DropPasteInput, type ImportPayload } from "@/components/DropPasteInput";
+import { sanitisePlanInput } from "@/lib/plan-storage";
 import { Button } from "@/components/ui";
 import { simulateFire } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
@@ -31,15 +32,17 @@ import {
 
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 
-/** The four questions. The reveal that follows is a payoff, not a question. */
-const TOTAL_QUESTIONS = 4;
-const REVEAL_STEP = TOTAL_QUESTIONS; // index 4, shown after the last question
+/** Five total steps before the reveal screen. */
+const TOTAL_QUESTIONS = 5;
+const REVEAL_STEP = TOTAL_QUESTIONS; // index 5, shown after Step 5 (index 4)
 
 export function QuizFlow() {
   const router = useRouter();
   const { setInputs, activePack } = usePlan();
   const [step, setStep] = useState(0);
   const [state, setState] = useState<QuizState>(initialQuizState);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const next = () => {
     if (step === 0) {
@@ -47,13 +50,51 @@ export function QuizFlow() {
     }
     setStep((s) => Math.min(REVEAL_STEP, s + 1));
   };
-  const back = () => setStep((s) => Math.max(0, s - 1));
+  const back = () => {
+    setStep((s) => {
+      // If going back from reveal and importedPlan wasn't provided, jump back to Step 4 (index 3)
+      if (s === REVEAL_STEP && !state.importedPlan) return 3;
+      return Math.max(0, s - 1);
+    });
+  };
 
   const finish = () => {
     trackEvent(ANALYTICS_EVENTS.FORM_SUBMITTED);
     trackEvent(ANALYTICS_EVENTS.SUCCESSFUL_COMPLETION);
     setInputs(assembleQuizInputs(state, activePack));
     router.push("/planner");
+  };
+
+  const handlePayload = async (payload: ImportPayload) => {
+    setImporting(true);
+    setImportError(null);
+    try {
+      const body = payload.type === "text" ? { text: payload.text } : { file: payload };
+      const res = await fetch("/api/import-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.plan) {
+        throw new Error(data.error ?? "Import failed.");
+      }
+
+      const raw = data.plan;
+      raw.currentAge = state.currentAge;
+      raw.retirementAge = state.retirementAge;
+      raw.targetAnnualIncome = state.customIncome;
+
+      const safePlan = sanitisePlanInput(raw);
+      if (!safePlan) throw new Error("Plan was unreadable.");
+
+      setState((s) => ({ ...s, importedPlan: safePlan, savingsProvided: true }));
+      setStep(4); // Advance to Step 5 (Review & Validate Financial Assets)
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Import failed.");
+    } finally {
+      setImporting(false);
+    }
   };
 
   return (
@@ -99,18 +140,70 @@ export function QuizFlow() {
         />
       )}
       {step === 3 && (
-        <StepSavings
-          key="savings"
-          onImport={(plan) => {
-            setState((s) => ({ ...s, importedPlan: plan, savingsProvided: true }));
-            next();
-          }}
-          onSkip={() => {
-            setState((s) => ({ ...s, savings: 0, savingsProvided: false, importedPlan: undefined }));
-            next();
-          }}
+        <StepShell
+          key="import"
+          heading="Import your plan with AI"
+          helper="Paste a description of your savings, pensions, property, or drop a statement. Our AI will automatically parse your figures."
+          why="Listing your actual savings, pensions, and income sources allows the engine to accurately project your FIRE timeline."
           onBack={back}
-        />
+        >
+          <div className="space-y-4">
+            <DropPasteInput
+              busy={importing}
+              onPayload={handlePayload}
+              onError={setImportError}
+              placeholder="e.g. I have £35k in my Stocks & Shares ISA (adding £500/mo), £150k in a workplace SIPP (adding £1,000/mo), £20k GIA, £450k home value, and £800/mo rental income..."
+            />
+            {importing && (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground animate-pulse py-2">
+                <Sparkles className="size-4 text-brand animate-spin" />
+                Reading your plan with AI...
+              </div>
+            )}
+            {importError && (
+              <p className="text-xs text-danger font-medium">{importError}</p>
+            )}
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setState((s) => ({
+                    ...s,
+                    savings: 0,
+                    savingsProvided: false,
+                    importedPlan: undefined,
+                  }));
+                  setStep(REVEAL_STEP);
+                }}
+                className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
+        </StepShell>
+      )}
+      {step === 4 && (
+        <StepShell
+          key="review"
+          heading="Review & Validate Financial Assets"
+          helper="Check and adjust the figures extracted by AI before continuing."
+          why="Validating your starting balances and monthly contributions ensures your timeline projection reflects your real situation."
+          onBack={() => setStep(3)}
+        >
+          <PlanReview
+            plan={{
+              ...assembleQuizInputs(state, activePack),
+              ...state.importedPlan,
+            }}
+            onChangePlan={(updated) =>
+              setState((s) => ({ ...s, importedPlan: updated, savingsProvided: true }))
+            }
+            onAccept={() => setStep(REVEAL_STEP)}
+            onBackToImport={() => setStep(3)}
+            currencySymbol={activePack?.currency?.symbol ?? "£"}
+          />
+        </StepShell>
       )}
       {step === REVEAL_STEP && (
         <StepReveal key="reveal" state={state} onFinish={finish} onBack={back} />
@@ -335,35 +428,6 @@ function StepStrategy({
 }
 
 // ------------------------------------------------------------------ //
-// Step 4 — savings so far (optional)                                 //
-// ------------------------------------------------------------------ //
-
-function StepSavings({
-  onImport,
-  onSkip,
-  onBack,
-}: {
-  onImport: (plan: FireInputs) => void;
-  onSkip: () => void;
-  onBack: () => void;
-}) {
-  return (
-    <StepShell
-      heading="Import your assets & income"
-      helper="Paste a list of your savings, investments, property, or drop a statement. Our AI will automatically parse your figures for validation."
-      why="Listing your actual savings, pensions, and income sources allows the engine to accurately project your FIRE timeline."
-      onBack={onBack}
-    >
-      <PlanImport
-        onImport={onImport}
-        onCancel={onSkip}
-        placeholder="e.g. I have £35k in my Stocks & Shares ISA (adding £500/mo), £150k in a workplace SIPP (adding £1,000/mo), £20k GIA, a home worth £450k, and rental income of £800/mo..."
-      />
-    </StepShell>
-  );
-}
-
-// ------------------------------------------------------------------ //
 // The reveal — the one earned, celebratory beat                      //
 // ------------------------------------------------------------------ //
 
@@ -382,17 +446,11 @@ function StepReveal({
   const fire = useMemo(() => computeFireNumber(inputs), [inputs]);
   const plan = useMemo(() => simulateFire(inputs), [inputs]);
 
-  // The FIRE number is nominal — the pot at retirement in that year's pounds.
-  // The planner leads in *today's money* (deflated by inflation), so match it
-  // here, or the reveal and the very next screen would show different figures.
   const infl = inputs.inflationRate ?? 0;
   const retireDefl =
     infl > 0 ? 1 / (1 + infl) ** (inputs.retirementAge - inputs.currentAge) : 1;
   const fireToday = fire.fireNumber * retireDefl;
 
-  // The launch-trail-to-burst gesture is the *accumulation*, ending on the FI
-  // moment — so the sparkline stops at retirement rather than running on into
-  // the drawdown, where the "burst" would land on a depleted pot.
   const points = useMemo(
     () =>
       plan.timeline
@@ -405,9 +463,6 @@ function StepReveal({
 
   const shown = useCountUp(Math.round(fireToday));
 
-  // One honest line. The FIRE number itself is always earned — it depends only
-  // on the target and age — but whether you're *on track* to reach it depends
-  // on real balances, so we only claim a verdict when the user gave savings.
   const verdict = !state.savingsProvided
     ? "This assumes you're starting from zero. Add what you've saved in the planner to see whether you're on track."
     : fire.onTrack
