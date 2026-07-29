@@ -1,24 +1,20 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { NextResponse } from "next/server";
-import { AI_QUOTA_MESSAGE, isQuotaExhausted } from "@/lib/ai-errors";
 import { formatCurrency } from "@/lib/format";
 import { checkInOrder, clientIp, createRateLimiter } from "@/lib/rate-limit";
 import { generateContentWithFallback } from "@/lib/ai-runner";
+import { generateDeterministicTips } from "@/lib/deterministic-tips";
 
 export const runtime = "nodejs";
 
-// The AI tips call is the one paid, abusable endpoint. Limit it per client IP
-// (a short burst window + a daily cap) plus a global daily backstop so a single
-// instance can't run away with the AI provider's quota. In-memory per instance —
-// swap for a shared store (Upstash/KV) behind the same interface in production.
+// The AI tips call is limited per client IP (short burst window + daily cap)
+// plus a global daily backstop.
 const perMinute = createRateLimiter({ windowMs: 60_000, max: 10 });
 const perDay = createRateLimiter({ windowMs: 86_400_000, max: 50 });
 const globalPerDay = createRateLimiter({ windowMs: 86_400_000, max: 1000 });
 
 function limited(request: Request): number | null {
   const ip = clientIp(request);
-  // Narrowest first, and short-circuiting: an already-blocked caller must not
-  // spend the global daily budget on its way to a 429. See `checkInOrder`.
   const result = checkInOrder([
     () => perMinute.check(ip),
     () => perDay.check(ip),
@@ -27,7 +23,7 @@ function limited(request: Request): number | null {
   return result.allowed ? null : Math.ceil(result.retryAfterMs / 1000);
 }
 
-/** Reject obviously malformed/oversized bodies before doing any paid work. */
+/** Reject obviously malformed/oversized bodies before doing work. */
 function isValidBody(body: unknown): body is AnalyzeRequest {
   if (typeof body !== "object" || body === null) return false;
   const b = body as Record<string, unknown>;
@@ -60,6 +56,7 @@ interface AnalyzeRequest {
 
 interface AnalyzeResponse {
   tips: { title: string; detail: string }[];
+  isFallback?: boolean;
 }
 
 // Gemini structured-output schema (uses the SDK's Type enum).
@@ -85,30 +82,6 @@ const TIPS_SCHEMA = {
 };
 
 export async function POST(request: Request) {
-  // Rate-limit first — protect the endpoint from volume regardless of config.
-  const retryAfter = limited(request);
-  if (retryAfter !== null) {
-    return NextResponse.json(
-      { error: "You've hit the AI tips limit — please try again shortly." },
-      { status: 429, headers: { "Retry-After": String(retryAfter) } },
-    );
-  }
-
-  const apiKey =
-    process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_API_KEY ||
-    process.env.GOOGLE_GEMINI_API_KEY ||
-    process.env.GEMINI_KEY ||
-    process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-  if (!apiKey) {
-    // Not configured is a deliberate deployment state, not a fault — and the
-    // name of the missing secret is nobody's business but the operator's.
-    return NextResponse.json(
-      { error: "AI tips aren't enabled on this server." },
-      { status: 503 },
-    );
-  }
-
   // Cap the request size before parsing, then validate the shape.
   const raw = await request.text();
   if (raw.length > 4000) {
@@ -124,6 +97,23 @@ export async function POST(request: Request) {
       { error: "Invalid request body." },
       { status: 400 },
     );
+  }
+
+  // Check rate limit. If limited or no API key, return rule-based tips immediately
+  // for smooth UX with zero dead-ends.
+  const retryAfter = limited(request);
+  const apiKey =
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GOOGLE_GEMINI_API_KEY ||
+    process.env.GEMINI_KEY ||
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+  if (retryAfter !== null || !apiKey) {
+    return NextResponse.json({
+      tips: generateDeterministicTips(body),
+      isFallback: true,
+    });
   }
 
   const summary = `
@@ -162,26 +152,20 @@ UK FIRE simulation summary:
 
     const text = response.text;
     if (!text) {
-      return NextResponse.json(
-        { error: "No response generated." },
-        { status: 502 },
-      );
+      return NextResponse.json({
+        tips: generateDeterministicTips(body),
+        isFallback: true,
+      });
     }
 
     const parsed = JSON.parse(text) as AnalyzeResponse;
-    return NextResponse.json(parsed);
+    return NextResponse.json({ tips: parsed.tips, isFallback: false });
   } catch (error) {
-    // The upstream message can carry quota details, project identifiers and
-    // model internals. It goes to the server log, never to the browser.
-    console.error("analyze: Gemini request failed", error);
-    // A spent daily quota is a limit, not an outage — say so, or "try again"
-    // just fails again. Its own status so the client can tell them apart.
-    if (isQuotaExhausted(error)) {
-      return NextResponse.json({ error: AI_QUOTA_MESSAGE }, { status: 429 });
-    }
-    return NextResponse.json(
-      { error: "The tips service is unavailable right now — please try again." },
-      { status: 502 },
-    );
+    console.warn("analyze: Gemini API unavailable, returning rule-based tips fallback", error);
+    // Seamless fallback to deterministic tips so the user never sees a broken UI or 429 error
+    return NextResponse.json({
+      tips: generateDeterministicTips(body),
+      isFallback: true,
+    });
   }
 }

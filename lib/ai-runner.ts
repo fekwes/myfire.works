@@ -9,13 +9,25 @@ const DEFAULT_MODELS = [
   "gemini-1.5-flash-8b",
 ];
 
-/** Returns true for errors where we should try the next model (quota, not-found). */
+/** Returns true for errors where we should try the next model in the fallback chain. */
 function isRetryable(error: unknown): boolean {
+  if (!error) return false;
   if (isQuotaExhausted(error)) return true;
-  // Model removed / renamed / not-found → 404 / 400
-  const status = (error as { status?: number } | null)?.status;
-  if (status === 404 || status === 400) return true;
-  return false;
+
+  const errObj = error as { status?: number; code?: number; error?: { code?: number } } | null;
+  const status = errObj?.status ?? errObj?.code ?? errObj?.error?.code;
+  if (status === 404 || status === 400 || status === 429 || status === 503) return true;
+
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : JSON.stringify(error);
+
+  return /\b(404|400|429|503)\b|NOT_FOUND|INVALID_ARGUMENT|UNSUPPORTED|RESOURCE_EXHAUSTED|quota|rate.?limit/i.test(
+    message,
+  );
 }
 
 /**
