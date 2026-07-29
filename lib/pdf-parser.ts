@@ -1,25 +1,30 @@
 import zlib from "zlib";
 
 /**
- * Extract clean text content from PDF binary buffer (handles multi-page FlateDecode streams).
+ * Extract clean text content from PDF binary buffer (handles multi-page FlateDecode streams reliably).
  */
 export function extractTextFromPdfBuffer(buffer: Buffer): string {
   const textPieces: string[] = [];
-  const rawStr = buffer.toString("latin1");
 
-  // Decompress FlateDecode streams
-  const streamRegex = /\/Filter\s*\/FlateDecode[^\r\n]*?stream\r?\n([\s\S]*?)endstream/g;
-  let match: RegExpExecArray | null;
+  let offset = 0;
+  while (offset < buffer.length) {
+    const streamIdx = buffer.indexOf("stream", offset);
+    if (streamIdx === -1) break;
 
-  while ((match = streamRegex.exec(rawStr)) !== null) {
+    const endStreamIdx = buffer.indexOf("endstream", streamIdx);
+    if (endStreamIdx === -1) break;
+
+    let start = streamIdx + 6;
+    if (buffer[start] === 0x0d) start++; // \r
+    if (buffer[start] === 0x0a) start++; // \n
+
+    const streamBytes = buffer.subarray(start, endStreamIdx);
+
     try {
-      const compressedBytes = Buffer.from(match[1], "latin1");
-      const decompressed = zlib.inflateSync(compressedBytes).toString("latin1");
-
-      // Extract text in parentheses (Tj / TJ operators or literal text strings)
-      const tjMatches = decompressed.match(/\(([^()]{1,200})\)/g);
-      if (tjMatches) {
-        for (const m of tjMatches) {
+      const decompressed = zlib.inflateSync(streamBytes).toString("latin1");
+      const matches = decompressed.match(/\(([^()]{1,200})\)/g);
+      if (matches) {
+        for (const m of matches) {
           const content = m.slice(1, -1).trim();
           if (content.length > 0 && /[a-zA-Z0-9£$,.]/.test(content)) {
             textPieces.push(content);
@@ -27,15 +32,30 @@ export function extractTextFromPdfBuffer(buffer: Buffer): string {
         }
       }
     } catch {
-      // Ignore unparseable or corrupted stream blocks
+      try {
+        const rawStr = streamBytes.toString("latin1");
+        const matches = rawStr.match(/\(([^()]{1,200})\)/g);
+        if (matches) {
+          for (const m of matches) {
+            const content = m.slice(1, -1).trim();
+            if (content.length > 0 && /[a-zA-Z0-9£$,.]/.test(content)) {
+              textPieces.push(content);
+            }
+          }
+        }
+      } catch {
+        // ignore unparseable stream segment
+      }
     }
+
+    offset = endStreamIdx + 9;
   }
 
-  // Fallback to uncompressed parenthesized literal strings if stream decompression didn't yield text
   if (textPieces.length === 0) {
-    const uncompressedMatches = rawStr.match(/\(([^()]{1,150})\)/g);
-    if (uncompressedMatches) {
-      for (const m of uncompressedMatches) {
+    const fullText = buffer.toString("latin1");
+    const matches = fullText.match(/\(([^()]{1,150})\)/g);
+    if (matches) {
+      for (const m of matches) {
         const content = m.slice(1, -1).trim();
         if (content.length > 0 && /[a-zA-Z0-9£$,.]/.test(content)) {
           textPieces.push(content);

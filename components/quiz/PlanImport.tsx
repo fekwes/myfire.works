@@ -310,6 +310,13 @@ export function PlanImport({
   };
 
   if (reviewPlan) {
+    const hasDetectedBalances =
+      (reviewPlan.isaBalance ?? 0) > 0 ||
+      (reviewPlan.sippBalance ?? 0) > 0 ||
+      (reviewPlan.giaBalance ?? 0) > 0 ||
+      (reviewPlan.homeValue ?? 0) > 0 ||
+      (reviewPlan.rentalValue ?? 0) > 0;
+
     return (
       <div className="space-y-4">
         <div>
@@ -318,6 +325,16 @@ export function PlanImport({
             Review what was extracted. You can edit any figure directly in the inputs below.
           </p>
         </div>
+
+        {!hasDetectedBalances && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300 space-y-1">
+            <p className="font-semibold">⚠️ No wrapper balances automatically detected in this file.</p>
+            <p className="text-amber-200/80">
+              Please enter your ISA, SIPP, and GIA figures directly in the fields below, or paste a text summary.
+            </p>
+          </div>
+        )}
+
         <PlanReview
           plan={reviewPlan}
           onChangePlan={setReviewPlan}
