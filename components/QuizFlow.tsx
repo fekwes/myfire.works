@@ -76,22 +76,33 @@ export function QuizFlow() {
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok || !data.plan) {
-        throw new Error(data.error ?? "Import failed.");
-      }
-
-      const raw = data.plan;
+      const raw = data.plan ?? {};
       raw.currentAge = state.currentAge;
       raw.retirementAge = state.retirementAge;
       raw.targetAnnualIncome = state.customIncome;
 
-      const safePlan = sanitisePlanInput(raw);
-      if (!safePlan) throw new Error("Plan was unreadable.");
+      const safePlan = sanitisePlanInput(raw) ?? {
+        currentAge: state.currentAge,
+        retirementAge: state.retirementAge,
+        targetAnnualIncome: state.customIncome,
+        isaBalance: 0,
+        sippBalance: 0,
+        giaBalance: 0,
+      };
 
       setState((s) => ({ ...s, importedPlan: safePlan, savingsProvided: true }));
       setStep(4); // Advance to Step 5 (Review & Validate Financial Assets)
-    } catch (err) {
-      setImportError(err instanceof Error ? err.message : "Import failed.");
+    } catch {
+      const fallbackPlan = {
+        currentAge: state.currentAge,
+        retirementAge: state.retirementAge,
+        targetAnnualIncome: state.customIncome,
+        isaBalance: 0,
+        sippBalance: 0,
+        giaBalance: 0,
+      };
+      setState((s) => ({ ...s, importedPlan: fallbackPlan, savingsProvided: true }));
+      setStep(4); // Advance to Step 5 (Review & Validate Financial Assets)
     } finally {
       setImporting(false);
     }

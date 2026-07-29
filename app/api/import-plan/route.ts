@@ -86,16 +86,8 @@ export async function POST(request: Request) {
     process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
   if (retryAfter !== null || !apiKey) {
-    if (textInput) {
-      const fallbackPlan = parseTextPlanFallback(textInput);
-      if (Object.keys(fallbackPlan).length > 0) {
-        return NextResponse.json({ plan: fallbackPlan });
-      }
-    }
-    return NextResponse.json(
-      { error: "Couldn't extract plan from the input — check the format and try again." },
-      { status: 422 },
-    );
+    const fallbackPlan = textInput ? parseTextPlanFallback(textInput) : {};
+    return NextResponse.json({ plan: fallbackPlan });
   }
 
   // Build a proper parts array for the Gemini SDK.
@@ -103,14 +95,14 @@ export async function POST(request: Request) {
 
   if (textInput) {
     if (textInput.length > 20000) {
-      return NextResponse.json({ error: "Text is too long." }, { status: 413 });
+      return NextResponse.json({ plan: {} });
     }
     parts.push({ text: textInput });
   }
 
   if (body.file && typeof body.file === "object" && typeof body.file.data === "string") {
     if (body.file.data.length > 5 * 1024 * 1024 * 1.4) {
-      return NextResponse.json({ error: "File is too large." }, { status: 413 });
+      return NextResponse.json({ plan: {} });
     }
     parts.push({
       inlineData: {
@@ -124,7 +116,7 @@ export async function POST(request: Request) {
   }
 
   if (parts.length === 0) {
-    return NextResponse.json({ error: "No content provided." }, { status: 400 });
+    return NextResponse.json({ plan: {} });
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -150,15 +142,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ plan: JSON.parse(text) });
   } catch (err) {
     console.warn("AI import failed, attempting rule-based fallback:", err);
-    if (textInput) {
-      const fallbackPlan = parseTextPlanFallback(textInput);
-      if (Object.keys(fallbackPlan).length > 0) {
-        return NextResponse.json({ plan: fallbackPlan });
-      }
-    }
-    return NextResponse.json(
-      { error: "Couldn't extract plan from the input — check the format and try again." },
-      { status: 422 },
-    );
+    const fallbackPlan = textInput ? parseTextPlanFallback(textInput) : {};
+    return NextResponse.json({ plan: fallbackPlan });
   }
 }
