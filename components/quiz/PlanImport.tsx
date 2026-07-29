@@ -268,11 +268,13 @@ export function PlanImport({
   onCancel,
   placeholder,
   currencySymbol = "£",
+  skipReview = true,
 }: {
   onImport: (plan: FireInputs) => void;
   onCancel: () => void;
   placeholder?: string;
   currencySymbol?: string;
+  skipReview?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -301,7 +303,11 @@ export function PlanImport({
       const safePlan = sanitisePlanInput(raw);
       if (!safePlan) throw new Error("Plan was unreadable.");
 
-      setReviewPlan(safePlan);
+      if (skipReview) {
+        onImport(safePlan);
+      } else {
+        setReviewPlan(safePlan);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import failed.");
     } finally {

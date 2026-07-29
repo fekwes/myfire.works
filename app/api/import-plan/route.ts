@@ -75,6 +75,23 @@ Inspect valuation summary tables, portfolio breakdown pie charts, and account su
 Do NOT extract 8-digit account numbers, sort codes, policy numbers, or ISIN codes as monetary values.
 Only output explicit numerical facts. Output the JSON matching the schema.`;
 
+function detectMimeType(data: string, fileName?: string, defaultMime?: string): string {
+  if (defaultMime && defaultMime !== "application/octet-stream") {
+    return defaultMime;
+  }
+  if (fileName) {
+    if (/\.pdf$/i.test(fileName)) return "application/pdf";
+    if (/\.png$/i.test(fileName)) return "image/png";
+    if (/\.(jpe?g)$/i.test(fileName)) return "image/jpeg";
+    if (/\.webp$/i.test(fileName)) return "image/webp";
+  }
+  if (data.startsWith("JVBER")) return "application/pdf";
+  if (data.startsWith("iVBORw0KGgo")) return "image/png";
+  if (data.startsWith("/9j/")) return "image/jpeg";
+  if (data.startsWith("UklGR")) return "image/webp";
+  return defaultMime || "application/pdf";
+}
+
 export async function POST(request: Request) {
   let body;
   try {
@@ -97,10 +114,18 @@ export async function POST(request: Request) {
       ? body.file.extractedText.trim()
       : "";
 
-  if (!fileExtractedText && body.file && typeof body.file === "object" && typeof body.file.data === "string") {
+  let inferredMimeType = "application/pdf";
+
+  if (body.file && typeof body.file === "object" && typeof body.file.data === "string") {
+    inferredMimeType = detectMimeType(body.file.data, body.file.name, body.file.mimeType);
+
+    // Attempt server-side PDF stream text extraction whenever binary data is provided
     try {
       const pdfBuffer = Buffer.from(body.file.data, "base64");
-      fileExtractedText = extractTextFromPdfBuffer(pdfBuffer);
+      const serverExtracted = extractTextFromPdfBuffer(pdfBuffer);
+      if (serverExtracted && serverExtracted.length > fileExtractedText.length) {
+        fileExtractedText = serverExtracted;
+      }
     } catch {
       // non-fatal
     }
@@ -117,25 +142,23 @@ export async function POST(request: Request) {
   const parts: Array<{ text: string } | { inlineData: { data: string; mimeType: string } }> = [];
 
   if (combinedText) {
-    if (combinedText.length > 30000) {
-      return NextResponse.json({ plan: {} });
-    }
-    parts.push({ text: `Document text content:\n${combinedText}` });
+    // Truncate text if very large rather than failing the import
+    const truncatedText = combinedText.length > 30000 ? combinedText.slice(0, 30000) : combinedText;
+    parts.push({ text: `Document text content:\n${truncatedText}` });
   }
 
   if (body.file && typeof body.file === "object" && typeof body.file.data === "string") {
-    if (body.file.data.length > 10 * 1024 * 1024 * 1.4) {
-      return NextResponse.json({ plan: {} });
+    if (body.file.data.length <= 10 * 1024 * 1024 * 1.4) {
+      parts.push({
+        inlineData: {
+          data: body.file.data,
+          mimeType: inferredMimeType,
+        },
+      });
+      parts.unshift({
+        text: "Extract all financial figures from this portfolio valuation document into SIPP, ISA, and GIA balances.",
+      });
     }
-    parts.push({
-      inlineData: {
-        data: body.file.data,
-        mimeType: body.file.mimeType ?? "application/pdf",
-      },
-    });
-    parts.unshift({
-      text: "Extract all financial figures from this portfolio valuation document into SIPP, ISA, and GIA balances.",
-    });
   }
 
   if (parts.length === 0) {
@@ -183,11 +206,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // If AI returns empty plan but combinedText exists, attempt rule-based extraction
-    const hasNumbers = Object.values(parsedPlan).some((v) => typeof v === "number" && v > 0);
-    if (!hasNumbers && combinedText) {
+    // Merge rule-based extraction fallback for any missing fields if combinedText exists
+    if (combinedText) {
       const fallbackPlan = parseTextPlanFallback(combinedText);
-      return NextResponse.json({ plan: { ...parsedPlan, ...fallbackPlan } });
+      parsedPlan = { ...fallbackPlan, ...parsedPlan };
     }
 
     return NextResponse.json({ plan: parsedPlan });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseTextPlanFallback } from "./plan-import-fallback";
+import { formatExtractedTotalsSummary, parseTextPlanFallback } from "./plan-import-fallback";
 
 describe("parseTextPlanFallback UK Broker Statements", () => {
   it("extracts Vanguard UK multi-wrapper statement accurately without account number pollution", () => {
@@ -149,4 +149,40 @@ describe("parseTextPlanFallback UK Broker Statements", () => {
     expect(plan.giaBalance).toBeCloseTo(196712.84, 0);
   });
 });
+
+describe("formatExtractedTotalsSummary", () => {
+  it("formats single account wrapper total correctly", () => {
+    const summary = formatExtractedTotalsSummary({ isaBalance: 45000 });
+    expect(summary).toBe("Plan imported with AI! Updated totals: ISA: £45,000");
+  });
+
+  it("formats multiple asset wrappers, contributions, and properties", () => {
+    const summary = formatExtractedTotalsSummary({
+      isaBalance: 45000,
+      isaMonthlyContribution: 500,
+      sippBalance: 120000,
+      giaBalance: 15000,
+      homeValue: 450000,
+      rentalValue: 250000,
+      rentalMonthlyIncome: 800,
+      partTimeAnnualIncome: 12000,
+    });
+    expect(summary).toContain("ISA: £45,000");
+    expect(summary).toContain("ISA Contrib: £500/mo");
+    expect(summary).toContain("SIPP: £120,000");
+    expect(summary).toContain("GIA: £15,000");
+    expect(summary).toContain("Home: £450,000");
+    expect(summary).toContain("Rental: £250,000");
+    expect(summary).toContain("Rental Rent: £800/mo");
+    expect(summary).toContain("Side Income: £12,000/yr");
+  });
+
+  it("handles zero or empty plan gracefully", () => {
+    const summary = formatExtractedTotalsSummary({});
+    expect(summary).toBe(
+      "Plan imported with AI! Asset balances and contributions have been updated in your finances below."
+    );
+  });
+});
+
 

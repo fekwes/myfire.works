@@ -16,6 +16,28 @@ export interface ExtractedPlan {
   statePensionAge?: number;
 }
 
+export function formatExtractedTotalsSummary(plan: Partial<ExtractedPlan>, currencySymbol = "£"): string {
+  const items: string[] = [];
+  const fmt = (val: number) => `${currencySymbol}${val.toLocaleString("en-GB")}`;
+
+  if (plan.isaBalance) items.push(`ISA: ${fmt(plan.isaBalance)}`);
+  if (plan.isaMonthlyContribution) items.push(`ISA Contrib: ${fmt(plan.isaMonthlyContribution)}/mo`);
+  if (plan.sippBalance) items.push(`SIPP: ${fmt(plan.sippBalance)}`);
+  if (plan.sippMonthlyContribution) items.push(`SIPP Contrib: ${fmt(plan.sippMonthlyContribution)}/mo`);
+  if (plan.giaBalance) items.push(`GIA: ${fmt(plan.giaBalance)}`);
+  if (plan.giaMonthlyContribution) items.push(`GIA Contrib: ${fmt(plan.giaMonthlyContribution)}/mo`);
+  if (plan.homeValue) items.push(`Home: ${fmt(plan.homeValue)}`);
+  if (plan.rentalValue) items.push(`Rental: ${fmt(plan.rentalValue)}`);
+  if (plan.rentalMonthlyIncome) items.push(`Rental Rent: ${fmt(plan.rentalMonthlyIncome)}/mo`);
+  if (plan.partTimeAnnualIncome) items.push(`Side Income: ${fmt(plan.partTimeAnnualIncome)}/yr`);
+
+  if (items.length === 0) {
+    return "Plan imported with AI! Asset balances and contributions have been updated in your finances below.";
+  }
+
+  return `Plan imported with AI! Updated totals: ${items.join(" • ")}`;
+}
+
 function parseAmount(str: string): number | undefined {
   if (!str) return undefined;
   const cleaned = str.trim().toLowerCase().replace(/[,£$]/g, "");

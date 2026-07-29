@@ -15,6 +15,7 @@ import { SavedPlans } from "@/components/SavedPlans";
 import { ButtonLink, Card, Button } from "@/components/ui";
 import { Sparkles } from "lucide-react";
 import { PlanImport } from "@/components/quiz/PlanImport";
+import { formatExtractedTotalsSummary } from "@/lib/plan-import-fallback";
 
 const SECTION_IDS = FINANCE_SECTIONS.map((s) => s.id) as readonly string[];
 const isSectionId = (v: string): v is FinanceSectionId =>
@@ -105,6 +106,7 @@ export function FinancesPanel() {
       {importing && (
         <Card padding="lg" className="border-brand/30 bg-brand/5 shadow-sm">
           <PlanImport
+            skipReview={true}
             onImport={(plan) => {
               // Merge imported figures directly with existing inputs and update the finances form
               setInputs({
@@ -113,9 +115,7 @@ export function FinancesPanel() {
                 pots: plan.pots ?? inputs.pots,
               });
               setImporting(false);
-              setImportSuccessMsg(
-                "Your plan was imported with AI! Asset balances and contributions have been updated directly in your finances below."
-              );
+              setImportSuccessMsg(formatExtractedTotalsSummary(plan));
             }}
             onCancel={() => setImporting(false)}
           />
