@@ -157,7 +157,7 @@ UK FIRE simulation summary:
           temperature: 0.7,
         },
       },
-      "gemini-2.5-flash",
+      "gemini-2.0-flash",
     );
 
     const text = response.text;

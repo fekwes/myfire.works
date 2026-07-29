@@ -132,7 +132,7 @@ export async function POST(request: Request) {
           temperature: 0,
         },
       },
-      "gemini-2.5-flash",
+      "gemini-2.0-flash",
     );
 
     const text = response.text;

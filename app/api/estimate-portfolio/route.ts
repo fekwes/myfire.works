@@ -106,7 +106,7 @@ export async function POST(request: Request) {
           temperature: 0.2,
         },
       },
-      "gemini-2.5-flash",
+      "gemini-2.0-flash",
     );
     // Every field is validated here — unknown classes dropped, fees clamped,
     // weights renormalised. See lib/portfolio-import.ts.
