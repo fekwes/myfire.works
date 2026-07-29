@@ -152,7 +152,13 @@ export function parseTextHoldingsFallback(text: string): EstimatedHolding[] {
   const lines = text
     .split(/[\r\n]+/)
     .map((l) => l.trim())
-    .filter((l) => l.length > 2 && !/^(total|portfolio|summary|balance)/i.test(l));
+    .filter((l) => {
+      if (l.length <= 2) return false;
+      if (/^(total|portfolio|summary|balance)/i.test(l)) return false;
+      if (/^(%pdf|<<|>>|\/Type|\/Length|endobj|endstream|<html|<\?xml)/i.test(l)) return false;
+      if (/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/.test(l)) return false;
+      return true;
+    });
 
   if (lines.length === 0) return [];
 
