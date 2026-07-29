@@ -5,6 +5,8 @@ import { ASSET_CLASSES } from "@/lib/portfolio-import";
 import { generateContentWithFallback } from "@/lib/ai-runner";
 import { parseTextPlanFallback } from "@/lib/plan-import-fallback";
 
+import { extractTextFromPdfBuffer } from "@/lib/pdf-parser";
+
 export const runtime = "nodejs";
 
 const perMinute = createRateLimiter({ windowMs: 60_000, max: 10 });
@@ -58,14 +60,14 @@ const PLAN_SCHEMA = {
 
 const SYSTEM_INSTRUCTION = `You are an expert UK financial data extractor. Extract the user's financial plan figures from the provided text, statement PDF, image, or spreadsheet.
 Identify wrapper balances, monthly contributions, and holdings:
-- ISA / Stocks & Shares ISA -> isaBalance
-- SIPP / Personal Pension / Workplace Pension / NPR -> sippBalance
-- GIA / Non-ISA Savings / Personal Portfolio / Taxable Account -> giaBalance
+- SIPP / Personal Pension / Vanguard Personal Pension / Workplace Pension / NPR / Self-Invested Personal Pension / Drawdown Pension -> sippBalance
+- ISA / Stocks/Shares ISA / Stocks & Shares ISA / S&S ISA / Lifetime ISA / Cash ISA -> isaBalance
+- GIA / General Investment Account / Personal Portfolio / Non-ISA Savings (CGT) / Non-ISA Since 2025 / Fund & Share Account / Dealing Account / Investment Account / Trading Account / Taxable Account -> giaBalance
 - Primary Home Property Value -> homeValue
 - Rental Property Value & Rent -> rentalValue, rentalMonthlyIncome
 - Part-time / Side Income -> partTimeAnnualIncome
 - Target Annual Income, Current Age, Target Retirement Age if present.
-For statements (e.g. Vanguard UK, Hargreaves Lansdown, AJ Bell, Fidelity), inspect the portfolio valuation by wrapper summary tables and pie charts to extract the exact total balances for each wrapper.
+For statements (e.g. Vanguard UK, Hargreaves Lansdown, AJ Bell, Fidelity, Interactive Investor), inspect the portfolio valuation by wrapper summary tables and pie charts to extract the exact total balances for each wrapper.
 Only extract facts explicitly stated. Do not invent numbers. Output the extracted JSON matching the schema.`;
 
 export async function POST(request: Request) {
@@ -85,10 +87,20 @@ export async function POST(request: Request) {
     process.env.GEMINI_KEY ||
     process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
-  const fileExtractedText =
+  let fileExtractedText =
     body.file && typeof body.file === "object" && typeof body.file.extractedText === "string"
       ? body.file.extractedText.trim()
       : "";
+
+  if (!fileExtractedText && body.file && typeof body.file === "object" && typeof body.file.data === "string") {
+    try {
+      const pdfBuffer = Buffer.from(body.file.data, "base64");
+      fileExtractedText = extractTextFromPdfBuffer(pdfBuffer);
+    } catch {
+      // non-fatal
+    }
+  }
+
   const combinedText = [textInput, fileExtractedText].filter(Boolean).join("\n\n");
 
   if (retryAfter !== null || !apiKey) {

@@ -83,54 +83,137 @@ export function parseTextPlanFallback(text: string): ExtractedPlan {
     }
   }
 
-  // SIPP / Pension Balance & Monthly Contribution (Vanguard Personal Pension, NPR, Workplace Pension)
-  const sippMatch =
-    cleaned.match(/\b(?:vanguard personal pension|personal pension|sipp|workplace pension|npr|401k|ira)\b[^\d]*?([£$]?\d[\d,\.]*k?m?)/i) ||
-    cleaned.match(/([£$]?\d[\d,\.]*k?m?)[^\d]*?\b(?:vanguard personal pension|personal pension|sipp|401k|ira)\b/i);
-  if (sippMatch) {
-    const val = parseAmount(sippMatch[1] || sippMatch[2]);
-    if (val !== undefined && val > 0) plan.sippBalance = val;
+  // Helper to extract true currency figures near keywords while ignoring account/reference numbers
+  function extractWrapperBalanceNearKeyword(rawText: string, keywords: string[]): number | undefined {
+    const rawLines = rawText.split(/[\r\n]+/);
+    for (let i = 0; i < rawLines.length; i++) {
+      const line = rawLines[i].toLowerCase();
+      // Skip non-isa lines when looking for ISA
+      if (keywords.includes("isa") && line.includes("non-isa") && !keywords.includes("non-isa")) {
+        continue;
+      }
+
+      if (keywords.some((kw) => line.includes(kw))) {
+        // Priority 1: Check current line for exact balance (e.g. "SIPP: £337,856.00")
+        const sameLineMatches = line.match(/(?:[£$]\s*)?\b\d[\d,]*(?:\.\d+)?[kKmM]?\b/g);
+        if (sameLineMatches) {
+          for (const m of sameLineMatches) {
+            const isAccountNo = !m.includes("£") && !m.includes("$") && !m.includes(".") && /^\d{7,10}$/.test(m.replace(/[,]/g, ""));
+            if (isAccountNo) continue;
+            const val = parseAmount(m);
+            if (val !== undefined && val >= 50 && val < 50_000_000) {
+              return val;
+            }
+          }
+        }
+
+        // Priority 2: Section header line — scan section window (up to 8 lines) for section Total/Balance
+        const sectionLines = rawLines.slice(i, i + 8);
+        for (const secLine of sectionLines) {
+          const lowerSec = secLine.toLowerCase().trim();
+          if ((lowerSec.startsWith("total") || lowerSec.startsWith("balance") || lowerSec.includes("total £") || lowerSec.includes("balance £")) &&
+              !lowerSec.includes("portfolio valuation") && !lowerSec.includes("portfolio total") && !lowerSec.includes("total portfolio")) {
+            const matches = secLine.match(/(?:[£$]\s*)?\b\d[\d,]*(?:\.\d+)?[kKmM]?\b/g);
+            if (matches) {
+              for (const m of matches) {
+                const val = parseAmount(m);
+                if (val !== undefined && val >= 50 && val < 50_000_000) return val;
+              }
+            }
+          }
+        }
+
+        // Priority 3: Fallback scan immediate next line
+        const windowText = rawLines.slice(i, i + 2).join(" ");
+        const moneyMatches = windowText.match(/(?:[£$]\s*)?\b\d[\d,]*(?:\.\d+)?[kKmM]?\b/g);
+        if (moneyMatches) {
+          for (const m of moneyMatches) {
+            const isAccountNo = !m.includes("£") && !m.includes("$") && !m.includes(".") && /^\d{7,10}$/.test(m.replace(/[,]/g, ""));
+            if (isAccountNo) continue;
+            const val = parseAmount(m);
+            if (val !== undefined && val >= 50 && val < 50_000_000) {
+              return val;
+            }
+          }
+        }
+      }
+    }
+    return undefined;
   }
 
-  const sippContrib =
-    cleaned.match(/(?:sipp|pension)[^\d]*?([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly)/i) ||
-    cleaned.match(/([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly)[^\d]*?(?:sipp|pension)/i);
-  if (sippContrib) {
-    const val = parseAmount(sippContrib[1]);
-    if (val !== undefined && val > 0) plan.sippMonthlyContribution = val;
+  // Extract lines for wrapper contribution matching
+  const lines = cleaned.split(/[\r\n.]+/);
+
+  // SIPP / Pension Balance & Monthly Contribution (Vanguard Personal Pension, NPR, Workplace Pension)
+  plan.sippBalance = extractWrapperBalanceNearKeyword(cleaned, [
+    "vanguard personal pension",
+    "personal pension",
+    "sipp",
+    "workplace pension",
+    "npr",
+  ]);
+
+  for (const line of lines) {
+    if (/\b(?:sipp|pension)\b/i.test(line)) {
+      const idx = line.search(/\b(?:sipp|pension)\b/i);
+      const subLine = idx >= 0 ? line.slice(idx) : line;
+      const match = subLine.match(/(?:contrib|put in|pay|add|deposit|monthly|\b)?\s*?([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly|\/month)/i);
+      if (match) {
+        const val = parseAmount(match[1]);
+        if (val !== undefined && val > 0 && val < 50000) {
+          plan.sippMonthlyContribution = val;
+          break;
+        }
+      }
+    }
   }
 
   // ISA Balance & Monthly Contribution
-  const isaMatch =
-    cleaned.match(/\b(?:stocks\/shares|stocks and shares isa|s&s isa|\bisa\b)\b[^\d]*?([£$]?\d[\d,\.]*k?m?)/i) ||
-    cleaned.match(/([£$]?\d[\d,\.]*k?m?)[^\d]*?\b(?:stocks\/shares|\bisa\b)\b/i);
-  if (isaMatch) {
-    const val = parseAmount(isaMatch[1] || isaMatch[2]);
-    if (val !== undefined && val > 0) plan.isaBalance = val;
-  }
+  plan.isaBalance = extractWrapperBalanceNearKeyword(cleaned, [
+    "stocks/shares isa",
+    "stocks and shares isa",
+    "s&s isa",
+    "isa",
+  ]);
 
-  const isaContrib =
-    cleaned.match(/isa[^\d]*?([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly)/i) ||
-    cleaned.match(/([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly)[^\d]*?isa/i);
-  if (isaContrib) {
-    const val = parseAmount(isaContrib[1]);
-    if (val !== undefined && val > 0) plan.isaMonthlyContribution = val;
+  for (const line of lines) {
+    if (/\b(?:isa|stocks\/shares)\b/i.test(line) && !line.includes("non-isa")) {
+      const idx = line.search(/\b(?:isa|stocks\/shares)\b/i);
+      const subLine = idx >= 0 ? line.slice(idx) : line;
+      const match = subLine.match(/(?:contrib|put in|pay|add|deposit|monthly|\b)?\s*?([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly|\/month)/i);
+      if (match) {
+        const val = parseAmount(match[1]);
+        if (val !== undefined && val > 0 && val < 50000) {
+          plan.isaMonthlyContribution = val;
+          break;
+        }
+      }
+    }
   }
 
   // GIA / Taxable Brokerage Balance & Monthly Contribution (Non-ISA Savings, Personal Portfolio)
-  const giaMatch =
-    cleaned.match(/\b(?:non-isa|personal portfolio|gia|taxable|brokerage|general investment account|cuenta valores)\b[^\d]*?([£$]?\d[\d,\.]*k?m?)/i) ||
-    cleaned.match(/([£$]?\d[\d,\.]*k?m?)[^\d]*?\b(?:non-isa|personal portfolio|gia|taxable|brokerage)\b/i);
-  if (giaMatch) {
-    const val = parseAmount(giaMatch[1] || giaMatch[2]);
-    if (val !== undefined && val > 0) plan.giaBalance = val;
-  }
+  plan.giaBalance = extractWrapperBalanceNearKeyword(cleaned, [
+    "personal portfolio",
+    "non-isa",
+    "gia",
+    "taxable",
+    "general investment account",
+    "fund & share account",
+  ]);
 
-  const giaContrib =
-    cleaned.match(/(?:gia|taxable|brokerage)[^\d]*?([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly)/i);
-  if (giaContrib) {
-    const val = parseAmount(giaContrib[1]);
-    if (val !== undefined && val > 0) plan.giaMonthlyContribution = val;
+  for (const line of lines) {
+    if (/\b(?:gia|taxable|brokerage|personal portfolio|general investment account|fund & share account)\b/i.test(line)) {
+      const idx = line.search(/\b(?:gia|taxable|brokerage|personal portfolio|general investment account|fund & share account)\b/i);
+      const subLine = idx >= 0 ? line.slice(idx) : line;
+      const match = subLine.match(/(?:contrib|put in|pay|add|deposit|monthly|\b)?\s*?([£$]?\d[\d,\.]*k?m?)\s*?(?:per month|\/mo|a month|monthly|\/month)/i);
+      if (match) {
+        const val = parseAmount(match[1]);
+        if (val !== undefined && val > 0 && val < 50000) {
+          plan.giaMonthlyContribution = val;
+          break;
+        }
+      }
+    }
   }
 
   // Real Estate: Home Property Value

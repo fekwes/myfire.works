@@ -1,0 +1,64 @@
+import { describe, expect, it } from "vitest";
+import { parseTextPlanFallback } from "./plan-import-fallback";
+
+describe("parseTextPlanFallback UK Broker Statements", () => {
+  it("extracts Vanguard UK multi-wrapper statement accurately without account number pollution", () => {
+    const vanguardStatement = `
+      Vanguard Asset Management
+      Client name: Alberto Bernabe Saez
+      Account number: VG0220641
+
+      Portfolio Value by Product Wrapper as at 29 July 2026
+      NPR / Vanguard Personal Pension
+      Investment name Asset sector Quantity Original cost £ Current price £ Current value £
+      Vanguard Global Equity Income Fund £101,888.84
+      FTSE 250 UCITS ETF £47,927.40
+      Vanguard Global Emerging Markets £47,128.95
+      Total £337,856.14
+
+      Personal Portfolio / Non-ISA Savings (CGT)
+      Sterling Short-Term Money Market £36,506.56
+      Vanguard Global Small-Cap Index £37,801.34
+      Total £196,717.05
+
+      Stocks/Shares ISA
+      Vanguard Global Equity Income Fund £111,204.27
+      Vanguard Global Small-Cap £38,651.20
+      Total £166,720.37
+    `;
+
+    const plan = parseTextPlanFallback(vanguardStatement);
+    expect(plan.sippBalance).toBe(337856.14);
+    expect(plan.giaBalance).toBe(196717.05);
+    expect(plan.isaBalance).toBe(166720.37);
+  });
+
+  it("extracts Hargreaves Lansdown statements with SIPP, ISA, and Active Savings", () => {
+    const hlStatement = `
+      Hargreaves Lansdown Portfolio Valuation
+      Account Reference: 80012345
+      SIPP Balance: £245,000.00
+      Stocks and Shares ISA: £85,500.50
+      Fund & Share Account (GIA): £42,100.00
+      Monthly Contribution: SIPP £800/mo, ISA £500/mo
+    `;
+
+    const plan = parseTextPlanFallback(hlStatement);
+    expect(plan.sippBalance).toBe(245000);
+    expect(plan.isaBalance).toBe(85500.5);
+    expect(plan.giaBalance).toBe(42100);
+    expect(plan.sippMonthlyContribution).toBe(800);
+    expect(plan.isaMonthlyContribution).toBe(500);
+  });
+
+  it("filters out 8-digit account numbers so they are never mistaken for balances", () => {
+    const textWithAccNo = `
+      Vanguard Personal Pension Account 80022064 Total £337,856.14
+      ISA Account 50012345 Total £166,720.37
+    `;
+
+    const plan = parseTextPlanFallback(textWithAccNo);
+    expect(plan.sippBalance).toBe(337856.14);
+    expect(plan.isaBalance).toBe(166720.37);
+  });
+});
