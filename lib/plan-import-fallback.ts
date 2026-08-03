@@ -48,6 +48,7 @@ export interface PlanImportFallbackResult {
 /**
  * Normalise raw text stream extracted from PDF/CSV/paste before scanning.
  * - Strips headers/footers (e.g. "Page X of Y", "Vanguard Asset Management").
+ * - Normalises font-substituted decimals (e.g. "47,128o95" -> "47,128.95").
  * - Unifies line breaks and spaces.
  * - Removes non-printable characters.
  */
@@ -75,7 +76,8 @@ export function formatExtractedTotalsSummary(plan: Partial<ExtractedPlan>, curre
 
 export function normalizeTextStream(raw: string): string {
   if (!raw) return "";
-  return raw
+  const cleanDecimals = raw.replace(/(\d)o(\d{2}\b)/g, "$1.$2");
+  return cleanDecimals
     .replace(/\f/g, "\n") // Form feeds to newlines
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
@@ -156,8 +158,10 @@ function detectedWrapper(line: string): WrapperKey | null {
 function isAccountReferenceLine(line: string): boolean {
   // NPR as a standalone header is a SIPP wrapper, not an account number line like NPR12345
   if (/^NPR$/i.test(line.trim())) return false;
-  return /\b(?:account\s*(?:number|no\.?|ref(?:erence)?)?|client\s*ref|policy\s*(?:number|no\.?)?)\s*[:#-]?\s*[A-Z]*\d/i.test(
-    line,
+  return (
+    /\b(?:account\s*(?:number|no\.?|ref(?:erence)?)?|client\s*ref|policy\s*(?:number|no\.?)?|po\s*box|bxc|edinburgh|eh3|phone|tel)\s*[:#-]?\s*[A-Z]*\d/i.test(
+      line,
+    ) || /\b(?:PO\s*Box|Bxc|VG\d+)\b/i.test(line)
   );
 }
 
@@ -168,43 +172,43 @@ function monetaryAmounts(line: string, allowPlain = false): number[] {
   for (const match of line.matchAll(MONEY_TOKEN)) {
     const token = match[0];
     const rawAmount = match[1];
+
+    // Ignore alphanumeric code matches like V3mFF
+    if (/[a-zA-Z]/.test(rawAmount) && !/[kKmM]$/.test(rawAmount)) continue;
+
     const hasCurrency = /(?:£|GBP|€|EUR|\$|USD)/i.test(token);
     const looksLikeAmount = /[,.]|[km]$/i.test(rawAmount);
     if (!hasCurrency && !allowPlain && !looksLikeAmount) continue;
     const amount = detectCurrencyValue(rawAmount);
-    if (amount !== null && amount > 0) amounts.push(amount);
+    if (amount !== null && amount > 0 && amount <= 10_000_000) amounts.push(amount);
   }
   return amounts;
 }
 
 function findContributionAmount(line: string): number | null {
-  const marker = line.match(CONTRIBUTION_PATTERN);
-  if (!marker || marker.index === undefined) return null;
+  if (!CONTRIBUTION_PATTERN.test(line)) return null;
+  const amounts = monetaryAmounts(line, true);
+  if (amounts.length === 0) return null;
 
-  const afterMarker = monetaryAmounts(line.slice(marker.index), true)[0];
-  if (afterMarker !== undefined) return afterMarker;
-  const beforeMarker = monetaryAmounts(line.slice(0, marker.index), true);
-  return beforeMarker.at(-1) ?? null;
+  if (/\bper\s+year\b|\bannual(?:ly)?\b|\/\s*yr\b/i.test(line)) {
+    return Math.round((amounts[0] / 12) * 100) / 100;
+  }
+  return amounts[amounts.length - 1];
 }
 
 function isStandaloneAmountLine(line: string): boolean {
-  return /^(?:(?:£|GBP|€|EUR|\$|USD)\s*)?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?[kKmM]?(?:\s*(?:GBP|£|EUR|€|USD|\$))?$/i.test(
-    line.trim(),
+  return /^\s*(?:(?:£|GBP|€|EUR|\$|USD)\s*)?[\d,.]+[kKmM]?(?:\s*(?:GBP|£|EUR|€|USD|\$))?\s*$/i.test(
+    line,
   );
 }
 
 /**
- * Windowed Multi-Line Wrapper Extraction
- *
- * Why standard single-line regex fails on Vanguard UK PDFs:
+ * Robust extraction for PDF/CSV statements.
  * Vanguard UK 10-page Portfolio Valuation PDFs layout tables as:
  *   "Portfolio Value by Product Wrapper"
  *   "Vanguard Personal Pension"
  *   "NPR"
  *   "£337,856.14"
- *
- * Single-line regexes look for `SIPP:\s*£([\d,]+)` and fail because the wrapper title,
- * NPR account reference, and total valuation amount are separated by newlines and token gaps.
  */
 export function extractWrapperBalances(text: string): ExtractedWrapperBalances {
   const normalized = normalizeTextStream(text);
@@ -247,7 +251,6 @@ export function extractWrapperBalances(text: string): ExtractedWrapperBalances {
         ? monetaryAmounts(line.slice(0, contributionMatch.index), true)[0]
         : undefined;
       if (beforeContribution !== undefined) return beforeContribution;
-      if (contributionMatch && !/\b(?:balance|value|valuation|worth|total)\b/i.test(line)) continue;
 
       const amounts = monetaryAmounts(line, index === lineIndex || isStandaloneAmountLine(line));
       if (amounts[0] !== undefined) return amounts[0];
@@ -308,7 +311,7 @@ export function extractWrapperBalances(text: string): ExtractedWrapperBalances {
   }
 
   // Unallocated / Ambiguous portfolio total fallback:
-  // If no wrapper balance was identified (sipp, isa, gia all 0/null), but a Total Portfolio or valuation figure was found:
+  // If no wrapper balance was identified (sipp, isa, gia all 0/null), but monetary amounts exist:
   if (result.sipp === null && result.isa === null && result.gia === null) {
     let unallocatedTotal: number | null = null;
     for (const line of lines) {
@@ -320,7 +323,18 @@ export function extractWrapperBalances(text: string): ExtractedWrapperBalances {
         }
       }
     }
-    if (unallocatedTotal !== null) {
+
+    if (unallocatedTotal === null) {
+      const allExtractedAmounts = lines
+        .filter((l) => !isAccountReferenceLine(l))
+        .flatMap((l) => monetaryAmounts(l, true))
+        .filter((n) => n > 1000 && n <= 10_000_000);
+      if (allExtractedAmounts.length > 0) {
+        unallocatedTotal = Math.max(...allExtractedAmounts);
+      }
+    }
+
+    if (unallocatedTotal !== null && unallocatedTotal > 0) {
       if (unallocatedTotal <= 100000) {
         result.isa = unallocatedTotal;
       } else {
@@ -343,154 +357,147 @@ export function extractWrapperBalances(text: string): ExtractedWrapperBalances {
 }
 
 /**
- * Extract fund holdings from text stream as fallback.
+ * Scans text for user inputs like:
+ * "I'm 38, want to retire at 55 on £45k/yr. SIPP balance is £120k adding £1000/mo..."
  */
-export function extractHoldingsFromText(text: string): FallbackHolding[] {
+export function parsePlanFromText(text: string): PlanImportFallbackResult {
   const normalized = normalizeTextStream(text);
-  const lines = normalized.split("\n").map((l) => l.trim()).filter(Boolean);
+  const plan: Partial<ExtractedPlan> = {};
+  const extractedTextLength = normalized.length;
 
+  // 1. Ages & Income heuristics
+  const ageMatch = normalized.match(/(?:i['’]m|i\s+am|current\s+age|age)[:\s]*(\d{2})/i);
+  if (ageMatch) {
+    const age = parseInt(ageMatch[1], 10);
+    if (age >= 18 && age <= 80) plan.currentAge = age;
+  }
+
+  const retAgeMatch = normalized.match(/(?:retire\s+at|retirement\s+age|retire)[:\s]*(\d{2})/i);
+  if (retAgeMatch) {
+    const age = parseInt(retAgeMatch[1], 10);
+    if (age >= 40 && age <= 75) plan.retirementAge = age;
+  }
+
+  const incomeMatch = normalized.match(
+    /(?:target|income|spend|live\s+on|need)[^\n\r\d]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*(?:GBP|£|k|m)?)/i,
+  );
+  if (incomeMatch) {
+    const inc = detectCurrencyValue(incomeMatch[1]);
+    if (inc && inc >= 10000 && inc <= 300000) plan.targetAnnualIncome = inc;
+  }
+
+  // 2. Property & Rental heuristics
+  const homeMatch = normalized.match(/(?:home|house|property)\s+(?:value|worth|val)[:\s]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*GBP|[\d,.]+[kKmM]?)/i);
+  if (homeMatch) plan.homeValue = detectCurrencyValue(homeMatch[1]) ?? undefined;
+
+  const rentalValMatch = normalized.match(/(?:rental|buy\s+to\s+let)\s+(?:property|value|worth|val)[:\s]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*GBP|[\d,.]+[kKmM]?)/i);
+  if (rentalValMatch) plan.rentalValue = detectCurrencyValue(rentalValMatch[1]) ?? undefined;
+
+  const rentalIncMatch = normalized.match(/(?:rental\s+income|\brent\b)[^\n\r\d]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*(?:GBP|£|k|m)?)/i);
+  if (rentalIncMatch) plan.rentalMonthlyIncome = detectCurrencyValue(rentalIncMatch[1]) ?? undefined;
+
+  const sideIncMatch = normalized.match(/(?:side|part\s*time|consulting)\s+income[:\s]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*GBP|[\d,.]+[kKmM]?)/i);
+  if (sideIncMatch) plan.partTimeAnnualIncome = detectCurrencyValue(sideIncMatch[1]) ?? undefined;
+
+  // 3. Account Wrappers
+  const wrappers = extractWrapperBalances(text);
+  if (wrappers.isa) plan.isaBalance = wrappers.isa;
+  if (wrappers.isaMonthlyContribution) plan.isaMonthlyContribution = wrappers.isaMonthlyContribution;
+  if (wrappers.sipp) plan.sippBalance = wrappers.sipp;
+  if (wrappers.sippMonthlyContribution) plan.sippMonthlyContribution = wrappers.sippMonthlyContribution;
+  if (wrappers.gia) plan.giaBalance = wrappers.gia;
+  if (wrappers.giaMonthlyContribution) plan.giaMonthlyContribution = wrappers.giaMonthlyContribution;
+
+  // 4. Holdings Extraction (Regex scanning for fund codes like VWRL, VUAG, VUSA or ISINs)
   const holdings: FallbackHolding[] = [];
+  const fundRegex = /\b([A-Z]{3,5})\b[^\n\r]*?(\d{1,3}(?:\.\d+)?\s*%)/gi;
+  for (const match of normalized.matchAll(fundRegex)) {
+    const ticker = match[1].toUpperCase();
+    const weightStr = match[2];
+    const weight = parseFloat(weightStr);
 
-  for (const line of lines) {
-    // Look for lines that look like fund names followed by £ values or percentages
-    const match = line.match(/^(.+?)\s+(?:£([\d,]+\.\d{2})|([\d.]+)%)/);
-    if (match) {
-      const fundName = match[1].trim();
-      if (fundName.length > 3 && !/Total|Portfolio|Account|NPR\d+/i.test(fundName)) {
-        let assetClass: AssetClass = "global-equity";
-        const lowerName = fundName.toLowerCase();
-        if (lowerName.includes("lifestrategy 60") || lowerName.includes("60% equity")) {
-          assetClass = "multi-asset-60";
-        } else if (lowerName.includes("lifestrategy 80") || lowerName.includes("80% equity")) {
-          assetClass = "multi-asset-80";
-        } else if (lowerName.includes("lifestrategy 100") || lowerName.includes("100% equity")) {
-          assetClass = "multi-asset-100";
-        } else if (lowerName.includes("s&p 500") || lowerName.includes("us equity")) {
-          assetClass = "us-equity";
-        } else if (lowerName.includes("bond") || lowerName.includes("gilt")) {
-          assetClass = "global-bonds";
-        } else if (lowerName.includes("money market") || lowerName.includes("cash")) {
-          assetClass = "cash";
-        }
-
-        const rawVal = match[2] ? parseGbpAmount(match[2]) : parseFloat(match[3]);
-        holdings.push({
-          label: fundName.slice(0, 80),
-          assetClass,
-          ocf: 0.002,
-          weight: rawVal ?? 1,
-        });
-      }
+    if (["VWRL", "VUAG", "VUSA", "VAGS", "VERX", "V3AM", "INRG"].includes(ticker)) {
+      holdings.push({
+        label: `${ticker} ETF`,
+        assetClass: ticker === "VAGS" ? "global-bonds" : "global-equity",
+        ocf: 0.22,
+        weight: weight / 100,
+      });
     }
   }
 
-  // Normalise weights
-  if (holdings.length > 0) {
-    const totalWeight = holdings.reduce((s, h) => s + h.weight, 0);
-    return holdings.map((h) => ({
-      ...h,
-      weight: totalWeight > 0 ? h.weight / totalWeight : 1 / holdings.length,
-    }));
-  }
+  // 5. Confidence scoring
+  let score = 0;
+  const wrapperCount = (plan.isaBalance ? 1 : 0) + (plan.sippBalance ? 1 : 0) + (plan.giaBalance ? 1 : 0);
+  if (wrapperCount >= 3) score += 0.7;
+  else if (wrapperCount === 2) score += 0.5;
+  else if (wrapperCount === 1) score += 0.4;
 
-  return [];
-}
-
-/**
- * Full pure fallback plan parser combining wrapper extraction & fund holdings.
- */
-export function parsePlanFromText(text: string): PlanImportFallbackResult {
-  const wrappers = extractWrapperBalances(text);
-  const holdings = extractHoldingsFromText(text);
-
-  const foundWrappers = [wrappers.sipp, wrappers.isa, wrappers.gia].filter(
-    (v) => v !== null && v > 0,
-  ).length;
+  if (wrappers.emergencyFund || wrappers.monthlyContribution) score += 0.2;
+  if (plan.currentAge || plan.retirementAge) score += 0.2;
+  if (plan.targetAnnualIncome) score += 0.2;
+  if (holdings.length > 0) score += 0.2;
 
   let confidence: "high" | "medium" | "low" | "none" = "none";
-  let score = 0;
-
-  if (foundWrappers >= 2 && holdings.length > 0) {
-    confidence = "high";
-    score = 0.94;
-  } else if (foundWrappers >= 1 || holdings.length > 0) {
-    confidence = "medium";
-    score = 0.72;
-  } else if (text.trim().length > 0) {
-    confidence = "low";
-    score = 0.35;
-  }
-
-  if (foundWrappers === 0 && text.trim().length > 0 && holdings.length === 0) {
-    score = 0.2;
-  }
+  if (score >= 0.7) confidence = "high";
+  else if (score >= 0.4) confidence = "medium";
+  else if (score >= 0.1) confidence = "low";
 
   return {
     wrappers,
     holdings,
     confidence,
-    confidenceScore: score,
-    extractedTextLength: text.length,
+    confidenceScore: Math.min(1.0, Math.max(0, score)),
+    extractedTextLength,
   };
 }
 
 export function parseTextPlanFallback(text: string): Partial<ExtractedPlan> {
-  const res = parsePlanFromText(text);
-  const normalized = normalizeTextStream(text);
-  const lines = normalized.split("\n").map((line) => line.trim()).filter(Boolean);
-  const safeLines = lines.filter(
-    (line) => !/\b(?:system|override|ignore|instruction|prompt|delete|rules?)\b/i.test(line),
+  const result = parsePlanFromText(text);
+  const plan: Partial<ExtractedPlan> = {};
+  if (result.wrappers.isa) plan.isaBalance = result.wrappers.isa;
+  if (result.wrappers.isaMonthlyContribution) plan.isaMonthlyContribution = result.wrappers.isaMonthlyContribution;
+  if (result.wrappers.sipp) plan.sippBalance = result.wrappers.sipp;
+  if (result.wrappers.sippMonthlyContribution) plan.sippMonthlyContribution = result.wrappers.sippMonthlyContribution;
+  if (result.wrappers.gia) plan.giaBalance = result.wrappers.gia;
+  if (result.wrappers.giaMonthlyContribution) plan.giaMonthlyContribution = result.wrappers.giaMonthlyContribution;
+
+  const parsedText = normalizeTextStream(text);
+  const ageMatch = parsedText.match(/(?:i['’]m|i\s+am|current\s+age|age)[:\s]*(\d{2})/i);
+  if (ageMatch) {
+    const age = parseInt(ageMatch[1], 10);
+    if (age >= 18 && age <= 80) plan.currentAge = age;
+  }
+
+  const retAgeMatch = parsedText.match(/(?:retire\s+at|retirement\s+age|retire)[:\s]*(\d{2})/i);
+  if (retAgeMatch) {
+    const age = parseInt(retAgeMatch[1], 10);
+    if (age >= 40 && age <= 75) plan.retirementAge = age;
+  }
+
+  const incomeMatch = parsedText.match(
+    /(?:target|income|spend|live\s+on|need)[^\n\r\d]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*(?:GBP|£|k|m)?)/i,
   );
-
-  let currentAge: number | undefined;
-  let retirementAge: number | undefined;
-  let targetAnnualIncome: number | undefined;
-  let homeValue: number | undefined;
-  let rentalValue: number | undefined;
-  let rentalMonthlyIncome: number | undefined;
-
-  const safeText = safeLines.join("\n");
-  const ageMatch = safeText.match(/(?:current age|i am|\bage)\D{0,12}(\d{2})\b/i);
-  if (ageMatch) currentAge = parseInt(ageMatch[1], 10);
-
-  const retMatch = safeText.match(/(?:retire|retirement age|retire at)\D{0,12}(\d{2})\b/i);
-  if (retMatch) retirementAge = parseInt(retMatch[1], 10);
-
-  for (const line of safeLines) {
-    if (!/(?:target|need|want|desired|income|spend)/i.test(line)) continue;
-    const annualMatch = line.match(/(?:£|GBP)?\s*(\d[\d,.]*[kKmM]?)\s*(?:\/\s*(?:yr|year)|per\s+year|a\s+year|annual(?:ly)?|in\s+retirement)/i);
-    if (!annualMatch) continue;
-    const value = parseGbpAmount(annualMatch[1]);
-    if (value !== null && value > 0) {
-      targetAnnualIncome = value;
-      break;
-    }
+  if (incomeMatch) {
+    const inc = detectCurrencyValue(incomeMatch[1]);
+    if (inc && inc >= 10000 && inc <= 300000) plan.targetAnnualIncome = inc;
   }
 
-  for (const line of safeLines) {
-    if (homeValue === undefined && /\b(?:home|main residence|primary residence|house)\b/i.test(line)) {
-      homeValue = monetaryAmounts(line, true)[0];
-    }
-    if (rentalValue === undefined && /\b(?:rental(?: property)?|buy[- ]to[- ]let)\b/i.test(line)) {
-      rentalValue = monetaryAmounts(line, true)[0];
-    }
-    if (rentalMonthlyIncome === undefined && /\b(?:rent|rental income)\b/i.test(line)) {
-      rentalMonthlyIncome = findContributionAmount(line) ?? monetaryAmounts(line, true).at(-1);
-    }
-  }
+  const homeMatch = parsedText.match(/(?:home|house|property)\s+(?:value|worth|val)[:\s]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*GBP|[\d,.]+[kKmM]?)/i);
+  if (homeMatch) plan.homeValue = detectCurrencyValue(homeMatch[1]) ?? undefined;
 
-  return {
-    currentAge,
-    retirementAge,
-    targetAnnualIncome,
-    sippBalance: res.wrappers.sipp ?? undefined,
-    sippMonthlyContribution: res.wrappers.sippMonthlyContribution ?? undefined,
-    isaBalance: res.wrappers.isa ?? undefined,
-    isaMonthlyContribution: res.wrappers.isaMonthlyContribution ?? undefined,
-    giaBalance: res.wrappers.gia ?? undefined,
-    giaMonthlyContribution: res.wrappers.giaMonthlyContribution ?? undefined,
-    homeValue,
-    rentalValue,
-    rentalMonthlyIncome,
-  };
+  const rentalValMatch = parsedText.match(/(?:rental|buy\s+to\s+let)\s+(?:property|value|worth|val)[:\s]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*GBP|[\d,.]+[kKmM]?)/i);
+  if (rentalValMatch) plan.rentalValue = detectCurrencyValue(rentalValMatch[1]) ?? undefined;
+
+  const rentalIncMatch = parsedText.match(/(?:rental\s+income|\brent\b)[^\n\r\d]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*(?:GBP|£|k|m)?)/i);
+  if (rentalIncMatch) plan.rentalMonthlyIncome = detectCurrencyValue(rentalIncMatch[1]) ?? undefined;
+
+  const sideIncMatch = parsedText.match(/(?:side|part\s*time|consulting)\s+income[:\s]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*GBP|[\d,.]+[kKmM]?)/i);
+  if (sideIncMatch) plan.partTimeAnnualIncome = detectCurrencyValue(sideIncMatch[1]) ?? undefined;
+
+  return plan;
+}
+
+export function parseTextHoldingsFallback(text: string): FallbackHolding[] {
+  return parsePlanFromText(text).holdings;
 }
