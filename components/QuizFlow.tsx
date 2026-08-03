@@ -21,10 +21,12 @@ import { Button } from "@/components/ui";
 import { simulateFire } from "@/lib/fire-engine";
 import { computeFireNumber } from "@/lib/fire-number";
 import { useFormat } from "@/hooks/useFormat";
+import { parsePlanFromText } from "@/lib/plan-import-fallback";
 import {
   assembleQuizInputs,
   FIRE_STRATEGIES,
   initialQuizState,
+  lifestyleIncome,
   type LifestyleId,
   type QuizState,
   type StrategyId,
@@ -69,40 +71,71 @@ export function QuizFlow() {
     setImporting(true);
     setImportError(null);
     try {
-      const body = payload.type === "text" ? { text: payload.text } : { file: payload };
+      const body =
+        payload.type === "text"
+          ? { text: payload.text }
+          : { fileBase64: payload.data, mimeType: payload.mimeType };
       const res = await fetch("/api/import-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      const raw = data.plan ?? {};
-      raw.currentAge = state.currentAge;
-      raw.retirementAge = state.retirementAge;
-      raw.targetAnnualIncome = state.customIncome;
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to process document.");
+      }
 
-      const safePlan = sanitisePlanInput(raw) ?? {
+      const extractedPlan = data.plan ?? {};
+      const wrappers = data.wrappers ?? {};
+      const resolvedIncome = lifestyleIncome(state.lifestyle, state.customIncome, activePack?.lifestyleTiers);
+
+      const combinedRaw = {
+        ...extractedPlan,
+        isaBalance: extractedPlan.isaBalance ?? wrappers.isa ?? 0,
+        isaMonthlyContribution: extractedPlan.isaMonthlyContribution ?? wrappers.isaMonthlyContribution ?? 0,
+        sippBalance: extractedPlan.sippBalance ?? wrappers.sipp ?? 0,
+        sippMonthlyContribution: extractedPlan.sippMonthlyContribution ?? wrappers.sippMonthlyContribution ?? 0,
+        giaBalance: extractedPlan.giaBalance ?? wrappers.gia ?? 0,
+        giaMonthlyContribution: extractedPlan.giaMonthlyContribution ?? wrappers.giaMonthlyContribution ?? 0,
         currentAge: state.currentAge,
         retirementAge: state.retirementAge,
-        targetAnnualIncome: state.customIncome,
-        isaBalance: 0,
-        sippBalance: 0,
-        giaBalance: 0,
+        targetAnnualIncome: resolvedIncome,
+      };
+
+      const safePlan = sanitisePlanInput(combinedRaw) ?? {
+        currentAge: state.currentAge,
+        retirementAge: state.retirementAge,
+        targetAnnualIncome: resolvedIncome,
+        isaBalance: combinedRaw.isaBalance,
+        sippBalance: combinedRaw.sippBalance,
+        giaBalance: combinedRaw.giaBalance,
+        isaMonthlyContribution: combinedRaw.isaMonthlyContribution,
+        sippMonthlyContribution: combinedRaw.sippMonthlyContribution,
+        giaMonthlyContribution: combinedRaw.giaMonthlyContribution,
       };
 
       setState((s) => ({ ...s, importedPlan: safePlan, savingsProvided: true }));
       setStep(4); // Advance to Step 5 (Review & Validate Financial Assets)
-    } catch {
-      const fallbackPlan = {
-        currentAge: state.currentAge,
-        retirementAge: state.retirementAge,
-        targetAnnualIncome: state.customIncome,
-        isaBalance: 0,
-        sippBalance: 0,
-        giaBalance: 0,
-      };
-      setState((s) => ({ ...s, importedPlan: fallbackPlan, savingsProvided: true }));
-      setStep(4); // Advance to Step 5 (Review & Validate Financial Assets)
+    } catch (err) {
+      if (payload.type === "text" && payload.text.trim()) {
+        const fallback = parsePlanFromText(payload.text);
+        const resolvedIncome = lifestyleIncome(state.lifestyle, state.customIncome, activePack?.lifestyleTiers);
+        const fallbackRaw = {
+          currentAge: state.currentAge,
+          retirementAge: state.retirementAge,
+          targetAnnualIncome: resolvedIncome,
+          isaBalance: fallback.wrappers.isa ?? 0,
+          sippBalance: fallback.wrappers.sipp ?? 0,
+          giaBalance: fallback.wrappers.gia ?? 0,
+          isaMonthlyContribution: fallback.wrappers.isaMonthlyContribution ?? 0,
+          sippMonthlyContribution: fallback.wrappers.sippMonthlyContribution ?? 0,
+          giaMonthlyContribution: fallback.wrappers.giaMonthlyContribution ?? 0,
+        };
+        setState((s) => ({ ...s, importedPlan: fallbackRaw, savingsProvided: true }));
+        setStep(4);
+        return;
+      }
+      setImportError(err instanceof Error ? err.message : "Document import failed.");
     } finally {
       setImporting(false);
     }

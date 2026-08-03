@@ -298,18 +298,33 @@ export function PlanImport({
     setError(null);
     setWarning(null);
     try {
-      const body = payload.type === "text" ? { text: payload.text } : { file: payload };
+      const body =
+        payload.type === "text"
+          ? { text: payload.text }
+          : { fileBase64: payload.data, mimeType: payload.mimeType };
       const res = await fetch("/api/import-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok || !data.plan) {
+      if (!res.ok) {
         throw new Error(data.error ?? "Import failed.");
       }
 
-      const safePlan = toSafePlan(data.plan);
+      const rawPlan = data.plan ?? {};
+      const wrappers = data.wrappers ?? {};
+      const combined = {
+        ...rawPlan,
+        isaBalance: rawPlan.isaBalance ?? wrappers.isa ?? 0,
+        isaMonthlyContribution: rawPlan.isaMonthlyContribution ?? wrappers.isaMonthlyContribution ?? 0,
+        sippBalance: rawPlan.sippBalance ?? wrappers.sipp ?? 0,
+        sippMonthlyContribution: rawPlan.sippMonthlyContribution ?? wrappers.sippMonthlyContribution ?? 0,
+        giaBalance: rawPlan.giaBalance ?? wrappers.gia ?? 0,
+        giaMonthlyContribution: rawPlan.giaMonthlyContribution ?? wrappers.giaMonthlyContribution ?? 0,
+      };
+
+      const safePlan = toSafePlan(combined);
       if (!safePlan) throw new Error("Plan was unreadable.");
       setWarning(data.warning ?? data.message ?? null);
 
