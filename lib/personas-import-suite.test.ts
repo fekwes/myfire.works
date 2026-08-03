@@ -95,6 +95,28 @@ describe("Persona A: Vanguard UK PDF User", () => {
     expect(plan.giaBalance).toBe(196717.05);
     expect(plan.isaBalance).toBe(166720.37);
   });
+
+  it("extracts Vanguard 10-page statement layout accurately with exact bottom-line totals", () => {
+    const vanguard10PageOcr = `
+      NPR
+      Total £337,856.14 48.18
+      Personal Portfolio
+      Total £196,717.05 28.05
+      Stocks/Shares
+      Total £166,720.37 23.77
+      
+      Vanguard Personal Pension 48.18%
+      Non-ISA Savings (CGT) 18.13%
+      Non-ISA Since 2025 (CGT) 9.92%
+      ISA 23.77%
+    `;
+    const plan = parseTextPlanFallback(vanguard10PageOcr);
+    expect(plan.sippBalance).toBe(337856.14);
+    expect(plan.giaBalance).toBe(196717.05);
+    expect(plan.isaBalance).toBe(166720.37);
+    const sum = (plan.sippBalance ?? 0) + (plan.isaBalance ?? 0) + (plan.giaBalance ?? 0);
+    expect(sum).toBeCloseTo(701293.56, 2);
+  });
 });
 
 describe("Persona B: HL & AJ Bell PDF/Image User", () => {

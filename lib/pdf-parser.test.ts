@@ -137,6 +137,33 @@ ET
     expect(extracted).toContain("Page 2 ISA £20,000");
   });
 
+  it("extracts text from 10-page Vanguard statement structure with FlateDecode streams", () => {
+    const page2 = zlib.deflateSync(Buffer.from("(NPR) Tj T* (Total £337,856.14 48.18) Tj", "latin1"));
+    const page3 = zlib.deflateSync(Buffer.from("(Personal Portfolio) Tj T* (Total £196,717.05 28.05) Tj", "latin1"));
+    const page4 = zlib.deflateSync(Buffer.from("(Stocks/Shares) Tj T* (Total £166,720.37 23.77) Tj", "latin1"));
+    const page5 = zlib.deflateSync(Buffer.from("(Vanguard Personal Pension 48.18%) Tj T* (Non-ISA Savings \\(CGT\\) 18.13%) Tj T* (Non-ISA Since 2025 \\(CGT\\) 9.92%) Tj T* (ISA 23.77%) Tj", "latin1"));
+
+    const pdfData = Buffer.concat([
+      Buffer.from("1 0 obj\n<< /Filter /FlateDecode >>\nstream\r\n", "latin1"), page2,
+      Buffer.from("\r\nendstream\nendobj\n2 0 obj\n<< /Filter /FlateDecode >>\nstream\r\n", "latin1"), page3,
+      Buffer.from("\r\nendstream\nendobj\n3 0 obj\n<< /Filter /FlateDecode >>\nstream\r\n", "latin1"), page4,
+      Buffer.from("\r\nendstream\nendobj\n4 0 obj\n<< /Filter /FlateDecode >>\nstream\r\n", "latin1"), page5,
+      Buffer.from("\r\nendstream\nendobj", "latin1"),
+    ]);
+
+    const extracted = extractPdfText(pdfData);
+    expect(extracted).toContain("NPR");
+    expect(extracted).toContain("Total £337,856.14 48.18");
+    expect(extracted).toContain("Personal Portfolio");
+    expect(extracted).toContain("Total £196,717.05 28.05");
+    expect(extracted).toContain("Stocks/Shares");
+    expect(extracted).toContain("Total £166,720.37 23.77");
+    expect(extracted).toContain("Vanguard Personal Pension 48.18%");
+    expect(extracted).toContain("Non-ISA Savings (CGT) 18.13%");
+    expect(extracted).toContain("Non-ISA Since 2025 (CGT) 9.92%");
+    expect(extracted).toContain("ISA 23.77%");
+  });
+
   it("handles escaped parentheses inside fund names", () => {
     const rawContent = "(Vanguard FTSE Global All Cap Index Fund \\(UK\\) £45,000) Tj";
     const compressed = zlib.deflateSync(Buffer.from(rawContent, "latin1"));
