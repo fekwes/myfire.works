@@ -104,4 +104,13 @@ Bridge Fund: 20,000 GBP; regular investment £250 per month
     expect(result.wrappers.isaMonthlyContribution).toBe(500);
     expect(result.wrappers.giaMonthlyContribution).toBe(250);
   });
+
+  it("maps ambiguous unlabelled portfolio totals to isa or gia fallback", () => {
+    const unlabelledText = `
+      Broker Portfolio Valuation
+      Account Valuation: £45,000.00
+    `;
+    const result = parsePlanFromText(unlabelledText);
+    expect(result.wrappers.isa).toBe(45000);
+  });
 });

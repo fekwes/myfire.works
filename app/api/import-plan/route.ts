@@ -103,7 +103,8 @@ Statement handling:
 3. Account references (for example NPR numbers like VG0220641), transaction amounts, performance percentages, and individual fund holding values are not wrapper balances.
 4. Extract an account's contribution only where the statement or text clearly associates a monthly, regular, recurring, per-month, or /mo amount with that account.
 5. Tolerate OCR noise, broken lines, multi-column copy/paste, and currency representations including £337,856.14, GBP 337,856.14, 337856.14, and £35k.
-6. When an input is partial, return every clearly supported field and null for the rest. Holdings are optional; include only actual funds in the document and classify them with the schema's assetClass values.`;
+6. When an input is partial, return every clearly supported field and null for the rest. Holdings are optional; include only actual funds in the document and classify them with the schema's assetClass values.
+7. If an overall investment portfolio valuation or list of fund holdings is present in the document but the specific account wrapper (ISA, SIPP, GIA) is omitted or ambiguous, assign the unlabelled balance to isaBalance (if <= £100,000) or giaBalance (if > £100,000) so the user's starting wealth is preserved for review.`;
 
 function importApiKey(): string | undefined {
   return (
@@ -165,7 +166,13 @@ export async function POST(request: Request) {
   const combinedText = [textInput, fileExtractedText].filter(Boolean).join("\n\n");
   const decision = routePlanImport(combinedText);
 
-  if (decision.route === "deterministic") {
+  const hasDeterministicBalances =
+    (decision.fallbackResult.wrappers.sipp ?? 0) > 0 ||
+    (decision.fallbackResult.wrappers.isa ?? 0) > 0 ||
+    (decision.fallbackResult.wrappers.gia ?? 0) > 0;
+
+  // Only use deterministic response if it actually extracted non-zero balances OR if no document file was attached
+  if (decision.route === "deterministic" && (hasDeterministicBalances || !fileBase64)) {
     const payload = buildImportPlanFallbackPayload(
       decision.fallbackResult,
       "deterministic",

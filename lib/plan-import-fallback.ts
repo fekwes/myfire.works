@@ -286,6 +286,49 @@ export function extractWrapperBalances(text: string): ExtractedWrapperBalances {
   const efMatch = normalized.match(/(?:Emergency\s+Fund|Cash\s+Buffer|Cash\s+Reserve)[^\n\r]*?((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*GBP)/i);
   if (efMatch) result.emergencyFund = detectCurrencyValue(efMatch[1]);
 
+  const hasSuspiciouslyLowBalances = [result.sipp, result.isa, result.gia].some(v => v === null || v <= 100);
+  if (hasSuspiciouslyLowBalances) {
+    let totalPortfolio: number | null = null;
+    for (const line of lines) {
+      if (/\b(?:Total\s+Portfolio|Total\s+Value)\b/i.test(line)) {
+        const amt = monetaryAmounts(line, true)[0];
+        if (amt !== undefined && amt > 100) totalPortfolio = amt;
+      }
+    }
+
+    if (totalPortfolio !== null && totalPortfolio > 0) {
+      for (const line of lines) {
+        const pctMatch = line.match(/(?:^|\s)([\d.]+)\s*%/);
+        const wrapper = detectedWrapper(line);
+        if (pctMatch && wrapper && (result[wrapper] === null || result[wrapper] === parseFloat(pctMatch[1]))) {
+          result[wrapper] = Math.round(totalPortfolio * parseFloat(pctMatch[1])) / 100;
+        }
+      }
+    }
+  }
+
+  // Unallocated / Ambiguous portfolio total fallback:
+  // If no wrapper balance was identified (sipp, isa, gia all 0/null), but a Total Portfolio or valuation figure was found:
+  if (result.sipp === null && result.isa === null && result.gia === null) {
+    let unallocatedTotal: number | null = null;
+    for (const line of lines) {
+      if (/\b(?:Total\s+Portfolio|Total\s+Valuation|Portfolio\s+Value|Total\s+Value|Net\s+Asset\s+Value|Account\s+Balance|Account\s+Valuation|Total\s+Investments|Valuation)\b/i.test(line)) {
+        const amt = monetaryAmounts(line, true)[0];
+        if (amt !== undefined && amt > 100) {
+          unallocatedTotal = amt;
+          break;
+        }
+      }
+    }
+    if (unallocatedTotal !== null) {
+      if (unallocatedTotal <= 100000) {
+        result.isa = unallocatedTotal;
+      } else {
+        result.gia = unallocatedTotal;
+      }
+    }
+  }
+
   // Legacy aggregate contribution, only when it was not associated with a wrapper.
   for (const line of lines) {
     if (detectedWrapper(line) !== null) continue;
