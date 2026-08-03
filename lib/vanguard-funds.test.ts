@@ -90,17 +90,17 @@ describe("portfolioAllocation", () => {
     expect(eq).toBeCloseTo(0.9, 6);
   });
 
-  it("falls back to the neutral 80/20 default with nothing invested", () => {
-    expect(portfolioEquityFraction(base)).toBeCloseTo(0.8, 6);
+  it("falls back to the Cash default with nothing invested", () => {
+    expect(portfolioEquityFraction(base)).toBeCloseTo(0, 6);
   });
 
-  it("treats a plain-growth wrapper (no portfolio) as the neutral default", () => {
+  it("treats a plain-growth wrapper (no portfolio) as the Cash default mix", () => {
     const eq = portfolioEquityFraction({
       ...base,
       isaBalance: 50_000,
       isaGrowth: 0.0512345,
     });
-    expect(eq).toBeCloseTo(0.8, 6);
+    expect(eq).toBeCloseTo(0, 6);
   });
 });
 

@@ -63,8 +63,8 @@ export const ASSET_CLASS_MIX: Record<
   cash: { equity: 0, bonds: 0, cash: 1 },
 };
 
-/** Neutral fallback mix for a wrapper on a custom (unmatched) growth rate. */
-export const DEFAULT_MIX = { equity: 0.8, bonds: 0.2, cash: 0 };
+/** Default fallback mix for a wrapper without defined holdings (defaults to Cash). */
+export const DEFAULT_MIX = { equity: 0, bonds: 0, cash: 1 };
 
 export const ASSET_CLASS_LABEL: Record<AssetClass, string> = {
   "global-equity": "Global equity",

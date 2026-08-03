@@ -61,8 +61,9 @@ describe("holdings model", () => {
     near(a.cash, 0);
   });
 
-  it("empty holdings fall back to the neutral 80/20 default", () => {
-    near(holdingsAllocation([]).equity, 0.8);
+  it("empty holdings fall back to the Cash default mix", () => {
+    near(holdingsAllocation([]).equity, 0);
+    near(holdingsAllocation([]).cash, 1);
   });
 });
 

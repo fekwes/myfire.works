@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@/components/AuthProvider";
-import { usePlan } from "@/components/PlanProvider";
 import { LogoMark } from "@/components/Logo";
 
 /**
@@ -10,9 +8,7 @@ import { LogoMark } from "@/components/Logo";
  * Routes an onboarded or signed-in visitor to their planner, and new visitors to the landing page.
  */
 export function HeaderLogo() {
-  const { user } = useAuth();
-  const { hasStoredPlan } = usePlan();
-  const href = user || hasStoredPlan ? "/planner" : "/";
+  const href = "/";
 
   return (
     <Link
