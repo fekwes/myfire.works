@@ -76,7 +76,9 @@ export function formatExtractedTotalsSummary(plan: Partial<ExtractedPlan>, curre
 
 export function normalizeTextStream(raw: string): string {
   if (!raw) return "";
-  const cleanDecimals = raw.replace(/(\d)o(\d{2}\b)/g, "$1.$2");
+  const cleanDecimals = raw
+    .replace(/(\d+),(\d{3})\s*o\s*(\d{2})/g, "$1,$2.$3")
+    .replace(/(\d+)\s*o\s*(\d{2}\b)/g, "$1.$2");
   return cleanDecimals
     .replace(/\f/g, "\n") // Form feeds to newlines
     .replace(/\r\n/g, "\n")
@@ -92,7 +94,8 @@ export function normalizeTextStream(raw: string): string {
  */
 export function parseGbpAmount(val: string): number | null {
   if (!val) return null;
-  const compact = val
+  const cleanVal = val.replace(/(\d+)\s*o\s*(\d{2})$/, "$1.$2");
+  const compact = cleanVal
     .trim()
     .replace(/(?:GBP|EUR|USD|[£€$])/gi, "")
     .replace(/\s/g, "");
@@ -121,10 +124,8 @@ const WRAPPER_PATTERNS: Record<WrapperKey, RegExp[]> = {
     /\bPension\b/i,
   ],
   isa: [
-    /Vanguard\s+Stocks\s*(?:&|and)\s*Shares\s*ISA/i,
-    /Stocks\s*(?:&|and|\/)\s*Shares\s*ISA/i,
-    /^Stocks\s*\/\s*Shares$/i,
-    /Stocks\s*\/\s*Shares/i,
+    /Vanguard\s+Stocks\s*(?:&|and|\/)\s*Shares\s*ISA/i,
+    /Stocks\s*(?:&|and|\/)\s*Shares/i,
     /\bISA\b/i,
     /Individual\s+Savings\s+Account/i,
   ],
@@ -133,6 +134,7 @@ const WRAPPER_PATTERNS: Record<WrapperKey, RegExp[]> = {
     /Personal\s+Portfolio/i,
     /Non-ISA\s+Savings/i,
     /Non-ISA\s+Since\s+2025/i,
+    /\bNon-ISA\b/i,
     /\bGIA\b/i,
     /Flexible\s+Account/i,
     /Bridge\s+Fund/i,
@@ -165,13 +167,27 @@ function isAccountReferenceLine(line: string): boolean {
   );
 }
 
+function sanitizeLineForAmounts(line: string): string {
+  return line
+    .replace(/\b(?:Account|Client|Policy)\s*(?:Number|No\.?|Ref(?:erence)?)?\s*[:#-]?\s*[A-Z0-9_-]+/gi, "")
+    .replace(/\b(?:NPR|VG|Bxc)\d+\b/gi, "")
+    .replace(/\bPO\s*Box\s*\d+\b/gi, "");
+}
+
 function monetaryAmounts(line: string, allowPlain = false): number[] {
-  if (isAccountReferenceLine(line)) return [];
+  const sanitizedLine = sanitizeLineForAmounts(line);
+  if (isAccountReferenceLine(sanitizedLine)) return [];
 
   const amounts: number[] = [];
-  for (const match of line.matchAll(MONEY_TOKEN)) {
+  for (const match of sanitizedLine.matchAll(MONEY_TOKEN)) {
     const token = match[0];
     const rawAmount = match[1];
+    const matchIdx = match.index ?? 0;
+
+    // Ignore alphanumeric code tokens like V3mFF or code numbers like 24095910
+    const charBefore = sanitizedLine[matchIdx - 1] || "";
+    const charAfter = sanitizedLine[matchIdx + token.length] || "";
+    if (/[a-zA-Z]/.test(charBefore) || /[a-zA-Z]/.test(charAfter)) continue;
 
     // Ignore alphanumeric code matches like V3mFF
     if (/[a-zA-Z]/.test(rawAmount) && !/[kKmM]$/.test(rawAmount)) continue;
@@ -233,8 +249,15 @@ export function extractWrapperBalances(text: string): ExtractedWrapperBalances {
       const otherWrapper = detectedWrapper(line);
       if (index > lineIndex && otherWrapper !== null && otherWrapper !== key) break;
 
-      if (/^\s*Total\b/i.test(line)) {
+      if (/\bTotal\b/i.test(line)) {
+        const explicitCurrency = line.match(/(?:£|GBP|€|EUR|\$|USD)\s*([\d,.]+[kKmM]?)/i);
+        if (explicitCurrency) {
+          const val = detectCurrencyValue(explicitCurrency[1]);
+          if (val !== null && val > 100) return val;
+        }
         const amounts = monetaryAmounts(line, true);
+        const filtered = amounts.filter((a) => a > 100);
+        if (filtered[0] !== undefined) return filtered[0];
         if (amounts[0] !== undefined) return amounts[0];
       }
     }
@@ -252,7 +275,15 @@ export function extractWrapperBalances(text: string): ExtractedWrapperBalances {
         : undefined;
       if (beforeContribution !== undefined) return beforeContribution;
 
+      const explicitCurrency = line.match(/(?:£|GBP|€|EUR|\$|USD)\s*([\d,.]+[kKmM]?)/i);
+      if (explicitCurrency) {
+        const val = detectCurrencyValue(explicitCurrency[1]);
+        if (val !== null && val > 100) return val;
+      }
+
       const amounts = monetaryAmounts(line, index === lineIndex || isStandaloneAmountLine(line));
+      const filtered = amounts.filter((a) => a > 100);
+      if (filtered[0] !== undefined) return filtered[0];
       if (amounts[0] !== undefined) return amounts[0];
     }
     return null;
@@ -293,44 +324,44 @@ export function extractWrapperBalances(text: string): ExtractedWrapperBalances {
   if (hasSuspiciouslyLowBalances) {
     let totalPortfolio: number | null = null;
     for (const line of lines) {
-      if (/\b(?:Total\s+Portfolio|Total\s+Value)\b/i.test(line)) {
+      if (/\b(?:Total\s+Portfolio|Total\s+Value|Total\s+Valuation)\b/i.test(line)) {
         const amt = monetaryAmounts(line, true)[0];
         if (amt !== undefined && amt > 100) totalPortfolio = amt;
       }
     }
 
     if (totalPortfolio !== null && totalPortfolio > 0) {
+      const wrapperPcts: Record<WrapperKey, number> = { sipp: 0, isa: 0, gia: 0 };
       for (const line of lines) {
         const pctMatch = line.match(/(?:^|\s)([\d.]+)\s*%/);
         const wrapper = detectedWrapper(line);
-        if (pctMatch && wrapper && (result[wrapper] === null || result[wrapper] === parseFloat(pctMatch[1]))) {
-          result[wrapper] = Math.round(totalPortfolio * parseFloat(pctMatch[1])) / 100;
+        if (pctMatch && wrapper) {
+          const pct = parseFloat(pctMatch[1]);
+          if (!isNaN(pct) && pct > 0 && pct <= 100) {
+            wrapperPcts[wrapper] += pct;
+          }
+        }
+      }
+
+      for (const key of ["sipp", "isa", "gia"] as const) {
+        if ((result[key] === null || result[key]! <= 100) && wrapperPcts[key] > 0) {
+          result[key] = Math.round((totalPortfolio * wrapperPcts[key]) / 100 * 100) / 100;
         }
       }
     }
   }
 
   // Unallocated / Ambiguous portfolio total fallback:
-  // If no wrapper balance was identified (sipp, isa, gia all 0/null), but monetary amounts exist:
+  // If no wrapper balance was identified (sipp, isa, gia all 0/null), but an explicit portfolio valuation header exists:
   if (result.sipp === null && result.isa === null && result.gia === null) {
     let unallocatedTotal: number | null = null;
     for (const line of lines) {
-      if (/\b(?:Total\s+Portfolio|Total\s+Valuation|Portfolio\s+Value|Total\s+Value|Net\s+Asset\s+Value|Account\s+Balance|Account\s+Valuation|Total\s+Investments|Valuation)\b/i.test(line)) {
+      if (/\b(?:Total\s+Portfolio|Total\s+Valuation|Portfolio\s+Value|Total\s+Value|Net\s+Asset\s+Value|Account\s+Balance|Account\s+Valuation|Total\s+Investments)\b/i.test(line)) {
         const amt = monetaryAmounts(line, true)[0];
         if (amt !== undefined && amt > 100) {
           unallocatedTotal = amt;
           break;
         }
-      }
-    }
-
-    if (unallocatedTotal === null) {
-      const allExtractedAmounts = lines
-        .filter((l) => !isAccountReferenceLine(l))
-        .flatMap((l) => monetaryAmounts(l, true))
-        .filter((n) => n > 1000 && n <= 10_000_000);
-      if (allExtractedAmounts.length > 0) {
-        unallocatedTotal = Math.max(...allExtractedAmounts);
       }
     }
 

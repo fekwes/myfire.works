@@ -113,4 +113,28 @@ Bridge Fund: 20,000 GBP; regular investment £250 per month
     const result = parsePlanFromText(unlabelledText);
     expect(result.wrappers.isa).toBe(45000);
   });
+
+  it("handles font decimal substitution 'o' instead of period (e.g. 47,128o95)", () => {
+    expect(parseGbpAmount("47,128o95")).toBe(47128.95);
+    const rawWithSub = "Personal Portfolio NPR12345 Total £196,717o05 28.05";
+    const clean = normalizeTextStream(rawWithSub);
+    expect(clean).toContain("£196,717.05");
+
+    const balances = extractWrapperBalances(`
+      Personal Portfolio
+      Total £196,717o05 28.05
+    `);
+    expect(balances.gia).toBe(196717.05);
+  });
+
+  it("ignores ticker codes like V3mFF and account references VG0220641", () => {
+    const textWithTickerAndRefs = `
+      Vanguard Personal Pension
+      Client Ref VG0220641 Box 123
+      V3mFF UCITS ETF 100 shares
+      Total £337,856.14 48.18
+    `;
+    const balances = extractWrapperBalances(textWithTickerAndRefs);
+    expect(balances.sipp).toBe(337856.14);
+  });
 });

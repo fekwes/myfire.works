@@ -5,7 +5,25 @@ export interface PdfStreamInfo {
   filters: string[];
 }
 
-export function extractTextFromPdfBuffer(buffer: Buffer): string {
+export async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> {
+  if (!buffer || buffer.length === 0) return "";
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require("pdf-parse");
+    const fn = typeof pdfParse === "function" ? pdfParse : pdfParse.default;
+    if (typeof fn === "function") {
+      const parsed = await fn(buffer);
+      if (parsed && typeof parsed.text === "string" && parsed.text.trim().length > 0) {
+        const clean = parsed.text
+          .replace(/(\d+),(\d{3})\s*o\s*(\d{2})/g, "$1,$2.$3")
+          .replace(/(\d+)\s*o\s*(\d{2}\b)/g, "$1.$2")
+          .replace(/\b([A-Za-z])\s+(?=[A-Za-z]\b)/g, "$1");
+        return clean;
+      }
+    }
+  } catch (err) {
+    console.warn("pdf-parse primary extraction failed, using fallback stream parser", err);
+  }
   return extractPdfText(buffer);
 }
 
@@ -517,7 +535,10 @@ export function extractPdfText(input: Buffer | Uint8Array | string): string {
     if (!rawClean) continue;
 
     // Collapse character spacing (e.g. "P e r s o n a l" -> "Personal")
-    const clean = rawClean.replace(/\b([A-Za-z])\s+(?=[A-Za-z]\b)/g, "$1");
+    let clean = rawClean.replace(/\b([A-Za-z])\s+(?=[A-Za-z]\b)/g, "$1");
+    // Normalize font-substituted decimal point 'o' (e.g. "47,128o95" -> "47,128.95")
+    clean = clean.replace(/(\d+),(\d{3})\s*o\s*(\d{2})/g, "$1,$2.$3")
+                 .replace(/(\d)\s*o\s*(\d{2}\b)/g, "$1.$2");
 
     // Filter stream output quality: ignore binary font garbage (low ascii ratio)
     const asciiCount = clean.split("").filter(c => c.charCodeAt(0) >= 32 && c.charCodeAt(0) <= 126).length;

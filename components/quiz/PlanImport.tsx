@@ -316,11 +316,11 @@ export function PlanImport({
       const wrappers = data.wrappers ?? {};
       const combined = {
         ...rawPlan,
-        isaBalance: rawPlan.isaBalance ?? wrappers.isa ?? 0,
+        isaBalance: (typeof rawPlan.isaBalance === "number" && rawPlan.isaBalance > 0) ? rawPlan.isaBalance : (wrappers.isa ?? 0),
         isaMonthlyContribution: rawPlan.isaMonthlyContribution ?? wrappers.isaMonthlyContribution ?? 0,
-        sippBalance: rawPlan.sippBalance ?? wrappers.sipp ?? 0,
+        sippBalance: (typeof rawPlan.sippBalance === "number" && rawPlan.sippBalance > 0) ? rawPlan.sippBalance : (wrappers.sipp ?? 0),
         sippMonthlyContribution: rawPlan.sippMonthlyContribution ?? wrappers.sippMonthlyContribution ?? 0,
-        giaBalance: rawPlan.giaBalance ?? wrappers.gia ?? 0,
+        giaBalance: (typeof rawPlan.giaBalance === "number" && rawPlan.giaBalance > 0) ? rawPlan.giaBalance : (wrappers.gia ?? 0),
         giaMonthlyContribution: rawPlan.giaMonthlyContribution ?? wrappers.giaMonthlyContribution ?? 0,
       };
 

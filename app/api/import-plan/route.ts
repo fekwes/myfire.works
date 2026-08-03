@@ -156,7 +156,7 @@ export async function POST(request: Request) {
         fileBase64.replace(/^data:application\/pdf;base64,/, ""),
         "base64",
       );
-      const extracted = extractTextFromPdfBuffer(pdfBuffer);
+      const extracted = await extractTextFromPdfBuffer(pdfBuffer);
       if (extracted.length > fileExtractedText.length) fileExtractedText = extracted;
     } catch {
       // A scan or malformed file can still be sent to the optional vision model.

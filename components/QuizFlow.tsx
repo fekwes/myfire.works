@@ -91,11 +91,11 @@ export function QuizFlow() {
 
       const combinedRaw = {
         ...extractedPlan,
-        isaBalance: extractedPlan.isaBalance ?? wrappers.isa ?? 0,
+        isaBalance: (typeof extractedPlan.isaBalance === "number" && extractedPlan.isaBalance > 0) ? extractedPlan.isaBalance : (wrappers.isa ?? 0),
         isaMonthlyContribution: extractedPlan.isaMonthlyContribution ?? wrappers.isaMonthlyContribution ?? 0,
-        sippBalance: extractedPlan.sippBalance ?? wrappers.sipp ?? 0,
+        sippBalance: (typeof extractedPlan.sippBalance === "number" && extractedPlan.sippBalance > 0) ? extractedPlan.sippBalance : (wrappers.sipp ?? 0),
         sippMonthlyContribution: extractedPlan.sippMonthlyContribution ?? wrappers.sippMonthlyContribution ?? 0,
-        giaBalance: extractedPlan.giaBalance ?? wrappers.gia ?? 0,
+        giaBalance: (typeof extractedPlan.giaBalance === "number" && extractedPlan.giaBalance > 0) ? extractedPlan.giaBalance : (wrappers.gia ?? 0),
         giaMonthlyContribution: extractedPlan.giaMonthlyContribution ?? wrappers.giaMonthlyContribution ?? 0,
         currentAge: state.currentAge,
         retirementAge: state.retirementAge,

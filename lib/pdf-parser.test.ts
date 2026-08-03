@@ -88,7 +88,7 @@ ET
     expect(extracted).toContain("£166,720.37");
   });
 
-  it("decompresses FlateDecode stream blocks with binary buffer slicing", () => {
+  it("decompresses FlateDecode stream blocks with binary buffer slicing", async () => {
     const rawContent = "(ISA Balance £45,000) (SIPP Balance £120,000)";
     const compressed = zlib.deflateSync(Buffer.from(rawContent, "latin1"));
 
@@ -98,25 +98,25 @@ ET
       Buffer.from("\r\nendstream\nendobj\n", "latin1"),
     ]);
 
-    const extracted = extractTextFromPdfBuffer(pdfData);
+    const extracted = await extractTextFromPdfBuffer(pdfData);
     expect(extracted).toContain("ISA Balance £45,000");
     expect(extracted).toContain("SIPP Balance £120,000");
   });
 
-  it("handles uncompressed stream contents gracefully", () => {
+  it("handles uncompressed stream contents gracefully", async () => {
     const pdfData = Buffer.from(
       "1 0 obj\nstream\n(GIA Balance £15,000)\nendstream\nendobj",
       "latin1"
     );
 
-    const extracted = extractTextFromPdfBuffer(pdfData);
+    const extracted = await extractTextFromPdfBuffer(pdfData);
     expect(extracted).toContain("GIA Balance £15,000");
   });
 
-  it("falls back to full buffer string extraction if no stream matches", () => {
+  it("falls back to full buffer string extraction if no stream matches", async () => {
     const pdfData = Buffer.from("BT /F1 12 Tf (Vanguard ISA £50,000) ET", "latin1");
 
-    const extracted = extractTextFromPdfBuffer(pdfData);
+    const extracted = await extractTextFromPdfBuffer(pdfData);
     expect(extracted).toBe("Vanguard ISA £50,000");
   });
 
@@ -192,7 +192,7 @@ ET
     expect(extracted).toContain("HL SIPP £150,000");
   });
 
-  it("decodes Hex and UTF-16 BE string literals", () => {
+  it("decodes Hex and UTF-16 BE string literals", async () => {
     const hexLiteral = "<4953412042616c616e636520c2a335302c303030> Tj";
     const utf16Literal = "<FEFF0053004900500050> Tj";
 
@@ -201,7 +201,7 @@ ET
       "latin1"
     );
 
-    const extracted = extractTextFromPdfBuffer(pdfData);
+    const extracted = await extractTextFromPdfBuffer(pdfData);
     expect(extracted).toContain("ISA Balance £50,000");
     expect(extracted).toContain("SIPP");
   });
