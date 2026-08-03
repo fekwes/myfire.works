@@ -131,6 +131,9 @@ const WRAPPER_PATTERNS: Record<WrapperKey, RegExp[]> = {
   ],
   gia: [
     /General\s+Investment\s+Account/i,
+    /\bInvestment\s+Account\b/i,
+    /Fund\s+(?:and|&)\s+Share\s+Account/i,
+    /Dealing\s+Account/i,
     /Personal\s+Portfolio/i,
     /Non-ISA\s+Savings/i,
     /Non-ISA\s+Since\s+2025/i,
@@ -240,6 +243,50 @@ export function extractWrapperBalances(text: string): ExtractedWrapperBalances {
     emergencyFund: null,
     monthlyContribution: null,
   };
+
+  // Handle single-line multi-wrapper text pastes (e.g. "£45k ISA adding £750/mo, £180k SIPP adding £1200/mo")
+  if (lines.length <= 3) {
+    const fullText = lines.join(" ");
+    const matches: Array<{ key: WrapperKey; index: number }> = [];
+    for (const key of ["sipp", "isa", "gia"] as const) {
+      for (const pattern of WRAPPER_PATTERNS[key]) {
+        const m = fullText.match(pattern);
+        if (m && m.index !== undefined) {
+          matches.push({ key, index: m.index });
+          break;
+        }
+      }
+    }
+    if (matches.length >= 2) {
+      matches.sort((a, b) => a.index - b.index);
+      for (let i = 0; i < matches.length; i++) {
+        const curr = matches[i];
+        const prevIndex = i > 0 ? matches[i - 1].index : 0;
+        const nextIndex = i < matches.length - 1 ? matches[i + 1].index : fullText.length;
+
+        const segmentBefore = fullText.slice(prevIndex, curr.index);
+        const segmentAfter = fullText.slice(curr.index, nextIndex);
+        const segment = fullText.slice(prevIndex, nextIndex);
+
+        const contrib = findContributionAmount(segmentAfter) || findContributionAmount(segment);
+        const amountsBefore = monetaryAmounts(segmentBefore, true);
+        const amountsAfter = monetaryAmounts(segmentAfter, true);
+        const allAmounts = [...amountsBefore, ...amountsAfter];
+        const nonContrib = contrib !== null ? allAmounts.filter((a) => a !== contrib && a !== contrib * 12) : allAmounts;
+
+        if (nonContrib.length > 0) {
+          if (curr.key === "sipp" && !result.sipp) result.sipp = nonContrib[0];
+          if (curr.key === "isa" && !result.isa) result.isa = nonContrib[0];
+          if (curr.key === "gia" && !result.gia) result.gia = nonContrib[0];
+        }
+        if (contrib !== null) {
+          if (curr.key === "sipp" && !result.sippMonthlyContribution) result.sippMonthlyContribution = contrib;
+          if (curr.key === "isa" && !result.isaMonthlyContribution) result.isaMonthlyContribution = contrib;
+          if (curr.key === "gia" && !result.giaMonthlyContribution) result.giaMonthlyContribution = contrib;
+        }
+      }
+    }
+  }
 
   const findBalanceInWindow = (lineIndex: number, key: WrapperKey): number | null => {
     // 1. First check if there is an explicit "Total £..." section total line in this section table (up to 45 lines ahead)
