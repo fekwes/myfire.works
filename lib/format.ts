@@ -77,5 +77,6 @@ export function formatCurrency(value: number, currencyOrOpts?: string | Currency
 export function formatCurrencyCompact(value: number, currencyOrOpts?: string | CurrencyOpts, locale?: string): string {
   const { locale: resolvedLocale, currency: resolvedCurrency } = resolveCurrencySettings(currencyOrOpts, locale);
   const safeValue = Number.isFinite(value) ? value : 0;
-  return getCompactFormatter(resolvedLocale, resolvedCurrency).format(safeValue);
+  const raw = getCompactFormatter(resolvedLocale, resolvedCurrency).format(safeValue);
+  return raw.replace(/\.0(?=[kKmMbBtT])/, "");
 }
