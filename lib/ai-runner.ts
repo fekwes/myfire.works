@@ -5,9 +5,8 @@ import { isQuotaExhausted } from "./ai-errors";
 const DEFAULT_MODELS = [
   "gemini-2.0-flash",
   "gemini-2.0-flash-lite",
-  "gemini-1.5-flash",
-  "gemini-1.5-flash-8b",
 ];
+
 
 /** Returns true for errors where we should try the next model in the fallback chain. */
 function isRetryable(error: unknown): boolean {
