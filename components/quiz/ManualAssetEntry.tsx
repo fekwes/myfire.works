@@ -10,6 +10,42 @@ import {
   splitToHoldings,
 } from "@/components/quiz/PortfolioAllocationSlider";
 
+
+function CurrencyInput({
+  value,
+  onChange,
+  placeholder,
+  className,
+}: {
+  value: number;
+  onChange: (val: number) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? (value === 0 ? "" : String(value));
+
+  return (
+    <input
+      type="number"
+      step="any"
+      value={shown}
+      placeholder={placeholder}
+      className={className}
+      onChange={(e) => {
+        setDraft(e.target.value);
+        const num = parseFloat(e.target.value);
+        if (!isNaN(num)) {
+          onChange(Math.max(0, num));
+        } else if (e.target.value === "") {
+          onChange(0);
+        }
+      }}
+      onBlur={() => setDraft(null)}
+    />
+  );
+}
+
 export function ManualAssetEntry({
   plan,
   onChangePlan,
@@ -25,7 +61,10 @@ export function ManualAssetEntry({
     (plan.homeValue ?? 0) > 0 || (plan.rentalValue ?? 0) > 0 || (plan.rentalMonthlyIncome ?? 0) > 0,
   );
 
-  const currentSplit = holdingsToSplit(plan.isaHoldings ?? plan.sippHoldings ?? plan.giaHoldings);
+  const currentSplit = holdingsToSplit(
+    plan.pots?.isa?.holdings ?? plan.pots?.sipp?.holdings ?? plan.pots?.gia?.holdings ?? 
+    plan.isaHoldings ?? plan.sippHoldings ?? plan.giaHoldings
+  );
 
   const handleFieldChange = (key: keyof FireInputs, rawVal: string) => {
     const num = parseFloat(rawVal);
@@ -64,13 +103,7 @@ export function ManualAssetEntry({
                 </label>
                 <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
                   <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
-                  <input
-                    type="number"
-                    value={plan.isaBalance === 0 ? "" : plan.isaBalance}
-                    placeholder="0"
-                    onChange={(e) => handleFieldChange("isaBalance", e.target.value)}
-                    className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums"
-                  />
+                  <CurrencyInput value={plan.isaBalance ?? 0} placeholder="0" onChange={(v) => handleFieldChange("isaBalance", v)} className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums" />
                 </div>
               </div>
               <div>
@@ -79,13 +112,7 @@ export function ManualAssetEntry({
                 </label>
                 <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
                   <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
-                  <input
-                    type="number"
-                    value={plan.isaMonthlyContribution === 0 ? "" : plan.isaMonthlyContribution}
-                    placeholder="0"
-                    onChange={(e) => handleFieldChange("isaMonthlyContribution", e.target.value)}
-                    className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums"
-                  />
+                  <CurrencyInput value={plan.isaMonthlyContribution ?? 0} placeholder="0" onChange={(v) => handleFieldChange("isaMonthlyContribution", v)} className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums" />
                   <span className="text-[0.65rem] text-muted-foreground font-mono">/mo</span>
                 </div>
               </div>
@@ -102,13 +129,7 @@ export function ManualAssetEntry({
                 </label>
                 <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
                   <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
-                  <input
-                    type="number"
-                    value={plan.sippBalance === 0 ? "" : plan.sippBalance}
-                    placeholder="0"
-                    onChange={(e) => handleFieldChange("sippBalance", e.target.value)}
-                    className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums"
-                  />
+                  <CurrencyInput value={plan.sippBalance ?? 0} placeholder="0" onChange={(v) => handleFieldChange("sippBalance", v)} className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums" />
                 </div>
               </div>
               <div>
@@ -117,13 +138,7 @@ export function ManualAssetEntry({
                 </label>
                 <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
                   <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
-                  <input
-                    type="number"
-                    value={plan.sippMonthlyContribution === 0 ? "" : plan.sippMonthlyContribution}
-                    placeholder="0"
-                    onChange={(e) => handleFieldChange("sippMonthlyContribution", e.target.value)}
-                    className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums"
-                  />
+                  <CurrencyInput value={plan.sippMonthlyContribution ?? 0} placeholder="0" onChange={(v) => handleFieldChange("sippMonthlyContribution", v)} className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums" />
                   <span className="text-[0.65rem] text-muted-foreground font-mono">/mo</span>
                 </div>
               </div>
@@ -140,13 +155,7 @@ export function ManualAssetEntry({
                 </label>
                 <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
                   <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
-                  <input
-                    type="number"
-                    value={plan.giaBalance === 0 ? "" : plan.giaBalance}
-                    placeholder="0"
-                    onChange={(e) => handleFieldChange("giaBalance", e.target.value)}
-                    className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums"
-                  />
+                  <CurrencyInput value={plan.giaBalance ?? 0} placeholder="0" onChange={(v) => handleFieldChange("giaBalance", v)} className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums" />
                 </div>
               </div>
               <div>
@@ -155,13 +164,7 @@ export function ManualAssetEntry({
                 </label>
                 <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
                   <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
-                  <input
-                    type="number"
-                    value={plan.giaMonthlyContribution === 0 ? "" : plan.giaMonthlyContribution}
-                    placeholder="0"
-                    onChange={(e) => handleFieldChange("giaMonthlyContribution", e.target.value)}
-                    className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums"
-                  />
+                  <CurrencyInput value={plan.giaMonthlyContribution ?? 0} placeholder="0" onChange={(v) => handleFieldChange("giaMonthlyContribution", v)} className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums" />
                   <span className="text-[0.65rem] text-muted-foreground font-mono">/mo</span>
                 </div>
               </div>
@@ -190,20 +193,14 @@ export function ManualAssetEntry({
         </button>
 
         {showProperty && (
-          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 animate-in fade-in slide-in-from-top-2 duration-300">
             <div>
               <label className="text-[0.68rem] font-medium text-muted-foreground block mb-1">
                 Home Value
               </label>
               <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
                 <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
-                <input
-                  type="number"
-                  value={plan.homeValue === 0 ? "" : plan.homeValue}
-                  placeholder="0"
-                  onChange={(e) => handleFieldChange("homeValue", e.target.value)}
-                  className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums"
-                />
+                <CurrencyInput value={plan.homeValue ?? 0} placeholder="0" onChange={(v) => handleFieldChange("homeValue", v)} className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums" />
               </div>
             </div>
             <div>
@@ -212,13 +209,7 @@ export function ManualAssetEntry({
               </label>
               <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
                 <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
-                <input
-                  type="number"
-                  value={plan.rentalValue === 0 ? "" : plan.rentalValue}
-                  placeholder="0"
-                  onChange={(e) => handleFieldChange("rentalValue", e.target.value)}
-                  className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums"
-                />
+                <CurrencyInput value={plan.rentalValue ?? 0} placeholder="0" onChange={(v) => handleFieldChange("rentalValue", v)} className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums" />
               </div>
             </div>
             <div className="col-span-2">
@@ -227,13 +218,7 @@ export function ManualAssetEntry({
               </label>
               <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
                 <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
-                <input
-                  type="number"
-                  value={plan.rentalMonthlyIncome === 0 ? "" : plan.rentalMonthlyIncome}
-                  placeholder="0"
-                  onChange={(e) => handleFieldChange("rentalMonthlyIncome", e.target.value)}
-                  className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums"
-                />
+                <CurrencyInput value={plan.rentalMonthlyIncome ?? 0} placeholder="0" onChange={(v) => handleFieldChange("rentalMonthlyIncome", v)} className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums" />
                 <span className="text-[0.65rem] text-muted-foreground font-mono">/mo</span>
               </div>
             </div>
