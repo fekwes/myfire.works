@@ -31,10 +31,10 @@ describe("PortfolioAllocationSlider conversion utilities", () => {
 
   it("handles rounding correctly to ensure percentages sum to exactly 100", () => {
     // 33.33 / 33.33 / 33.33 splits
-    const holdings: any = [
-      { assetClass: "global-equity", weight: 1/3 },
-      { assetClass: "global-bonds", weight: 1/3 },
-      { assetClass: "cash", weight: 1/3 },
+    const holdings = [
+      { assetClass: "global-equity" as const, weight: 1/3, ocf: 0 },
+      { assetClass: "global-bonds" as const, weight: 1/3, ocf: 0 },
+      { assetClass: "cash" as const, weight: 1/3, ocf: 0 },
     ];
     const split = holdingsToSplit(holdings);
     expect(split.equity + split.bonds + split.cash).toBe(100);

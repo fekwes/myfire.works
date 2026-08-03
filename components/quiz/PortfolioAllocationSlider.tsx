@@ -78,7 +78,7 @@ export function holdingsToSplit(holdings?: Holding[]): PortfolioSplit {
   ];
   
   const floored = exact.map(x => ({ key: x.key, floor: Math.floor(x.val), diff: x.val - Math.floor(x.val) }));
-  let currentSum = floored.reduce((sum, x) => sum + x.floor, 0);
+  const currentSum = floored.reduce((sum, x) => sum + x.floor, 0);
   
   floored.sort((a, b) => b.diff - a.diff);
   
