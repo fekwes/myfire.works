@@ -15,6 +15,7 @@ import {
   useCountUp,
 } from "@/components/quiz/QuizPrimitives";
 import { PlanReview } from "@/components/quiz/PlanImport";
+import { ManualAssetEntry } from "@/components/quiz/ManualAssetEntry";
 import { DropPasteInput, type ImportPayload } from "@/components/DropPasteInput";
 import { sanitisePlanInput } from "@/lib/plan-storage";
 import { Button } from "@/components/ui";
@@ -45,6 +46,7 @@ export function QuizFlow() {
   const [state, setState] = useState<QuizState>(initialQuizState);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [assetMode, setAssetMode] = useState<"import" | "manual">("import");
 
   const next = () => {
     if (step === 0) {
@@ -186,59 +188,79 @@ export function QuizFlow() {
       {step === 3 && (
         <StepShell
           key="import"
-          heading="Import your plan with AI"
-          helper="Paste a description of your savings, pensions, property, or drop statements (CSV, PDF, photos). You can mention specific funds (e.g. Vanguard FTSE Global All Cap, HSBC FTSE 250), balances, or contributions for the tool to factor it all."
+          heading="Financial Assets & Portfolio"
+          helper="Choose how you would like to set up your account balances, contributions, and portfolio mix."
           why="Listing your actual savings, pensions, and income sources allows the engine to accurately project your FIRE timeline."
           onBack={back}
         >
           <div className="space-y-4">
-            <DropPasteInput
-              busy={importing}
-              onPayload={handlePayload}
-              onError={setImportError}
-              placeholder="e.g. I have £35k in Stocks & Shares ISA in Vanguard FTSE Global All Cap (adding £500/mo), £150k SIPP in HSBC FTSE 250 (adding £1,000/mo), £20k GIA, £450k home value, and £800/mo rental income..."
-            />
-            {importing && (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground animate-pulse py-2">
-                <Sparkles className="size-4 text-brand animate-spin" />
-                Reading your plan with AI...
-              </div>
-            )}
-            {importError && (
-              <div className="rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger space-y-2">
-                <p className="font-medium">{importError}</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setState((s) => ({
-                      ...s,
-                      savingsProvided: true,
-                      importedPlan: s.importedPlan ?? {},
-                    }));
-                    setStep(4);
-                  }}
-                  className="block font-semibold underline hover:text-foreground transition-colors"
-                >
-                  👉 Continue to enter your figures manually in Asset Review →
-                </button>
-              </div>
-            )}
-            <div className="pt-2 text-center">
+            {/* Segmented Mode Selector */}
+            <div className="grid grid-cols-2 rounded-xl border border-border bg-surface-muted p-1 gap-1 text-xs">
               <button
                 type="button"
-                onClick={() => {
-                  setState((s) => ({
-                    ...s,
-                    savingsProvided: true,
-                    importedPlan: s.importedPlan ?? {},
-                  }));
-                  setStep(4);
-                }}
-                className="text-xs font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                onClick={() => setAssetMode("import")}
+                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 font-semibold transition-all ${
+                  assetMode === "import"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
               >
-                Skip AI & enter assets manually →
+                <Sparkles className="size-3.5 text-brand" />
+                Import with AI
+              </button>
+              <button
+                type="button"
+                onClick={() => setAssetMode("manual")}
+                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 font-semibold transition-all ${
+                  assetMode === "manual"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                ✍️ Add Manually
               </button>
             </div>
+
+            {assetMode === "import" ? (
+              <div className="space-y-4 pt-1">
+                <DropPasteInput
+                  busy={importing}
+                  onPayload={handlePayload}
+                  onError={setImportError}
+                  placeholder="e.g. I have £35k in Stocks & Shares ISA in Vanguard FTSE Global All Cap (adding £500/mo), £150k SIPP in HSBC FTSE 250 (adding £1,000/mo), £20k GIA, £450k home value, and £800/mo rental income..."
+                />
+                {importing && (
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground animate-pulse py-2">
+                    <Sparkles className="size-4 text-brand animate-spin" />
+                    Reading your plan with AI...
+                  </div>
+                )}
+                {importError && (
+                  <div className="rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger space-y-2">
+                    <p className="font-medium">{importError}</p>
+                    <button
+                      type="button"
+                      onClick={() => setAssetMode("manual")}
+                      className="block font-semibold underline hover:text-foreground transition-colors"
+                    >
+                      👉 Switch to enter your figures manually →
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <ManualAssetEntry
+                plan={{
+                  ...assembleQuizInputs(state, activePack),
+                  ...state.importedPlan,
+                }}
+                onChangePlan={(updated) =>
+                  setState((s) => ({ ...s, importedPlan: updated, savingsProvided: true }))
+                }
+                onAccept={() => setStep(REVEAL_STEP)}
+                currencySymbol={activePack?.currency?.symbol ?? "£"}
+              />
+            )}
           </div>
         </StepShell>
       )}

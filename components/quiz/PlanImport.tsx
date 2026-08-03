@@ -7,6 +7,11 @@ import type { FireInputs } from "@/lib/fire-engine";
 import { parseTextPlanFallback } from "@/lib/plan-import-fallback";
 import { PARTIAL_IMPORT_WARNING } from "@/lib/plan-import-router";
 import { sanitisePlanInput } from "@/lib/plan-storage";
+import {
+  holdingsToSplit,
+  PortfolioAllocationSlider,
+  splitToHoldings,
+} from "@/components/quiz/PortfolioAllocationSlider";
 
 /** Profile fields to filter out so the review table focuses exclusively on financial assets & income */
 const FILTERED_PROFILE_FIELDS = new Set([
@@ -242,6 +247,20 @@ export function PlanReview({
           ))}
         </div>
       </div>
+
+      {/* Rough Portfolio Mix Slider */}
+      <PortfolioAllocationSlider
+        split={holdingsToSplit(plan.isaHoldings ?? plan.sippHoldings ?? plan.giaHoldings)}
+        onChange={(nextSplit) => {
+          const holdings = splitToHoldings(nextSplit);
+          onChangePlan({
+            ...plan,
+            isaHoldings: holdings,
+            sippHoldings: holdings,
+            giaHoldings: holdings,
+          });
+        }}
+      />
 
       <div className="flex items-center gap-2 pt-1">
         <button
