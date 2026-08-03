@@ -116,7 +116,21 @@ export function QuizFlow() {
         giaMonthlyContribution: combinedRaw.giaMonthlyContribution,
       };
 
+      const hasExtractedBalances =
+        (combinedRaw.isaBalance ?? 0) > 0 ||
+        (combinedRaw.sippBalance ?? 0) > 0 ||
+        (combinedRaw.giaBalance ?? 0) > 0 ||
+        (extractedPlan.homeValue ?? 0) > 0 ||
+        (extractedPlan.rentalValue ?? 0) > 0;
+
       setState((s) => ({ ...s, importedPlan: safePlan, savingsProvided: true }));
+
+      if (!hasExtractedBalances) {
+        setImportError("We couldn't identify any figures automatically from this document or text. Please enter your figures manually.");
+        setAssetMode("manual");
+        return;
+      }
+
       setStep(4); // Advance to Step 5 (Review & Validate Financial Assets)
     } catch (err) {
       if (payload.type === "text" && payload.text.trim()) {
@@ -133,11 +147,24 @@ export function QuizFlow() {
           sippMonthlyContribution: fallback.wrappers.sippMonthlyContribution ?? 0,
           giaMonthlyContribution: fallback.wrappers.giaMonthlyContribution ?? 0,
         };
+        const hasFallbackBalances =
+          (fallbackRaw.isaBalance ?? 0) > 0 ||
+          (fallbackRaw.sippBalance ?? 0) > 0 ||
+          (fallbackRaw.giaBalance ?? 0) > 0;
+
         setState((s) => ({ ...s, importedPlan: fallbackRaw, savingsProvided: true }));
+
+        if (!hasFallbackBalances) {
+          setImportError("This document or text could not be imported automatically. Please add your figures manually.");
+          setAssetMode("manual");
+          return;
+        }
+
         setStep(4);
         return;
       }
-      setImportError(err instanceof Error ? err.message : "Document import failed.");
+      setImportError(err instanceof Error ? err.message : "Document import failed. Please add your figures manually.");
+      setAssetMode("manual");
     } finally {
       setImporting(false);
     }

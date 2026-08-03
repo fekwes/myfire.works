@@ -132,14 +132,19 @@ export function PortfolioAllocationSlider({
 
   return (
     <div className="space-y-3 rounded-xl border border-border/80 bg-surface-muted/60 p-3.5 text-xs">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 font-semibold text-foreground">
-          <PieChart className="size-4 text-brand" />
-          <span>Rough Portfolio Mix</span>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 font-semibold text-foreground">
+            <PieChart className="size-4 text-brand" />
+            <span>Rough Portfolio Mix</span>
+          </div>
+          <span className="font-mono text-[0.7rem] text-muted-foreground">
+            {eqPct}% Equities · {bdPct}% Bonds · {csPct}% Cash
+          </span>
         </div>
-        <span className="font-mono text-[0.7rem] text-muted-foreground">
-          {eqPct}% Equities · {bdPct}% Bonds · {csPct}% Cash
-        </span>
+        <p className="text-[0.68rem] text-muted-foreground leading-normal">
+          💡 You will be able to define specific funds and individual holdings later when editing your portfolio in the planner.
+        </p>
       </div>
 
       {/* Visual Allocation Bar */}
