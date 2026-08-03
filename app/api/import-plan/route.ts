@@ -89,16 +89,21 @@ export const SYSTEM_INSTRUCTION = `You extract factual UK investment-plan data f
 Return only the JSON schema. Every unknown field MUST be null. Never invent figures, combine unrelated figures, use a total-portfolio amount as an account balance, or infer an annual return.
 
 Target fields:
-- isaBalance and isaMonthlyContribution: Stocks & Shares ISA / Individual Savings Account.
-- sippBalance and sippMonthlyContribution: SIPP, Self-Invested Personal Pension, Personal Pension, including Vanguard Personal Pension.
-- giaBalance and giaMonthlyContribution: General Investment Account, Personal Portfolio, flexible non-ISA account, taxable brokerage, or Bridge Fund.
+- isaBalance and isaMonthlyContribution: Stocks & Shares ISA / Individual Savings Account / Vanguard "Stocks/Shares" section heading.
+- sippBalance and sippMonthlyContribution: SIPP, Self-Invested Personal Pension, Personal Pension, including Vanguard "NPR" / Vanguard Personal Pension section heading.
+- giaBalance and giaMonthlyContribution: General Investment Account, Personal Portfolio, flexible non-ISA account (e.g. Non-ISA Savings CGT), taxable brokerage, or Bridge Fund.
 
 Statement handling:
-1. On multi-page Vanguard, Hargreaves Lansdown, AJ Bell, or Fidelity statements, use each product wrapper's valuation from the top-level Portfolio Summary / Portfolio Value by Product Wrapper table. Do NOT sum underlying funds or use the Total Portfolio Value.
-2. Account references (for example NPR numbers), transaction amounts, performance percentages, and fund-level holdings are not wrapper balances.
-3. Extract an account's contribution only where the statement or text clearly associates a monthly, regular, recurring, per-month, or /mo amount with that account. Do not put an ISA contribution in the SIPP field or use an unlabelled aggregate monthly saving for a specific account.
-4. Tolerate OCR noise, broken lines, multi-column copy/paste, account numbers between labels and values, and currency representations including £337,856.14, GBP 337,856.14, 337856.14 GBP, 337856.14, and £35k.
-5. When an input is partial, return every clearly supported field and null for the rest. Holdings are optional; include only actual funds in the document and classify them only with the schema's assetClass values.`;
+1. On multi-page Vanguard UK statements (e.g. Vanguard Portfolio Valuation Statements):
+   - Page titled "NPR" or "Vanguard Personal Pension" represents the SIPP / Pension. Use the section "Total £..." line at the bottom of that section table (e.g. £337,856.14) for sippBalance.
+   - Page titled "Personal Portfolio", "Non-ISA Savings", or "Non-ISA Since 2025" represents the GIA / Taxable Brokerage. Use the section "Total £..." line at the bottom of that section table (e.g. £196,717.05) for giaBalance.
+   - Page titled "Stocks/Shares" or "Stocks & Shares ISA" represents the ISA. Use the section "Total £..." line at the bottom of that section table (e.g. £166,720.37) for isaBalance.
+   - If the statement contains a "Product Wrapper Allocation" breakdown or pie chart (e.g. Vanguard Personal Pension 48.18%, Non-ISA Savings 18.13%, Non-ISA Since 2025 9.92%, ISA 23.77%) and a Total Portfolio Value, calculate wrapper balances using total portfolio * percentage shares if section totals are not individually extracted.
+2. On Hargreaves Lansdown, AJ Bell, or Fidelity statements, use each product wrapper's valuation from the Portfolio Summary table. Do NOT sum underlying funds.
+3. Account references (for example NPR numbers like VG0220641), transaction amounts, performance percentages, and individual fund holding values are not wrapper balances.
+4. Extract an account's contribution only where the statement or text clearly associates a monthly, regular, recurring, per-month, or /mo amount with that account.
+5. Tolerate OCR noise, broken lines, multi-column copy/paste, and currency representations including £337,856.14, GBP 337,856.14, 337856.14, and £35k.
+6. When an input is partial, return every clearly supported field and null for the rest. Holdings are optional; include only actual funds in the document and classify them with the schema's assetClass values.`;
 
 function importApiKey(): string | undefined {
   return (

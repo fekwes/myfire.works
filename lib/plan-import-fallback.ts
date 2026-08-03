@@ -112,6 +112,8 @@ const WRAPPER_PATTERNS: Record<WrapperKey, RegExp[]> = {
   sipp: [
     /Vanguard\s+Personal\s+Pension/i,
     /Personal\s+Pension/i,
+    /^NPR$/i,
+    /\bNPR\b/i,
     /\bSIPP\b/i,
     /Self-Invested\s+Personal\s+Pension/i,
     /\bPension\b/i,
@@ -119,14 +121,17 @@ const WRAPPER_PATTERNS: Record<WrapperKey, RegExp[]> = {
   isa: [
     /Vanguard\s+Stocks\s*(?:&|and)\s*Shares\s*ISA/i,
     /Stocks\s*(?:&|and|\/)\s*Shares\s*ISA/i,
+    /^Stocks\s*\/\s*Shares$/i,
+    /Stocks\s*\/\s*Shares/i,
     /\bISA\b/i,
     /Individual\s+Savings\s+Account/i,
   ],
   gia: [
     /General\s+Investment\s+Account/i,
     /Personal\s+Portfolio/i,
+    /Non-ISA\s+Savings/i,
+    /Non-ISA\s+Since\s+2025/i,
     /\bGIA\b/i,
-    /Stocks\s*\/\s*Shares(?!\s*ISA)/i,
     /Flexible\s+Account/i,
     /Bridge\s+Fund/i,
   ],
@@ -149,7 +154,9 @@ function detectedWrapper(line: string): WrapperKey | null {
 }
 
 function isAccountReferenceLine(line: string): boolean {
-  return /\b(?:NPR|account\s*(?:number|no\.?|ref(?:erence)?)?|client\s*ref|policy\s*(?:number|no\.?)?)\s*[:#-]?\s*[A-Z]*\d/i.test(
+  // NPR as a standalone header is a SIPP wrapper, not an account number line like NPR12345
+  if (/^NPR$/i.test(line.trim())) return false;
+  return /\b(?:account\s*(?:number|no\.?|ref(?:erence)?)?|client\s*ref|policy\s*(?:number|no\.?)?)\s*[:#-]?\s*[A-Z]*\d/i.test(
     line,
   );
 }
@@ -193,7 +200,7 @@ function isStandaloneAmountLine(line: string): boolean {
  * Vanguard UK 10-page Portfolio Valuation PDFs layout tables as:
  *   "Portfolio Value by Product Wrapper"
  *   "Vanguard Personal Pension"
- *   "NPR12345678"
+ *   "NPR"
  *   "£337,856.14"
  *
  * Single-line regexes look for `SIPP:\s*£([\d,]+)` and fail because the wrapper title,
@@ -215,8 +222,23 @@ export function extractWrapperBalances(text: string): ExtractedWrapperBalances {
   };
 
   const findBalanceInWindow = (lineIndex: number, key: WrapperKey): number | null => {
+    // 1. First check if there is an explicit "Total £..." section total line in this section table (up to 45 lines ahead)
+    for (let index = lineIndex; index < Math.min(lines.length, lineIndex + 45); index++) {
+      const line = lines[index];
+      if (/\bTotal\s+Portfolio\b/i.test(line)) continue;
+      const otherWrapper = detectedWrapper(line);
+      if (index > lineIndex && otherWrapper !== null && otherWrapper !== key) break;
+
+      if (/^\s*Total\b/i.test(line)) {
+        const amounts = monetaryAmounts(line, true);
+        if (amounts[0] !== undefined) return amounts[0];
+      }
+    }
+
+    // 2. Standard window check (5 lines)
     for (let index = lineIndex; index < Math.min(lines.length, lineIndex + 5); index++) {
       const line = lines[index];
+      if (/\bTotal\s+Portfolio\b/i.test(line)) continue;
       const otherWrapper = detectedWrapper(line);
       if (index > lineIndex && otherWrapper !== null && otherWrapper !== key) break;
 

@@ -57,6 +57,44 @@ describe("Persona A: Vanguard UK PDF User", () => {
     const totalWeight = holdings.reduce((acc, h) => acc + h.weight, 0);
     expect(totalWeight).toBeCloseTo(1.0);
   });
+
+  it("extracts Vanguard section totals from NPR, Personal Portfolio, and Stocks/Shares tables", () => {
+    const realVanguardPdfOcr = `
+      Alberto Bernabe Saez
+      Account number: VG0220641
+      Portfolio Value by Product Wrapper as at 29 July 2026
+
+      NPR
+      GBP Cash Cash 28.59 28.59 1.00 28.59 0.00 0.00
+      Vanguard Global Emerging Markets Fund 144.19 49,000.00 326.86 47,128.95
+      FTSE 250 UCITS ETF 1,058.00 46,510.11 45.30 47,927.40
+      Vanguard Global Equity Income Fund 309.04 81,864.14 329.70 101,888.84
+      Vanguard Global Small-Cap Index Fund 90.28 41,813.69 574.23 51,841.19
+      Vanguard U.K. Long Duration Gilt Index Fund 413.35 63,074.04 122.21 50,515.05
+      Total £337,856.14 48.18
+
+      Personal Portfolio
+      GBP Cash Cash 0.84 0.84 1.00 0.84 0.00 0.00
+      Sterling Short-Term Money Market Fund 32,808.99 36,500.00 1.11 36,506.56
+      Vanguard Global Equity Income Fund 113.34 30,482.24 329.70 37,368.27
+      Vanguard Global Small-Cap Index Fund 65.83 31,382.24 574.23 37,801.34
+      Vanguard U.K. Government Bond Index Fund 197.88 26,272.77 135.62 26,835.65
+      Total £196,717.05 28.05
+
+      Stocks/Shares
+      GBP Cash Cash 8.59 8.59 1.00 8.59 0.00 0.00
+      FTSE 250 UCITS ETF 257.00 11,070.09 45.30 11,642.10
+      USD Treasury Bond UCITS ETF 328.00 6,345.41 15.90 5,214.22
+      Vanguard Global Equity Income Fund 337.29 96,966.57 329.70 111,204.27
+      Vanguard Global Small-Cap Index Fund 67.31 30,533.28 574.23 38,651.20
+      Total £166,720.37 23.77
+    `;
+
+    const plan = parseTextPlanFallback(realVanguardPdfOcr);
+    expect(plan.sippBalance).toBe(337856.14);
+    expect(plan.giaBalance).toBe(196717.05);
+    expect(plan.isaBalance).toBe(166720.37);
+  });
 });
 
 describe("Persona B: HL & AJ Bell PDF/Image User", () => {
