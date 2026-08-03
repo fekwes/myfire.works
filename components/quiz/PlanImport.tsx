@@ -4,6 +4,8 @@ import { Sparkles, Check } from "lucide-react";
 import { useState } from "react";
 import { DropPasteInput, type ImportPayload } from "@/components/DropPasteInput";
 import type { FireInputs } from "@/lib/fire-engine";
+import { parseTextPlanFallback } from "@/lib/plan-import-fallback";
+import { PARTIAL_IMPORT_WARNING } from "@/lib/plan-import-router";
 import { sanitisePlanInput } from "@/lib/plan-storage";
 
 /** Profile fields to filter out so the review table focuses exclusively on financial assets & income */
@@ -150,19 +152,10 @@ export function getFinancialDisplayFields(
       if (typeof rawVal === "number") val = rawVal;
     }
 
-    if (val !== undefined && val > 0) {
-      fields.push({ ...def, val });
+    const isCoreImportField = definitions.indexOf(def) < 6;
+    if (isCoreImportField || (val !== undefined && val > 0)) {
+      fields.push({ ...def, val: val ?? 0 });
     }
-  }
-
-  // If no non-zero financial fields were found, show core wrapper & contribution fields so user can input figures
-  if (fields.length === 0) {
-    return [
-      { key: "isaBalance", label: "Stocks & Shares ISA Balance", category: "Account Wrappers", val: plan.isaBalance ?? 0, prefix: currencySymbol },
-      { key: "isaMonthlyContribution", label: "ISA Monthly Contribution", category: "Monthly Contributions", val: plan.isaMonthlyContribution ?? 0, prefix: currencySymbol, suffix: "/mo" },
-      { key: "sippBalance", label: "SIPP (Pension) Balance", category: "Account Wrappers", val: plan.sippBalance ?? 0, prefix: currencySymbol },
-      { key: "sippMonthlyContribution", label: "SIPP Monthly Contribution", category: "Monthly Contributions", val: plan.sippMonthlyContribution ?? 0, prefix: currencySymbol, suffix: "/mo" },
-    ];
   }
 
   return fields;
@@ -174,12 +167,14 @@ export function PlanReview({
   onAccept,
   onBackToImport,
   currencySymbol = "£",
+  warning,
 }: {
   plan: FireInputs;
   onChangePlan: (plan: FireInputs) => void;
   onAccept: () => void;
   onBackToImport?: () => void;
   currencySymbol?: string;
+  warning?: string | null;
 }) {
   const fields = getFinancialDisplayFields(plan, currencySymbol);
 
@@ -216,6 +211,14 @@ export function PlanReview({
 
   return (
     <div className="space-y-4">
+      {warning && (
+        <p
+          role="status"
+          className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-medium text-amber-700 dark:text-amber-300"
+        >
+          {warning}
+        </p>
+      )}
       <div className="rounded-xl border border-border bg-surface-muted p-3 space-y-1 text-sm">
         <div className="divide-y divide-border/40">
           {fields.map(({ key, label, category, val, prefix, suffix }) => (
@@ -268,7 +271,7 @@ export function PlanImport({
   onCancel,
   placeholder,
   currencySymbol = "£",
-  skipReview = true,
+  skipReview = false,
 }: {
   onImport: (plan: FireInputs) => void;
   onCancel: () => void;
@@ -278,11 +281,22 @@ export function PlanImport({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [reviewPlan, setReviewPlan] = useState<FireInputs | null>(null);
+
+  const toSafePlan = (raw: Record<string, unknown>): FireInputs | null => {
+    return sanitisePlanInput({
+      ...raw,
+      currentAge: raw.currentAge ?? 35,
+      retirementAge: raw.retirementAge ?? 55,
+      targetAnnualIncome: raw.targetAnnualIncome ?? 30000,
+    });
+  };
 
   const handlePayload = async (payload: ImportPayload) => {
     setBusy(true);
     setError(null);
+    setWarning(null);
     try {
       const body = payload.type === "text" ? { text: payload.text } : { file: payload };
       const res = await fetch("/api/import-plan", {
@@ -295,13 +309,9 @@ export function PlanImport({
         throw new Error(data.error ?? "Import failed.");
       }
 
-      const raw = data.plan;
-      raw.currentAge = raw.currentAge ?? 35;
-      raw.retirementAge = raw.retirementAge ?? 55;
-      raw.targetAnnualIncome = raw.targetAnnualIncome ?? 30000;
-
-      const safePlan = sanitisePlanInput(raw);
+      const safePlan = toSafePlan(data.plan);
       if (!safePlan) throw new Error("Plan was unreadable.");
+      setWarning(data.warning ?? data.message ?? null);
 
       if (skipReview) {
         onImport(safePlan);
@@ -309,7 +319,19 @@ export function PlanImport({
         setReviewPlan(safePlan);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Import failed.");
+      if (payload.type === "text" && payload.text.trim()) {
+        const safePlan = toSafePlan(parseTextPlanFallback(payload.text));
+        if (safePlan) {
+          setWarning(PARTIAL_IMPORT_WARNING);
+          setReviewPlan(safePlan);
+          return;
+        }
+      }
+      setError(
+        err instanceof Error
+          ? `${err.message} Your text is still here — correct it or continue to enter figures manually.`
+          : "Import failed. Your text is still here — correct it or continue to enter figures manually.",
+      );
     } finally {
       setBusy(false);
     }
@@ -347,6 +369,7 @@ export function PlanImport({
           onAccept={() => onImport(reviewPlan)}
           onBackToImport={() => setReviewPlan(null)}
           currencySymbol={currencySymbol}
+          warning={warning}
         />
       </div>
     );
@@ -373,7 +396,7 @@ export function PlanImport({
       />
 
       {busy && <p className="text-xs text-muted-foreground animate-pulse">Reading plan with AI...</p>}
-      {error && <p className="text-xs text-danger font-medium">{error}</p>}
+      {error && <p role="alert" className="text-xs text-danger font-medium">{error}</p>}
 
       {!busy && !reviewPlan && (
         <button
