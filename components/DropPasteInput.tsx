@@ -311,7 +311,10 @@ export function DropPasteInput({ onPlanImported, onPayload, onError, busy: busyP
             onChange={(e) => setText(e.target.value)}
             onPaste={handlePaste}
             rows={4}
-            placeholder={"Portfolio Value by Product Wrapper:\nVanguard Personal Pension: £337,856.14\nStocks & Shares ISA: £166,720.37\nPersonal Portfolio: £196,717.05"}
+            placeholder={
+              placeholder ||
+              "Portfolio Value by Product Wrapper:\nVanguard Personal Pension: £337,856.14\nStocks & Shares ISA: £166,720.37\nPersonal Portfolio: £196,717.05"
+            }
             className="w-full rounded-md border border-border bg-background p-2.5 text-xs outline-none focus-visible:border-primary"
           />
         </div>

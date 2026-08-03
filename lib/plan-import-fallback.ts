@@ -1,8 +1,5 @@
-import { ASSET_CLASSES, type AssetClass, isAssetClass } from "./assets";
+import type { AssetClass } from "./assets";
 
-/**
- * Result structure returned by fallback text stream parsing.
- */
 export interface ExtractedPlan {
   currentAge?: number;
   retirementAge?: number;
