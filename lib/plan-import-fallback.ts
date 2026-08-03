@@ -317,7 +317,7 @@ export function extractWrapperBalances(text: string): ExtractedWrapperBalances {
   }
 
   // Emergency Fund / Cash Buffer heuristics
-  const efMatch = normalized.match(/(?:Emergency\s+Fund|Cash\s+Buffer|Cash\s+Reserve)[^\n\r]*?((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*GBP)/i);
+  const efMatch = normalized.match(/(?:Emergency\s+Fund|Cash\s+Buffer|Cash\s+Reserve)[^\n\r]{0,150}?((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*GBP)/i);
   if (efMatch) result.emergencyFund = detectCurrencyValue(efMatch[1]);
 
   const hasSuspiciouslyLowBalances = [result.sipp, result.isa, result.gia].some(v => v === null || v <= 100);
@@ -410,7 +410,7 @@ export function parsePlanFromText(text: string): PlanImportFallbackResult {
   }
 
   const incomeMatch = normalized.match(
-    /(?:target|income|spend|live\s+on|need)[^\n\r\d]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*(?:GBP|£|k|m)?)/i,
+    /(?:target|income|spend|live\s+on|need)[^\n\r\d]{0,100}?((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*(?:GBP|£|k|m)?)/i,
   );
   if (incomeMatch) {
     const inc = detectCurrencyValue(incomeMatch[1]);
@@ -424,7 +424,7 @@ export function parsePlanFromText(text: string): PlanImportFallbackResult {
   const rentalValMatch = normalized.match(/(?:rental|buy\s+to\s+let)\s+(?:property|value|worth|val)[:\s]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*GBP|[\d,.]+[kKmM]?)/i);
   if (rentalValMatch) plan.rentalValue = detectCurrencyValue(rentalValMatch[1]) ?? undefined;
 
-  const rentalIncMatch = normalized.match(/(?:rental\s+income|\brent\b)[^\n\r\d]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*(?:GBP|£|k|m)?)/i);
+  const rentalIncMatch = normalized.match(/(?:rental\s+income|\brent\b)[^\n\r\d]{0,100}?((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*(?:GBP|£|k|m)?)/i);
   if (rentalIncMatch) plan.rentalMonthlyIncome = detectCurrencyValue(rentalIncMatch[1]) ?? undefined;
 
   const sideIncMatch = normalized.match(/(?:side|part\s*time|consulting)\s+income[:\s]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*GBP|[\d,.]+[kKmM]?)/i);
@@ -441,7 +441,7 @@ export function parsePlanFromText(text: string): PlanImportFallbackResult {
 
   // 4. Holdings Extraction (Regex scanning for fund codes like VWRL, VUAG, VUSA or ISINs)
   const holdings: FallbackHolding[] = [];
-  const fundRegex = /\b([A-Z]{3,5})\b[^\n\r]*?(\d{1,3}(?:\.\d+)?\s*%)/gi;
+  const fundRegex = /\b([A-Z]{3,5})\b[^\n\r]{0,150}?(\d{1,3}(?:\.\d+)?\s*%)/gi;
   for (const match of normalized.matchAll(fundRegex)) {
     const ticker = match[1].toUpperCase();
     const weightStr = match[2];
@@ -507,7 +507,7 @@ export function parseTextPlanFallback(text: string): Partial<ExtractedPlan> {
   }
 
   const incomeMatch = parsedText.match(
-    /(?:target|income|spend|live\s+on|need)[^\n\r\d]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*(?:GBP|£|k|m)?)/i,
+    /(?:target|income|spend|live\s+on|need)[^\n\r\d]{0,100}?((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*(?:GBP|£|k|m)?)/i,
   );
   if (incomeMatch) {
     const inc = detectCurrencyValue(incomeMatch[1]);
@@ -520,7 +520,7 @@ export function parseTextPlanFallback(text: string): Partial<ExtractedPlan> {
   const rentalValMatch = parsedText.match(/(?:rental|buy\s+to\s+let)\s+(?:property|value|worth|val)[:\s]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*GBP|[\d,.]+[kKmM]?)/i);
   if (rentalValMatch) plan.rentalValue = detectCurrencyValue(rentalValMatch[1]) ?? undefined;
 
-  const rentalIncMatch = parsedText.match(/(?:rental\s+income|\brent\b)[^\n\r\d]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*(?:GBP|£|k|m)?)/i);
+  const rentalIncMatch = parsedText.match(/(?:rental\s+income|\brent\b)[^\n\r\d]{0,100}?((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*(?:GBP|£|k|m)?)/i);
   if (rentalIncMatch) plan.rentalMonthlyIncome = detectCurrencyValue(rentalIncMatch[1]) ?? undefined;
 
   const sideIncMatch = parsedText.match(/(?:side|part\s*time|consulting)\s+income[:\s]*((?:£|GBP)\s*[\d,.]+[kKmM]?|[\d,.]+[kKmM]?\s*GBP|[\d,.]+[kKmM]?)/i);

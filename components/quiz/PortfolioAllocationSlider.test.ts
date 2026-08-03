@@ -28,4 +28,19 @@ describe("PortfolioAllocationSlider conversion utilities", () => {
     expect(split.equity).toBe(0);
     expect(split.bonds).toBe(0);
   });
+
+  it("handles rounding correctly to ensure percentages sum to exactly 100", () => {
+    // 33.33 / 33.33 / 33.33 splits
+    const holdings: any = [
+      { assetClass: "global-equity", weight: 1/3 },
+      { assetClass: "global-bonds", weight: 1/3 },
+      { assetClass: "cash", weight: 1/3 },
+    ];
+    const split = holdingsToSplit(holdings);
+    expect(split.equity + split.bonds + split.cash).toBe(100);
+    // Largest remainder method will assign 34 to one of them, and 33 to the rest.
+    // They all have diff=0.33, sort order is stable or JS specific, but sum must be 100
+    expect(split.equity === 34 || split.bonds === 34 || split.cash === 34).toBe(true);
+  });
 });
+

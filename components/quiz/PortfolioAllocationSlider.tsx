@@ -61,6 +61,8 @@ export function holdingsToSplit(holdings?: Holding[]): PortfolioSplit {
     } else if (h.assetClass.includes("60")) {
       eq += w * 0.6;
       bd += w * 0.4;
+    } else if (h.assetClass.includes("100")) {
+      eq += w;
     } else {
       eq += w;
     }
@@ -69,10 +71,25 @@ export function holdingsToSplit(holdings?: Holding[]): PortfolioSplit {
   const total = eq + bd + cs;
   if (total <= 0) return { equity: 0, bonds: 0, cash: 100 };
 
+  const exact = [
+    { key: "equity", val: (eq / total) * 100 },
+    { key: "bonds", val: (bd / total) * 100 },
+    { key: "cash", val: (cs / total) * 100 },
+  ];
+  
+  const floored = exact.map(x => ({ key: x.key, floor: Math.floor(x.val), diff: x.val - Math.floor(x.val) }));
+  let currentSum = floored.reduce((sum, x) => sum + x.floor, 0);
+  
+  floored.sort((a, b) => b.diff - a.diff);
+  
+  for (let i = 0; i < 100 - currentSum; i++) {
+    floored[i].floor += 1;
+  }
+  
   return {
-    equity: Math.round((eq / total) * 100),
-    bonds: Math.round((bd / total) * 100),
-    cash: Math.round((cs / total) * 100),
+    equity: floored.find(x => x.key === "equity")!.floor,
+    bonds: floored.find(x => x.key === "bonds")!.floor,
+    cash: floored.find(x => x.key === "cash")!.floor,
   };
 }
 
@@ -148,36 +165,40 @@ export function PortfolioAllocationSlider({
       <div className="flex flex-wrap gap-1.5 pt-1">
         <button
           type="button"
+          aria-label="Set to 100% Equities"
           onClick={() => onChange({ equity: 100, bonds: 0, cash: 0 })}
-          className={`rounded-md border px-2 py-1 text-[0.68rem] font-medium transition-colors ${
-            eqPct >= 95 ? "border-brand bg-brand/15 text-brand" : "border-border hover:bg-surface"
+          className={`rounded-md border px-2 py-1 text-[0.68rem] font-medium transition-all active:scale-95 ${
+            eqPct >= 95 ? "border-brand bg-brand/15 text-brand" : "border-border hover:bg-surface hover:border-muted-foreground/30"
           }`}
         >
           100% Equities
         </button>
         <button
           type="button"
+          aria-label="Set to 80% Equities, 20% Bonds"
           onClick={() => onChange({ equity: 80, bonds: 20, cash: 0 })}
-          className={`rounded-md border px-2 py-1 text-[0.68rem] font-medium transition-colors ${
-            eqPct === 80 && bdPct === 20 ? "border-brand bg-brand/15 text-brand" : "border-border hover:bg-surface"
+          className={`rounded-md border px-2 py-1 text-[0.68rem] font-medium transition-all active:scale-95 ${
+            eqPct === 80 && bdPct === 20 ? "border-brand bg-brand/15 text-brand" : "border-border hover:bg-surface hover:border-muted-foreground/30"
           }`}
         >
           80 / 20 Growth
         </button>
         <button
           type="button"
+          aria-label="Set to 60% Equities, 40% Bonds"
           onClick={() => onChange({ equity: 60, bonds: 40, cash: 0 })}
-          className={`rounded-md border px-2 py-1 text-[0.68rem] font-medium transition-colors ${
-            eqPct === 60 && bdPct === 40 ? "border-brand bg-brand/15 text-brand" : "border-border hover:bg-surface"
+          className={`rounded-md border px-2 py-1 text-[0.68rem] font-medium transition-all active:scale-95 ${
+            eqPct === 60 && bdPct === 40 ? "border-brand bg-brand/15 text-brand" : "border-border hover:bg-surface hover:border-muted-foreground/30"
           }`}
         >
           60 / 40 Balanced
         </button>
         <button
           type="button"
+          aria-label="Set to 100% Cash"
           onClick={() => onChange({ equity: 0, bonds: 0, cash: 100 })}
-          className={`rounded-md border px-2 py-1 text-[0.68rem] font-medium transition-colors ${
-            csPct >= 95 ? "border-brand bg-brand/15 text-brand" : "border-border hover:bg-surface"
+          className={`rounded-md border px-2 py-1 text-[0.68rem] font-medium transition-all active:scale-95 ${
+            csPct >= 95 ? "border-brand bg-brand/15 text-brand" : "border-border hover:bg-surface hover:border-muted-foreground/30"
           }`}
         >
           100% Cash
@@ -196,12 +217,13 @@ export function PortfolioAllocationSlider({
           </div>
           <input
             type="range"
+            aria-label="Equities percentage"
             min={0}
             max={100}
             step={5}
             value={split.equity}
             onChange={(e) => handleEquityChange(parseInt(e.target.value, 10))}
-            className="w-full accent-emerald-500 cursor-pointer"
+            className="w-full accent-emerald-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/50 rounded-full"
           />
         </div>
 
@@ -215,12 +237,13 @@ export function PortfolioAllocationSlider({
           </div>
           <input
             type="range"
+            aria-label="Bonds percentage"
             min={0}
             max={100 - split.equity}
             step={5}
             value={split.bonds}
             onChange={(e) => handleBondsChange(parseInt(e.target.value, 10))}
-            className="w-full accent-blue-500 cursor-pointer"
+            className="w-full accent-blue-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/50 rounded-full"
           />
         </div>
 

@@ -62,8 +62,8 @@ export function ManualAssetEntry({
                 <label className="text-[0.68rem] font-medium text-muted-foreground block mb-1">
                   Balance
                 </label>
-                <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand">
-                  <span className="text-muted-foreground font-mono">{currencySymbol}</span>
+                <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
+                  <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
                   <input
                     type="number"
                     value={plan.isaBalance === 0 ? "" : plan.isaBalance}
@@ -77,8 +77,8 @@ export function ManualAssetEntry({
                 <label className="text-[0.68rem] font-medium text-muted-foreground block mb-1">
                   Monthly Contrib.
                 </label>
-                <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand">
-                  <span className="text-muted-foreground font-mono">{currencySymbol}</span>
+                <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
+                  <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
                   <input
                     type="number"
                     value={plan.isaMonthlyContribution === 0 ? "" : plan.isaMonthlyContribution}
@@ -100,8 +100,8 @@ export function ManualAssetEntry({
                 <label className="text-[0.68rem] font-medium text-muted-foreground block mb-1">
                   Balance
                 </label>
-                <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand">
-                  <span className="text-muted-foreground font-mono">{currencySymbol}</span>
+                <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
+                  <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
                   <input
                     type="number"
                     value={plan.sippBalance === 0 ? "" : plan.sippBalance}
@@ -115,8 +115,8 @@ export function ManualAssetEntry({
                 <label className="text-[0.68rem] font-medium text-muted-foreground block mb-1">
                   Monthly Contrib.
                 </label>
-                <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand">
-                  <span className="text-muted-foreground font-mono">{currencySymbol}</span>
+                <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
+                  <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
                   <input
                     type="number"
                     value={plan.sippMonthlyContribution === 0 ? "" : plan.sippMonthlyContribution}
@@ -138,8 +138,8 @@ export function ManualAssetEntry({
                 <label className="text-[0.68rem] font-medium text-muted-foreground block mb-1">
                   Balance
                 </label>
-                <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand">
-                  <span className="text-muted-foreground font-mono">{currencySymbol}</span>
+                <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
+                  <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
                   <input
                     type="number"
                     value={plan.giaBalance === 0 ? "" : plan.giaBalance}
@@ -153,8 +153,8 @@ export function ManualAssetEntry({
                 <label className="text-[0.68rem] font-medium text-muted-foreground block mb-1">
                   Monthly Contrib.
                 </label>
-                <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand">
-                  <span className="text-muted-foreground font-mono">{currencySymbol}</span>
+                <div className="flex items-center gap-1 rounded-md border border-border bg-surface-muted px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
+                  <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
                   <input
                     type="number"
                     value={plan.giaMonthlyContribution === 0 ? "" : plan.giaMonthlyContribution}
@@ -195,8 +195,8 @@ export function ManualAssetEntry({
               <label className="text-[0.68rem] font-medium text-muted-foreground block mb-1">
                 Home Value
               </label>
-              <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs">
-                <span className="text-muted-foreground font-mono">{currencySymbol}</span>
+              <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
+                <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
                 <input
                   type="number"
                   value={plan.homeValue === 0 ? "" : plan.homeValue}
@@ -210,8 +210,8 @@ export function ManualAssetEntry({
               <label className="text-[0.68rem] font-medium text-muted-foreground block mb-1">
                 Rental Value
               </label>
-              <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs">
-                <span className="text-muted-foreground font-mono">{currencySymbol}</span>
+              <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
+                <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
                 <input
                   type="number"
                   value={plan.rentalValue === 0 ? "" : plan.rentalValue}
@@ -225,8 +225,8 @@ export function ManualAssetEntry({
               <label className="text-[0.68rem] font-medium text-muted-foreground block mb-1">
                 Rental Monthly Net Income
               </label>
-              <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs">
-                <span className="text-muted-foreground font-mono">{currencySymbol}</span>
+              <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
+                <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
                 <input
                   type="number"
                   value={plan.rentalMonthlyIncome === 0 ? "" : plan.rentalMonthlyIncome}
@@ -245,7 +245,7 @@ export function ManualAssetEntry({
         <button
           type="button"
           onClick={onAccept}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-brand-foreground shadow transition-colors hover:bg-brand/90"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-brand-foreground shadow transition-transform hover:bg-brand/90 active:scale-[0.98]"
         >
           <Check className="size-4" />
           Save & Continue to Plan

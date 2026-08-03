@@ -133,14 +133,30 @@ export async function POST(request: Request) {
 
   let body: ImportRequestBody;
   try {
-    body = (await request.json()) as ImportRequestBody;
+    const rawBody = await request.json();
+    if (!rawBody || typeof rawBody !== "object" || Array.isArray(rawBody)) {
+      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    }
+    body = rawBody as ImportRequestBody;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const textInput = typeof body.text === "string" ? body.text.trim() : "";
-  const fileBase64 =
-    body.fileBase64 || (body.file && typeof body.file === "object" ? body.file.data : undefined);
+  // Sanitize and constrain input sizes to prevent memory/CPU exhaustion
+  const MAX_TEXT_LENGTH = 100_000;
+  const textInput = typeof body.text === "string" ? body.text.trim().slice(0, MAX_TEXT_LENGTH) : "";
+  
+  let fileBase64: string | undefined = undefined;
+  if (typeof body.fileBase64 === "string") {
+    fileBase64 = body.fileBase64;
+  } else if (body.file && typeof body.file === "object" && typeof body.file.data === "string") {
+    fileBase64 = body.file.data;
+  }
+
+  if (fileBase64 && fileBase64.length > 15_000_000) { // ~11MB base64
+    return NextResponse.json({ error: "File too large (max ~10MB)." }, { status: 413 });
+  }
+
   if (!textInput && !fileBase64) {
     return NextResponse.json(
       { error: "Paste statement text or select a document to import." },

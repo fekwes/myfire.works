@@ -233,15 +233,16 @@ export function PlanReview({
                 <span className="text-[0.65rem] text-muted-foreground">{category}</span>
               </div>
               <div className="shrink-0 inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-semibold focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
-                {prefix && <span className="text-muted-foreground font-mono text-xs">{prefix}</span>}
+                {prefix && <span className="text-muted-foreground font-mono text-xs" aria-hidden="true">{prefix}</span>}
                 <input
                   type="number"
+                  aria-label={label}
                   value={val === 0 ? "" : val}
                   placeholder="0"
                   onChange={(e) => handleFieldChange(key, e.target.value)}
                   className="w-28 text-right bg-transparent text-xs font-bold text-foreground outline-none tabular-nums"
                 />
-                {suffix && <span className="text-muted-foreground font-mono text-xs">{suffix}</span>}
+                {suffix && <span className="text-muted-foreground font-mono text-xs" aria-hidden="true">{suffix}</span>}
               </div>
             </div>
           ))}
@@ -266,7 +267,7 @@ export function PlanReview({
         <button
           type="button"
           onClick={onAccept}
-          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground shadow transition-colors hover:bg-brand/90"
+          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground shadow transition-transform hover:bg-brand/90 active:scale-[0.98]"
         >
           <Check className="size-4" />
           Accept & Continue
@@ -275,7 +276,7 @@ export function PlanReview({
           <button
             type="button"
             onClick={onBackToImport}
-            className="rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-surface-muted"
+            className="rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:text-foreground hover:bg-surface-muted active:scale-[0.98]"
           >
             Re-import
           </button>
