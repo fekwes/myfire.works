@@ -166,38 +166,25 @@ export async function POST(request: Request) {
 
   let fileExtractedText =
     body.file && typeof body.file.extractedText === "string" ? body.file.extractedText.trim() : "";
-  if (fileBase64) {
+  
+  const cleanBase64 = fileBase64 ? fileBase64.replace(/^data:[^;]+;base64,/, "") : undefined;
+
+  if (cleanBase64) {
     try {
-      const pdfBuffer = Buffer.from(
-        fileBase64.replace(/^data:application\/pdf;base64,/, ""),
-        "base64",
-      );
+      const pdfBuffer = Buffer.from(cleanBase64, "base64");
       const extracted = await extractTextFromPdfBuffer(pdfBuffer);
       if (extracted.length > fileExtractedText.length) fileExtractedText = extracted;
     } catch {
-      // A scan or malformed file can still be sent to the optional vision model.
+      // Scanned PDFs or images will be read directly by Gemini vision.
     }
   }
 
   const combinedText = [textInput, fileExtractedText].filter(Boolean).join("\n\n");
   const decision = routePlanImport(combinedText);
 
-  const hasDeterministicBalances =
-    (decision.fallbackResult.wrappers.sipp ?? 0) > 0 ||
-    (decision.fallbackResult.wrappers.isa ?? 0) > 0 ||
-    (decision.fallbackResult.wrappers.gia ?? 0) > 0;
-
-  // Only use deterministic response if it actually extracted non-zero balances OR if no document file was attached
-  if (decision.route === "deterministic" && (hasDeterministicBalances || !fileBase64)) {
-    const payload = buildImportPlanFallbackPayload(
-      decision.fallbackResult,
-      "deterministic",
-      decision.deterministicPlan,
-    );
-    return NextResponse.json({ ...payload, method: "deterministic" });
-  }
-
   const apiKey = importApiKey();
+
+  // If rate-limited or API key is not configured, fall back to offline parser
   if (retryAfter !== null || !apiKey) {
     const payload = buildImportPlanFallbackPayload(
       decision.fallbackResult,
@@ -207,16 +194,16 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ...payload,
       method: "fallback",
-      message: retryAfter !== null ? "AI extraction is busy; showing the figures we could read." : undefined,
+      message: retryAfter !== null ? "AI extraction is busy; showing figures from text parser." : undefined,
     });
   }
 
   try {
     const contents: Array<string | { inlineData: { data: string; mimeType: string } }> = [];
-    if (fileBase64) {
+    if (cleanBase64) {
       contents.push({
         inlineData: {
-          data: fileBase64.replace(/^data:application\/pdf;base64,/, ""),
+          data: cleanBase64,
           mimeType: body.mimeType || body.file?.mimeType || "application/pdf",
         },
       });
