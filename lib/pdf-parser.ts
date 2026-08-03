@@ -81,7 +81,7 @@ export function decodeASCII85(buffer: Buffer): Buffer {
 
     const count = group.length;
     while (group.length < 5) {
-      group.push(84); // Pad with 'u' (value 84)
+      group.push(84); // Pad with 'u'
     }
 
     const val =
@@ -196,6 +196,57 @@ export function decodePdfStream(data: Buffer, filters: string[]): Buffer {
 }
 
 /**
+ * Parse CMap / ToUnicode font table mapping entries from decompressed PDF stream.
+ */
+export function parseCMapTable(streamText: string): Map<string, string> {
+  const cmap = new Map<string, string>();
+  if (!streamText.includes("beginbfchar") && !streamText.includes("beginbfrange")) {
+    return cmap;
+  }
+
+  // Parse beginbfchar: <0001> <0050>
+  const bfcharBlocks = streamText.split("beginbfchar");
+  for (let i = 1; i < bfcharBlocks.length; i++) {
+    const block = bfcharBlocks[i].split("endbfchar")[0];
+    const regex = /<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>/g;
+    let m;
+    while ((m = regex.exec(block)) !== null) {
+      const srcHex = m[1].toUpperCase().padStart(4, "0");
+      const dstHex = m[2].toUpperCase();
+      let charStr = "";
+      for (let j = 0; j < dstHex.length; j += 4) {
+        const code = parseInt(dstHex.slice(j, j + 4), 16);
+        if (!isNaN(code)) charStr += String.fromCharCode(code);
+      }
+      if (charStr) cmap.set(srcHex, charStr);
+    }
+  }
+
+  // Parse beginbfrange: <0001> <0005> <0041>
+  const bfrangeBlocks = streamText.split("beginbfrange");
+  for (let i = 1; i < bfrangeBlocks.length; i++) {
+    const block = bfrangeBlocks[i].split("endbfrange")[0];
+    const regex = /<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>/g;
+    let m;
+    while ((m = regex.exec(block)) !== null) {
+      const startCode = parseInt(m[1], 16);
+      const endCode = parseInt(m[2], 16);
+      const dstStartCode = parseInt(m[3], 16);
+      const hexLen = m[1].length;
+      if (!isNaN(startCode) && !isNaN(endCode) && !isNaN(dstStartCode)) {
+        for (let code = startCode; code <= endCode; code++) {
+          const srcHex = code.toString(16).toUpperCase().padStart(hexLen, "0").padStart(4, "0");
+          const dstChar = String.fromCharCode(dstStartCode + (code - startCode));
+          cmap.set(srcHex, dstChar);
+        }
+      }
+    }
+  }
+
+  return cmap;
+}
+
+/**
  * Parse a single parenthesized PDF string literal `(...)`, handling nested parentheses,
  * backslash escapes (`\(`, `\)`, `\\`, `\n`, `\r`, `\t`), and octal escapes (`\ddd`).
  */
@@ -283,10 +334,35 @@ export function parseParenthesizedStrings(src: string): string[] {
 }
 
 /**
- * Extract text from a decoded PDF content stream by inspecting Tj, TJ, ', ", T*, Td, TD, ET operators
- * and parenthesized text blocks.
+ * Decode CID hex character sequence using CMap dictionary.
  */
-export function extractTextFromPdfStream(streamText: string): string {
+function decodeCidHex(hexStr: string, cmap: Map<string, string>): string {
+  let decoded = "";
+  const cleanHex = hexStr.replace(/[^0-9a-fA-F]/g, "");
+  for (let i = 0; i < cleanHex.length; i += 4) {
+    const chunk = cleanHex.slice(i, i + 4).toUpperCase().padStart(4, "0");
+    const char = cmap.get(chunk);
+    if (char !== undefined) {
+      decoded += char;
+    }
+  }
+  if (!decoded) {
+    for (let i = 0; i < cleanHex.length; i += 2) {
+      const chunk = cleanHex.slice(i, i + 2).toUpperCase().padStart(4, "0");
+      const char = cmap.get(chunk);
+      if (char !== undefined) {
+        decoded += char;
+      }
+    }
+  }
+  return decoded;
+}
+
+/**
+ * Extract text from a decoded PDF content stream by inspecting Tj, TJ, ', ", T*, Td, TD, ET operators,
+ * CMap CID hex strings, and parenthesized text blocks.
+ */
+export function extractTextFromPdfStream(streamText: string, cmap?: Map<string, string>): string {
   const lines: string[] = [];
   let currentLine: string[] = [];
 
@@ -302,6 +378,14 @@ export function extractTextFromPdfStream(streamText: string): string {
           const strings = parseParenthesizedStrings(arrayContent);
           if (strings.length > 0) {
             currentLine.push(strings.join(""));
+          } else if (cmap && cmap.size > 0) {
+            const hexes = arrayContent.match(/<([0-9a-fA-F]+)>/g);
+            if (hexes) {
+              for (const hStr of hexes) {
+                const decoded = decodeCidHex(hStr, cmap);
+                if (decoded) currentLine.push(decoded);
+              }
+            }
           }
           i = endBracket + tjOpMatch[0].length + 1;
           continue;
@@ -313,6 +397,15 @@ export function extractTextFromPdfStream(streamText: string): string {
       const endAngle = streamText.indexOf(">", i);
       if (endAngle !== -1) {
         const hexData = streamText.slice(i + 1, endAngle);
+        const rest = streamText.slice(endAngle + 1, endAngle + 10);
+        const tjOpMatch = rest.match(/^\s*(Tj|'|")/i);
+        if (tjOpMatch && cmap && cmap.size > 0) {
+          const decoded = decodeCidHex(hexData, cmap);
+          if (decoded) currentLine.push(decoded);
+          i = endAngle + tjOpMatch[0].length + 1;
+          continue;
+        }
+
         const decodedBuf = decodeASCIIHex(Buffer.from(hexData, "latin1"));
         let decodedText = "";
         if (decodedBuf.length >= 2 && decodedBuf[0] === 0xfe && decodedBuf[1] === 0xff) {
@@ -395,21 +488,50 @@ export function extractPdfText(input: Buffer | Uint8Array | string): string {
 
   if (!buf || buf.length === 0) return "";
 
-  const textBlocks: string[] = [];
   const streamMatches = findPdfStreams(buf);
 
+  // 1. Build master CMap dictionary from all streams
+  const globalCmap = new Map<string, string>();
   for (const stream of streamMatches) {
     const decodedBuf = decodePdfStream(stream.data, stream.filters);
     const decodedText = decodedBuf.toString("latin1");
-    const extracted = extractTextFromPdfStream(decodedText);
-    if (extracted.trim()) {
-      textBlocks.push(extracted.trim());
+    if (decodedText.includes("beginbfchar") || decodedText.includes("beginbfrange")) {
+      const streamCmap = parseCMapTable(decodedText);
+      for (const [k, v] of streamCmap) {
+        globalCmap.set(k, v);
+      }
+    }
+  }
+
+  // 2. Extract text from content streams using the global CMap map
+  const textBlocks: string[] = [];
+  for (const stream of streamMatches) {
+    const decodedBuf = decodePdfStream(stream.data, stream.filters);
+    const decodedText = decodedBuf.toString("latin1");
+    
+    // Ignore pure CMap font dictionary streams from output text blocks
+    if (decodedText.includes("begincmap") || decodedText.includes("/CIDInit")) continue;
+
+    const extracted = extractTextFromPdfStream(decodedText, globalCmap);
+    const rawClean = extracted.trim();
+    if (!rawClean) continue;
+
+    // Collapse character spacing (e.g. "P e r s o n a l" -> "Personal")
+    const clean = rawClean.replace(/\b([A-Za-z])\s+(?=[A-Za-z]\b)/g, "$1");
+
+    // Filter stream output quality: ignore binary font garbage (low ascii ratio)
+    const asciiCount = clean.split("").filter(c => c.charCodeAt(0) >= 32 && c.charCodeAt(0) <= 126).length;
+    const asciiRatio = asciiCount / clean.length;
+    const containsKeyTerms = /\b(?:Vanguard|SIPP|ISA|GIA|Portfolio|Valuation|Total|Pensions?|Personal|Savings|GBP|£|Account|Holdings|Fund)\b/i.test(clean);
+
+    if (asciiRatio >= 0.70 || containsKeyTerms) {
+      textBlocks.push(clean);
     }
   }
 
   if (textBlocks.length === 0) {
     const rawText = buf.toString("latin1");
-    const extracted = extractTextFromPdfStream(rawText);
+    const extracted = extractTextFromPdfStream(rawText, globalCmap);
     if (extracted.trim()) {
       textBlocks.push(extracted.trim());
     }
