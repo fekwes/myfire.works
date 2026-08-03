@@ -5,6 +5,10 @@ export interface PdfStreamInfo {
   filters: string[];
 }
 
+export function extractTextFromPdfBuffer(buffer: Buffer): string {
+  return extractPdfText(buffer);
+}
+
 /**
  * Decode FlateDecode stream data using Node zlib inflate/unzip/inflateRaw.
  */
@@ -302,6 +306,25 @@ export function extractTextFromPdfStream(streamText: string): string {
           i = endBracket + tjOpMatch[0].length + 1;
           continue;
         }
+      }
+    }
+
+    if (streamText[i] === "<" && streamText[i + 1] !== "<") {
+      const endAngle = streamText.indexOf(">", i);
+      if (endAngle !== -1) {
+        const hexData = streamText.slice(i + 1, endAngle);
+        const decodedBuf = decodeASCIIHex(Buffer.from(hexData, "latin1"));
+        let decodedText = "";
+        if (decodedBuf.length >= 2 && decodedBuf[0] === 0xfe && decodedBuf[1] === 0xff) {
+          decodedText = new TextDecoder("utf-16be").decode(decodedBuf.subarray(2));
+        } else {
+          decodedText = decodedBuf.toString("utf8");
+        }
+        if (decodedText.trim()) {
+          currentLine.push(decodedText.trim());
+        }
+        i = endAngle + 1;
+        continue;
       }
     }
 

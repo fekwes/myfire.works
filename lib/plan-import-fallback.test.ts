@@ -87,4 +87,21 @@ Monthly contribution 1500
     expect(result.wrappers.gia).toBe(196717.05);
     expect(result.wrappers.monthlyContribution).toBe(1500);
   });
+
+  it("keeps account references out of balances and maps each wrapper contribution", () => {
+    const result = parsePlanFromText(`
+Portfolio Value by Product Wrapper
+Vanguard Personal Pension
+NPR84729104
+GBP 337856.14
+Stocks & Shares ISA: £166,720.37 (adding £500/mo)
+Bridge Fund: 20,000 GBP; regular investment £250 per month
+`);
+
+    expect(result.wrappers.sipp).toBe(337856.14);
+    expect(result.wrappers.isa).toBe(166720.37);
+    expect(result.wrappers.gia).toBe(20000);
+    expect(result.wrappers.isaMonthlyContribution).toBe(500);
+    expect(result.wrappers.giaMonthlyContribution).toBe(250);
+  });
 });
