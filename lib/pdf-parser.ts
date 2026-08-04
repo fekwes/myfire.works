@@ -542,10 +542,10 @@ export function extractPdfText(input: Buffer | Uint8Array | string): string {
 
     // Filter stream output quality: ignore binary font garbage (low ascii ratio)
     const asciiCount = clean.split("").filter(c => c.charCodeAt(0) >= 32 && c.charCodeAt(0) <= 126).length;
-    const asciiRatio = asciiCount / clean.length;
-    const containsKeyTerms = /\b(?:Vanguard|SIPP|ISA|GIA|Portfolio|Valuation|Total|Pensions?|Personal|Savings|GBP|£|Account|Holdings|Fund)\b/i.test(clean);
+    const asciiRatio = clean.length > 0 ? asciiCount / clean.length : 0;
+    const containsKeyTerms = /\b(?:Vanguard|SIPP|ISA|GIA|NPR|Non-ISA|Stocks|Portfolio|Valuation|Total|Pensions?|Personal|Savings|GBP|£|Account|Holdings|Fund)\b/i.test(clean);
 
-    if (asciiRatio >= 0.70 || containsKeyTerms) {
+    if (asciiRatio >= 0.50 || containsKeyTerms) {
       textBlocks.push(clean);
     }
   }

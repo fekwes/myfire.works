@@ -211,11 +211,13 @@ export async function POST(request: Request) {
           mimeType: body.mimeType || body.file?.mimeType || "application/pdf",
         },
       });
-    }
-    if (combinedText) {
-      contents.push(`Extract the plan fields from this text:\n\n${combinedText}`);
+      contents.push(
+        combinedText
+          ? `Extract the plan fields from the attached statement PDF document. Reference text extracted from document:\n\n${combinedText}`
+          : "Extract the plan fields from the attached statement PDF document."
+      );
     } else {
-      contents.push("Extract the plan fields from this statement document.");
+      contents.push(`Extract the plan fields from this statement text:\n\n${combinedText}`);
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -249,12 +251,13 @@ export async function POST(request: Request) {
       "fallback-text-parser",
       decision.deterministicPlan,
     );
+    const quotaExhausted = isQuotaExhausted(error);
     return NextResponse.json({
       ...payload,
       method: "fallback",
-      message: isQuotaExhausted(error)
-        ? AI_QUOTA_MESSAGE
-        : "AI extraction was busy; showing the figures we could read from your document.",
+      message: quotaExhausted
+        ? "Gemini API key prepayment credits/quota are depleted. Showing figures read from text parser."
+        : "AI extraction was busy; showing figures read from text parser.",
     });
   }
 }
