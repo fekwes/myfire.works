@@ -226,7 +226,7 @@ export async function POST(request: Request) {
           temperature: 0,
         },
       },
-      "gemini-2.0-flash",
+      "gemini-2.5-flash",
     );
     const model = parseModelResponse(response.text);
     const payload = mergePlanImportResults({
@@ -234,12 +234,12 @@ export async function POST(request: Request) {
       deterministicPlan: decision.deterministicPlan,
       aiPlan: typeof model.plan === "object" && model.plan !== null ? (model.plan as Record<string, unknown>) : null,
       aiHoldings: model.holdings,
-      source: "gemini-2.0-flash",
+      source: "gemini-2.5-flash",
       route: "llm",
     });
     return NextResponse.json({ ...payload, method: "hybrid" });
   } catch (error) {
-    console.warn("AI plan import failed; returning deterministic recovery result", error);
+    console.warn("AI plan import failed across models; returning deterministic recovery result", error);
     const payload = buildImportPlanFallbackPayload(
       decision.fallbackResult,
       "fallback-text-parser",
@@ -250,7 +250,7 @@ export async function POST(request: Request) {
       method: "fallback",
       message: isQuotaExhausted(error)
         ? AI_QUOTA_MESSAGE
-        : "AI extraction was unavailable; showing the figures we could read.",
+        : "AI extraction was busy; showing the figures we could read from your document.",
     });
   }
 }

@@ -228,7 +228,7 @@ export function PortfolioAllocationSlider({
             step={5}
             value={split.equity}
             onChange={(e) => handleEquityChange(parseInt(e.target.value, 10))}
-            className="w-full h-2 rounded-lg bg-surface border border-border/50 accent-emerald-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/50 appearance-none [&::-webkit-slider-runnable-track]:bg-surface-muted [&::-webkit-slider-runnable-track]:rounded-lg [&::-moz-range-track]:bg-surface-muted [&::-moz-range-track]:rounded-lg"
+            className="w-full accent-emerald-500 cursor-pointer focus:outline-none"
           />
         </div>
 
@@ -248,7 +248,7 @@ export function PortfolioAllocationSlider({
             step={5}
             value={split.bonds}
             onChange={(e) => handleBondsChange(parseInt(e.target.value, 10))}
-            className="w-full h-2 rounded-lg bg-surface border border-border/50 accent-blue-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none [&::-webkit-slider-runnable-track]:bg-surface-muted [&::-webkit-slider-runnable-track]:rounded-lg [&::-moz-range-track]:bg-surface-muted [&::-moz-range-track]:rounded-lg"
+            className="w-full accent-blue-500 cursor-pointer focus:outline-none"
           />
         </div>
 

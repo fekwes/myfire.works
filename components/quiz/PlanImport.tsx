@@ -354,19 +354,27 @@ export function PlanImport({
         setReviewPlan(safePlan);
       }
     } catch (err) {
+      let fallbackPlan: FireInputs = {
+        currentAge: 35,
+        retirementAge: 60,
+        targetAnnualIncome: 30000,
+        isaBalance: 0,
+        sippBalance: 0,
+        giaBalance: 0,
+        isaMonthlyContribution: 0,
+        sippMonthlyContribution: 0,
+        giaMonthlyContribution: 0,
+      };
       if (payload.type === "text" && payload.text.trim()) {
-        const safePlan = toSafePlan(parseTextPlanFallback(payload.text));
-        if (safePlan) {
-          setWarning(PARTIAL_IMPORT_WARNING);
-          setReviewPlan(safePlan);
-          return;
-        }
+        const parsedFallback = toSafePlan(parseTextPlanFallback(payload.text));
+        if (parsedFallback) fallbackPlan = { ...fallbackPlan, ...parsedFallback };
       }
-      setError(
+      setWarning(
         err instanceof Error
-          ? `${err.message} Your text is still here — correct it or continue to enter figures manually.`
-          : "Import failed. Your text is still here — correct it or continue to enter figures manually.",
+          ? `${err.message} Please verify or enter your figures below.`
+          : "We couldn't identify any figures automatically from this document or text. Please verify or enter your figures below."
       );
+      setReviewPlan(fallbackPlan);
     } finally {
       setBusy(false);
     }

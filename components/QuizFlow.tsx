@@ -126,20 +126,30 @@ export function QuizFlow() {
       setState((s) => ({ ...s, importedPlan: safePlan, savingsProvided: true }));
 
       if (!hasExtractedBalances) {
-        setImportError("We couldn't identify any figures automatically from this document or text. Please enter your figures manually.");
-        setAssetMode("manual");
-        return;
+        setImportError("We couldn't identify any figures automatically from this document or text. Please verify or enter your figures below.");
+      } else if (data.warning || data.message) {
+        setImportError(data.warning ?? data.message);
       }
 
       setStep(4); // Advance to Step 5 (Review & Validate Financial Assets)
     } catch (err) {
+      const resolvedIncome = lifestyleIncome(state.lifestyle, state.customIncome, activePack?.lifestyleTiers);
+      let fallbackRaw = {
+        currentAge: state.currentAge,
+        retirementAge: state.retirementAge,
+        targetAnnualIncome: resolvedIncome,
+        isaBalance: 0,
+        sippBalance: 0,
+        giaBalance: 0,
+        isaMonthlyContribution: 0,
+        sippMonthlyContribution: 0,
+        giaMonthlyContribution: 0,
+      };
+
       if (payload.type === "text" && payload.text.trim()) {
         const fallback = parsePlanFromText(payload.text);
-        const resolvedIncome = lifestyleIncome(state.lifestyle, state.customIncome, activePack?.lifestyleTiers);
-        const fallbackRaw = {
-          currentAge: state.currentAge,
-          retirementAge: state.retirementAge,
-          targetAnnualIncome: resolvedIncome,
+        fallbackRaw = {
+          ...fallbackRaw,
           isaBalance: fallback.wrappers.isa ?? 0,
           sippBalance: fallback.wrappers.sipp ?? 0,
           giaBalance: fallback.wrappers.gia ?? 0,
@@ -147,24 +157,23 @@ export function QuizFlow() {
           sippMonthlyContribution: fallback.wrappers.sippMonthlyContribution ?? 0,
           giaMonthlyContribution: fallback.wrappers.giaMonthlyContribution ?? 0,
         };
-        const hasFallbackBalances =
-          (fallbackRaw.isaBalance ?? 0) > 0 ||
-          (fallbackRaw.sippBalance ?? 0) > 0 ||
-          (fallbackRaw.giaBalance ?? 0) > 0;
-
-        setState((s) => ({ ...s, importedPlan: fallbackRaw, savingsProvided: true }));
-
-        if (!hasFallbackBalances) {
-          setImportError("This document or text could not be imported automatically. Please add your figures manually.");
-          setAssetMode("manual");
-          return;
-        }
-
-        setStep(4);
-        return;
       }
-      setImportError(err instanceof Error ? err.message : "Document import failed. Please add your figures manually.");
-      setAssetMode("manual");
+
+      const hasFallbackBalances =
+        (fallbackRaw.isaBalance ?? 0) > 0 ||
+        (fallbackRaw.sippBalance ?? 0) > 0 ||
+        (fallbackRaw.giaBalance ?? 0) > 0;
+
+      setState((s) => ({ ...s, importedPlan: fallbackRaw, savingsProvided: true }));
+
+      const errMsg = err instanceof Error ? err.message : "Document import failed.";
+      setImportError(
+        !hasFallbackBalances
+          ? "We couldn't identify any figures automatically from this document or text. Please verify or enter your figures below."
+          : errMsg
+      );
+
+      setStep(4); // Always advance to Review step
     } finally {
       setImporting(false);
     }
@@ -310,6 +319,7 @@ export function QuizFlow() {
             onAccept={() => setStep(REVEAL_STEP)}
             onBackToImport={() => setStep(3)}
             currencySymbol={activePack?.currency?.symbol ?? "£"}
+            warning={importError}
           />
         </StepShell>
       )}
