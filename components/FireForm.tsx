@@ -91,13 +91,13 @@ export function Field({
   className?: string;
 }) {
   return (
-    <label className={`block ${className ?? ""}`}>
+    <div className={`block ${className ?? ""}`}>
       <span className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
-        {label}
+        <span>{label}</span>
         {tooltip && <Tooltip text={tooltip} label={label} />}
       </span>
       {children}
-    </label>
+    </div>
   );
 }
 

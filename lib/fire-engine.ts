@@ -644,7 +644,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       potsSnap[key].end = stateBalances[key];
     }
     
-    let phase = age < inputs.sippAccessAge! ? "bridge" : "sipp";
+    let phase: FirePhase = age < inputs.sippAccessAge! ? "bridge" : "sipp";
     if (age >= statePensionAge) phase = "state-pension";
 
     const finalPotWithdrawals = { ...drawdownResult.potWithdrawals };
@@ -658,7 +658,7 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
 
     timeline.push({
       age,
-      phase: phase as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      phase,
       pots: potsSnap,
       potWithdrawals: finalPotWithdrawals,
       statePensionIncome,

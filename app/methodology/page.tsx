@@ -53,9 +53,10 @@ function Term({ children }: { children: React.ReactNode }) {
  */
 const CONTENTS = [
   { id: "projection", group: "The engine", title: "A year-by-year projection" },
-  { id: "income-tax", group: "Tax", title: "Income Tax (UK & US)" },
+  { id: "income-tax", group: "Tax", title: "Income Tax (UK, Spain & US)" },
   { id: "cgt", group: "Tax", title: "Capital Gains Tax" },
   { id: "property", group: "Assets", title: "Property" },
+  { id: "db-pension", group: "Pensions", title: "Defined Benefit Pensions & Lump Sums" },
   { id: "sipp", group: "Pensions", title: "Retirement Accounts & Access Ages" },
   { id: "state-pension", group: "Pensions", title: "State Pension & Social Security" },
   { id: "confidence", group: "Modes", title: "Confidence (Monte Carlo)" },
@@ -238,6 +239,24 @@ export default function MethodologyPage() {
               <Term>Home you live in</Term> — counts as net worth and grows, but
               isn&apos;t drawn for income unless you <Term>downsize</Term>.
               Downsizing releases cash into your taxable brokerage with primary residence relief (UK Private Residence Relief / US Section 121 $250k/$500k exclusion).
+            </li>
+          </ul>
+        </Section>
+
+        <Section
+          id="db-pension"
+          eyebrow="Pensions & Cashflows"
+          title="Defined Benefit Pensions & Expected Lump Sums"
+        >
+          <p>
+            In addition to investment pots (ISA, SIPP, GIA), Fireworks models guaranteed pension income streams and future lump sum cash infusions:
+          </p>
+          <ul className="list-disc space-y-1.5 pl-5">
+            <li>
+              <Term>Defined Benefit (Final Salary / CARE) Pensions</Term> — Guaranteed annual income starting at a designated age (e.g., NHS, Teachers, Civil Service, Armed Forces, or corporate DB schemes). Once reached, annual payments (indexed to CPI inflation) directly offset your target net income, significantly reducing required drawdowns from your liquid investment pots.
+            </li>
+            <li>
+              <Term>Expected Future Lump Sums</Term> — One-off future cash inflows expected at a specific age (such as an inheritance, family gift, business sale, or corporate bonus). At the target age, the lump sum is injected directly into your liquid taxable investment account (GIA), compounding future growth and providing an additional safety cushion.
             </li>
           </ul>
         </Section>

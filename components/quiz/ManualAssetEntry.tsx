@@ -301,12 +301,13 @@ export function ManualAssetEntry({
         {(plan.expectedLumpSums ?? []).length > 0 && (
           <div className="space-y-2 pt-1">
             {(plan.expectedLumpSums ?? []).map((ls, idx) => (
-              <div key={idx} className="grid grid-cols-12 gap-1.5 items-center rounded-lg border border-border bg-background p-2 text-xs">
+              <div key={`${ls.description}-${idx}`} className="grid grid-cols-12 gap-1.5 items-center rounded-lg border border-border bg-background p-2 text-xs">
                 <div className="col-span-4">
                   <input
                     type="text"
                     value={ls.description}
                     placeholder="e.g. Inheritance"
+                    aria-label="Lump sum description"
                     onChange={(e) => {
                       const updated = [...(plan.expectedLumpSums ?? [])];
                       updated[idx] = { ...updated[idx], description: e.target.value };
@@ -319,6 +320,7 @@ export function ManualAssetEntry({
                   <span className="text-[0.65rem] text-muted-foreground font-mono">{currencySymbol}</span>
                   <CurrencyInput
                     value={ls.amount}
+                    aria-label="Lump sum amount"
                     onChange={(v) => {
                       const updated = [...(plan.expectedLumpSums ?? [])];
                       updated[idx] = { ...updated[idx], amount: v };
