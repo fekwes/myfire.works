@@ -399,15 +399,27 @@ export function extractWrapperBalances(text: string): ExtractedWrapperBalances {
   }
 
   // Unallocated / Ambiguous portfolio total fallback:
-  // If no wrapper balance was identified (sipp, isa, gia all 0/null), but an explicit portfolio valuation header exists:
+  // If no wrapper balance was identified (sipp, isa, gia all 0/null), extract from valuation line or find max monetary figure:
   if (result.sipp === null && result.isa === null && result.gia === null) {
     let unallocatedTotal: number | null = null;
     for (const line of lines) {
-      if (/\b(?:Total\s+Portfolio|Total\s+Valuation|Portfolio\s+Value|Total\s+Value|Net\s+Asset\s+Value|Account\s+Balance|Account\s+Valuation|Total\s+Investments)\b/i.test(line)) {
+      if (/\b(?:Total\s+Portfolio|Total\s+Valuation|Portfolio\s+Value|Total\s+Value|Net\s+Asset\s+Value|Account\s+Balance|Account\s+Valuation|Total\s+Investments|Valuation|Closing\s+Balance|Subtotal|Holding|Summary)\b/i.test(line)) {
         const amt = monetaryAmounts(line, true)[0];
         if (amt !== undefined && amt > 100) {
           unallocatedTotal = amt;
           break;
+        }
+      }
+    }
+
+    if (unallocatedTotal === null) {
+      for (const line of lines) {
+        const amounts = monetaryAmounts(line, true).filter((a) => a > 500 && a <= 10_000_000);
+        if (amounts.length > 0) {
+          const maxAmt = Math.max(...amounts);
+          if (unallocatedTotal === null || maxAmt > unallocatedTotal) {
+            unallocatedTotal = maxAmt;
+          }
         }
       }
     }
