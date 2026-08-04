@@ -27,17 +27,25 @@ function CurrencyInput({
 
   return (
     <input
-      type="number"
-      step="any"
+      type="text"
+      inputMode="decimal"
+      autoComplete="off"
       value={shown}
       placeholder={placeholder}
       className={className}
       onChange={(e) => {
-        setDraft(e.target.value);
-        const num = parseFloat(e.target.value);
+        // Allow digits, single decimal point, and empty string
+        const raw = e.target.value.replace(/[^0-9.]/g, "");
+        // Prevent multiple decimal points
+        const parts = raw.split(".");
+        const sanitised = parts.length > 2
+          ? parts[0] + "." + parts.slice(1).join("")
+          : raw;
+        setDraft(sanitised);
+        const num = parseFloat(sanitised);
         if (!isNaN(num)) {
           onChange(Math.max(0, num));
-        } else if (e.target.value === "") {
+        } else if (sanitised === "" || sanitised === ".") {
           onChange(0);
         }
       }}
@@ -66,8 +74,8 @@ export function ManualAssetEntry({
     plan.isaHoldings ?? plan.sippHoldings ?? plan.giaHoldings
   );
 
-  const handleFieldChange = (key: keyof FireInputs, rawVal: string) => {
-    const num = parseFloat(rawVal);
+  const handleFieldChange = (key: keyof FireInputs, rawVal: number | string) => {
+    const num = typeof rawVal === "number" ? rawVal : parseFloat(rawVal);
     const val = isNaN(num) ? 0 : Math.max(0, num);
     const updated = { ...plan, [key]: val };
     onChangePlan(updated);

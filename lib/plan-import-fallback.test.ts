@@ -137,4 +137,25 @@ Bridge Fund: 20,000 GBP; regular investment £250 per month
     const balances = extractWrapperBalances(textWithTickerAndRefs);
     expect(balances.sipp).toBe(337856.14);
   });
+
+  it("matches contribution suffixes: pm, p/m, pcm", () => {
+    const result = parsePlanFromText(`
+      ISA balance: £45,000
+      Contributing £500 pm to ISA
+      SIPP balance: £120,000
+      Adding £750 p/m to SIPP
+    `);
+    expect(result.wrappers.isa).toBe(45000);
+    expect(result.wrappers.isaMonthlyContribution).toBe(500);
+    expect(result.wrappers.sipp).toBe(120000);
+    expect(result.wrappers.sippMonthlyContribution).toBe(750);
+  });
+
+  it("matches annual contribution suffixes: per annum, p.a.", () => {
+    const result = parsePlanFromText(`
+      GIA: £30,000 — contributing £6000 per annum
+    `);
+    expect(result.wrappers.gia).toBe(30000);
+    expect(result.wrappers.giaMonthlyContribution).toBe(6000);
+  });
 });

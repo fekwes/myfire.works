@@ -145,7 +145,7 @@ const WRAPPER_PATTERNS: Record<WrapperKey, RegExp[]> = {
 };
 
 const CONTRIBUTION_PATTERN =
-  /(?:monthly|per\s+(?:calendar\s+)?month|\/\s*mo\b|each\s+month|regular\s+(?:investment|saving|contribution)|recurring\s+(?:investment|contribution)|(?:contrib(?:ution)?|adding|add|put\s+in|pay(?:ment|ing)?))/i;
+  /(?:monthly|per\s+(?:calendar\s+)?month|\/\s*mo\b|each\s+month|regular\s+(?:investment|saving|contribution)|recurring\s+(?:investment|contribution)|(?:contrib(?:ution)?|adding|add|put\s+in|pay(?:ment|ing)?)|p\.?\s*[/.]?\s*m\b|pcm\b|per\s+annum|p\.?\s*a\.?\b|\bpm\b)/i;
 const MONEY_TOKEN =
   /(?:(?:£|GBP|€|EUR|\$|USD)\s*)?((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?[kKmM]?)(?:\s*(?:GBP|£|EUR|€|USD|\$))?/gi;
 
