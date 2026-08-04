@@ -46,7 +46,7 @@ export function QuizFlow() {
   const [state, setState] = useState<QuizState>(initialQuizState);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
-  const [assetMode, setAssetMode] = useState<"import" | "manual">("import");
+  const [assetMode, setAssetMode] = useState<"import" | "manual">("manual");
 
   const next = () => {
     if (step === 0) {

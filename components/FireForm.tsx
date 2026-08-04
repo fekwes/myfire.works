@@ -754,6 +754,105 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
           )}
         </Block>
 
+        <Block
+          title="Defined Benefit (Final Salary) Pension"
+          dotClass="bg-brand/60"
+          tooltip="Guaranteed annual pension income starting at a designated age (e.g. NHS, Teachers, Civil Service, Armed Forces, or corporate DB schemes). It directly reduces your required drawdown from investment pots."
+        >
+          <Field label="Annual pension income">
+            <NumberInput
+              value={num(value.dbPensionAnnualIncome, 0)}
+              onChange={(v) => set("dbPensionAnnualIncome", v)}
+              prefix={pack.currency.symbol}
+              suffix="/ yr"
+              step={1000}
+            />
+          </Field>
+          <Field label="Starts at age">
+            <NumberInput
+              value={num(value.dbPensionStartingAge, 60)}
+              onChange={(v) => set("dbPensionStartingAge", v)}
+              suffix="yrs"
+            />
+          </Field>
+        </Block>
+
+        <Block
+          title="Expected Future Lump Sums"
+          dotClass="bg-brand/60"
+          tooltip="One-off cash inflows like inheritance, gifts, property sales, or corporate bonuses expected at a specific age."
+        >
+          <div className="col-span-2 space-y-3">
+            {(value.expectedLumpSums ?? []).map((ls, idx) => (
+              <div key={idx} className="grid grid-cols-12 gap-2 items-center rounded-lg border border-border bg-surface-muted/60 p-2.5 text-xs">
+                <div className="col-span-5">
+                  <span className="block text-[0.65rem] font-medium text-muted-foreground mb-0.5">Description</span>
+                  <input
+                    type="text"
+                    value={ls.description}
+                    placeholder="e.g. Inheritance"
+                    onChange={(e) => {
+                      const updated = [...(value.expectedLumpSums ?? [])];
+                      updated[idx] = { ...updated[idx], description: e.target.value };
+                      set("expectedLumpSums", updated);
+                    }}
+                    className="w-full bg-background border border-border rounded px-2 py-1 text-xs font-medium text-foreground outline-none focus:border-brand"
+                  />
+                </div>
+                <div className="col-span-4">
+                  <span className="block text-[0.65rem] font-medium text-muted-foreground mb-0.5">Amount</span>
+                  <NumberInput
+                    value={ls.amount}
+                    onChange={(v) => {
+                      const updated = [...(value.expectedLumpSums ?? [])];
+                      updated[idx] = { ...updated[idx], amount: v };
+                      set("expectedLumpSums", updated);
+                    }}
+                    prefix={pack.currency.symbol}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <span className="block text-[0.65rem] font-medium text-muted-foreground mb-0.5">Age</span>
+                  <NumberInput
+                    value={ls.expectedAge}
+                    onChange={(v) => {
+                      const updated = [...(value.expectedLumpSums ?? [])];
+                      updated[idx] = { ...updated[idx], expectedAge: v };
+                      set("expectedLumpSums", updated);
+                    }}
+                    suffix="y"
+                  />
+                </div>
+                <div className="col-span-1 pt-3 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = (value.expectedLumpSums ?? []).filter((_, i) => i !== idx);
+                      set("expectedLumpSums", updated);
+                    }}
+                    className="text-xs font-bold text-danger hover:opacity-80"
+                    title="Remove lump sum"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                const current = value.expectedLumpSums ?? [];
+                set("expectedLumpSums", [
+                  ...current,
+                  { amount: 50000, expectedAge: 60, description: "Inheritance / Gift" },
+                ]);
+              }}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline pt-1"
+            >
+              + Add Expected Lump Sum
+            </button>
+          </div>
+        </Block>
       </Section>
 
       <Section
