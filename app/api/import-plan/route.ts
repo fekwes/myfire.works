@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { NextResponse } from "next/server";
 import { generateContentWithFallback } from "@/lib/ai-runner";
-import { AI_QUOTA_MESSAGE, isQuotaExhausted } from "@/lib/ai-errors";
+import { isQuotaExhausted } from "@/lib/ai-errors";
 import { extractTextFromPdfBuffer } from "@/lib/pdf-parser";
 import {
   buildImportPlanFallbackPayload,

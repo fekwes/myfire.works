@@ -4,6 +4,7 @@ import {
   calculateTaxFreeLumpSum,
   calculateUkIncomeTax,
   simulateFire,
+  type FireInputs,
 } from "./fire-engine";
 import {
   BASIC_RATE_CEILING,

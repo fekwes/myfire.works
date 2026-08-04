@@ -5,7 +5,6 @@ import { useState } from "react";
 import { DropPasteInput, type ImportPayload } from "@/components/DropPasteInput";
 import type { FireInputs } from "@/lib/fire-engine";
 import { parseTextPlanFallback } from "@/lib/plan-import-fallback";
-import { PARTIAL_IMPORT_WARNING } from "@/lib/plan-import-router";
 import { sanitisePlanInput } from "@/lib/plan-storage";
 import {
   holdingsToSplit,
