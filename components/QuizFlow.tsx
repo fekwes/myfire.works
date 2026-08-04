@@ -203,10 +203,22 @@ export function QuizFlow() {
           lifestyle={state.lifestyle}
           customIncome={state.customIncome}
           activePack={activePack}
-          onPickLifestyle={(lifestyle) => setState((s) => ({ ...s, lifestyle }))}
-          onCustomIncome={(customIncome) =>
-            setState((s) => ({ ...s, customIncome, lifestyle: "custom" }))
-          }
+          onPickLifestyle={(lifestyle) => {
+            const tier = activePack.lifestyleTiers.find((l) => l.id === lifestyle);
+            setState((s) => ({
+              ...s,
+              lifestyle,
+              customIncome: tier ? tier.amount : s.customIncome,
+            }));
+          }}
+          onCustomIncome={(customIncome) => {
+            const matchedTier = activePack.lifestyleTiers.find((l) => l.amount === customIncome);
+            setState((s) => ({
+              ...s,
+              customIncome,
+              lifestyle: matchedTier ? (matchedTier.id as LifestyleId) : "custom",
+            }));
+          }}
           onNext={next}
           onBack={back}
         />
@@ -234,24 +246,20 @@ export function QuizFlow() {
             <div className="grid grid-cols-2 rounded-xl border border-border bg-surface-muted p-1 gap-1 text-xs">
               <button
                 type="button"
-                onClick={() => setAssetMode("import")}
-                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 font-semibold transition-all ${
-                  assetMode === "import"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                disabled
+                className="flex items-center justify-center gap-1.5 rounded-lg py-2 font-semibold text-muted-foreground opacity-50 cursor-not-allowed"
+                title="Import with AI is coming soon"
               >
                 <Sparkles className="size-3.5 text-brand" />
                 Import with AI
+                <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-amber-500">
+                  Coming Soon
+                </span>
               </button>
               <button
                 type="button"
                 onClick={() => setAssetMode("manual")}
-                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 font-semibold transition-all ${
-                  assetMode === "manual"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className="flex items-center justify-center gap-1.5 rounded-lg py-2 font-semibold bg-background text-foreground shadow-sm"
               >
                 ✍️ Add Manually
               </button>

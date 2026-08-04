@@ -1,6 +1,7 @@
 import {
   DEFAULT_ASSUMPTIONS,
   DEFAULT_INFLATION_RATE,
+  type ExpectedLumpSum,
   type FireInputs,
 } from "./fire-engine";
 import { deriveMinimumPensionAge, deriveStatePensionAge } from "./pension-ages";
@@ -130,6 +131,12 @@ export interface QuizState {
   savings: number;
   /** True if user entered savings manually instead of skipping. */
   savingsProvided: boolean;
+  /** Defined Benefit Pension fields */
+  dbPensionAnnualIncome?: number;
+  dbPensionStartingAge?: number;
+  dbPensionInflationIndex?: boolean;
+  /** Expected Lump Sums (e.g. inheritance, gifts) */
+  expectedLumpSums?: ExpectedLumpSum[];
   /** If the user used the AI import, the resulting partial inputs are stored here. */
   importedPlan?: Partial<FireInputs>;
 }
@@ -145,6 +152,10 @@ export function initialQuizState(): QuizState {
     partTimeAnnualIncome: BARISTA_ANNUAL_INCOME,
     savings: 0,
     savingsProvided: false,
+    dbPensionAnnualIncome: 0,
+    dbPensionStartingAge: 60,
+    dbPensionInflationIndex: true,
+    expectedLumpSums: [],
   };
 }
 
@@ -194,6 +205,11 @@ export function assembleQuizInputs(
     contributionsUntilAge,
     partTimeAnnualIncome,
     partTimeUntilAge,
+
+    dbPensionAnnualIncome: state.dbPensionAnnualIncome ?? 0,
+    dbPensionStartingAge: state.dbPensionStartingAge ?? 60,
+    dbPensionInflationIndex: state.dbPensionInflationIndex ?? true,
+    expectedLumpSums: state.expectedLumpSums ?? [],
 
     isaBalance,
     isaMonthlyContribution: defaultIsaMonthly,

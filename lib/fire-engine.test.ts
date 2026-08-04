@@ -508,3 +508,71 @@ describe("simulateFire — part-time (Barista) income", () => {
     );
   });
 });
+
+describe("simulateFire — Defined Benefit (DB) Pension income", () => {
+  const dbBaseInputs: FireInputs = {
+    currentAge: 50,
+    retirementAge: 55,
+    targetAnnualIncome: 30000,
+    isaBalance: 300000,
+    isaMonthlyContribution: 0,
+    sippBalance: 200000,
+    sippMonthlyContribution: 0,
+    dbPensionAnnualIncome: 10000,
+    dbPensionStartingAge: 60,
+  };
+
+  it("commences DB pension income at age 60, reducing pot drawdown from that age onward", () => {
+    const result = simulateFire(dbBaseInputs);
+    
+    const preDbYear = result.timeline.find((y) => y.age === 59);
+    expect(preDbYear?.dbPensionIncome ?? 0).toBe(0);
+    expect(preDbYear?.potWithdrawals.isa.gross).toBeCloseTo(30000, 0);
+
+    const postDbYear = result.timeline.find((y) => y.age === 60);
+    expect(postDbYear?.dbPensionIncome).toBeCloseTo(10000, 0);
+    expect(postDbYear?.potWithdrawals.isa.gross).toBeLessThan(preDbYear?.potWithdrawals.isa.gross ?? 0);
+  });
+
+  it("compounds DB pension income by inflation rate when inflation is enabled", () => {
+    const result = simulateFire({
+      ...dbBaseInputs,
+      currentAge: 50,
+      dbPensionAnnualIncome: 10000,
+      dbPensionStartingAge: 60,
+      inflationRate: 0.03,
+    });
+
+    const dbYear = result.timeline.find((y) => y.age === 60);
+    expect(dbYear?.dbPensionIncome).toBeCloseTo(10000 * 1.03 ** 10, 0);
+  });
+});
+
+describe("simulateFire — Expected Lump Sum injection", () => {
+  const lumpSumBaseInputs: FireInputs = {
+    currentAge: 50,
+    retirementAge: 50,
+    targetAnnualIncome: 25000,
+    isaBalance: 100000,
+    sippBalance: 150000,
+    expectedLumpSums: [
+      { amount: 50000, expectedAge: 55, description: "Inheritance" },
+    ],
+  };
+
+  it("adds an expected lump sum received at age 55 directly to pot balances", () => {
+    const result = simulateFire(lumpSumBaseInputs);
+
+    const lumpSumYear = result.timeline.find((y) => y.age === 55);
+    expect(lumpSumYear?.lumpSumCashReleased).toBeCloseTo(50000, 0);
+  });
+
+  it("does not inject expected lump sum cash before the specified lump sum age", () => {
+    const result = simulateFire(lumpSumBaseInputs);
+    const accumulationYears = result.timeline.filter((y) => y.age < 55);
+
+    for (const year of accumulationYears) {
+      expect(year.lumpSumCashReleased ?? 0).toBe(0);
+    }
+  });
+});

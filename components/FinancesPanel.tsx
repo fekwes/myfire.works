@@ -76,14 +76,15 @@ export function FinancesPanel() {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => {
-                setImporting(!importing);
-                setImportSuccessMsg(null);
-              }}
-              className="gap-2 text-brand"
+              disabled
+              className="gap-2 text-muted-foreground opacity-50 cursor-not-allowed"
+              title="Import with AI is coming soon"
             >
-              <Sparkles className="size-4" />
+              <Sparkles className="size-4 text-brand" />
               Import with AI
+              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-amber-500">
+                Coming Soon
+              </span>
             </Button>
             <ButtonLink href="/planner">View dashboard →</ButtonLink>
           </div>

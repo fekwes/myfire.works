@@ -234,6 +234,128 @@ export function ManualAssetEntry({
         )}
       </div>
 
+      {/* Defined Benefit Pension (Optional Collapsible) */}
+      <div className="rounded-xl border border-border bg-surface-muted/60 p-3.5 space-y-2">
+        <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
+          <Landmark className="size-4 text-brand" />
+          <span>Defined Benefit (Final Salary) Pension</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <div>
+            <label className="text-[0.68rem] font-medium text-muted-foreground block mb-1">
+              Annual Pension Income
+            </label>
+            <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
+              <span className="text-muted-foreground font-mono" aria-hidden="true">{currencySymbol}</span>
+              <CurrencyInput
+                value={plan.dbPensionAnnualIncome ?? 0}
+                placeholder="0"
+                onChange={(v) => handleFieldChange("dbPensionAnnualIncome", v)}
+                className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums"
+              />
+              <span className="text-[0.65rem] text-muted-foreground font-mono">/yr</span>
+            </div>
+          </div>
+          <div>
+            <label className="text-[0.68rem] font-medium text-muted-foreground block mb-1">
+              Starts at Age
+            </label>
+            <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all">
+              <CurrencyInput
+                value={plan.dbPensionStartingAge ?? 60}
+                placeholder="60"
+                onChange={(v) => handleFieldChange("dbPensionStartingAge", v)}
+                className="w-full text-right bg-transparent font-bold text-foreground outline-none tabular-nums"
+              />
+              <span className="text-[0.65rem] text-muted-foreground font-mono">yrs</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Expected Lump Sums (Inheritance / Donations / Sales) */}
+      <div className="rounded-xl border border-border bg-surface-muted/60 p-3.5 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
+            <Landmark className="size-4 text-brand" />
+            <span>Expected Lump Sums (Inheritance, Gifts, Sales)</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const current = plan.expectedLumpSums ?? [];
+              onChangePlan({
+                ...plan,
+                expectedLumpSums: [
+                  ...current,
+                  { amount: 50000, expectedAge: 60, description: "Inheritance / Gift" },
+                ],
+              });
+            }}
+            className="text-[0.68rem] font-medium text-brand hover:underline"
+          >
+            + Add Lump Sum
+          </button>
+        </div>
+
+        {(plan.expectedLumpSums ?? []).length > 0 && (
+          <div className="space-y-2 pt-1">
+            {(plan.expectedLumpSums ?? []).map((ls, idx) => (
+              <div key={idx} className="grid grid-cols-12 gap-1.5 items-center rounded-lg border border-border bg-background p-2 text-xs">
+                <div className="col-span-4">
+                  <input
+                    type="text"
+                    value={ls.description}
+                    placeholder="e.g. Inheritance"
+                    onChange={(e) => {
+                      const updated = [...(plan.expectedLumpSums ?? [])];
+                      updated[idx] = { ...updated[idx], description: e.target.value };
+                      onChangePlan({ ...plan, expectedLumpSums: updated });
+                    }}
+                    className="w-full bg-transparent text-xs font-medium text-foreground outline-none border-b border-border focus:border-brand"
+                  />
+                </div>
+                <div className="col-span-4 flex items-center gap-0.5 rounded border border-border bg-surface-muted px-1.5 py-0.5">
+                  <span className="text-[0.65rem] text-muted-foreground font-mono">{currencySymbol}</span>
+                  <CurrencyInput
+                    value={ls.amount}
+                    onChange={(v) => {
+                      const updated = [...(plan.expectedLumpSums ?? [])];
+                      updated[idx] = { ...updated[idx], amount: v };
+                      onChangePlan({ ...plan, expectedLumpSums: updated });
+                    }}
+                    className="w-full text-right bg-transparent font-bold text-foreground text-xs outline-none tabular-nums"
+                  />
+                </div>
+                <div className="col-span-3 flex items-center gap-0.5 rounded border border-border bg-surface-muted px-1 py-0.5">
+                  <CurrencyInput
+                    value={ls.expectedAge}
+                    onChange={(v) => {
+                      const updated = [...(plan.expectedLumpSums ?? [])];
+                      updated[idx] = { ...updated[idx], expectedAge: v };
+                      onChangePlan({ ...plan, expectedLumpSums: updated });
+                    }}
+                    className="w-full text-right bg-transparent font-bold text-foreground text-xs outline-none tabular-nums"
+                  />
+                  <span className="text-[0.6rem] text-muted-foreground font-mono">yrs</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = (plan.expectedLumpSums ?? []).filter((_, i) => i !== idx);
+                    onChangePlan({ ...plan, expectedLumpSums: updated });
+                  }}
+                  className="col-span-1 text-xs text-danger font-bold hover:opacity-80 text-center"
+                  title="Remove lump sum"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="pt-2">
         <button
           type="button"

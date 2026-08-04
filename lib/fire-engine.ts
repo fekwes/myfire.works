@@ -55,6 +55,12 @@ export interface WrapperInput {
   holdings?: Holding[];
 }
 
+export interface ExpectedLumpSum {
+  amount: number;
+  expectedAge: number;
+  description: string;
+}
+
 export interface FireInputs {
   schemaVersion?: number;
   country?: "uk" | "es" | "us";
@@ -66,6 +72,11 @@ export interface FireInputs {
   targetAnnualIncome: number;
   contributionsUntilAge?: number;
   inflationRate?: number;
+
+  dbPensionAnnualIncome?: number;
+  dbPensionStartingAge?: number;
+  dbPensionInflationIndex?: boolean;
+  expectedLumpSums?: ExpectedLumpSum[];
   
   pots?: Record<string, WrapperInput>;
   
@@ -153,12 +164,14 @@ export interface YearSnapshot {
   potWithdrawals: Record<string, { gross: number; taxFree: number }>;
   
   statePensionIncome: number;
+  dbPensionIncome: number;
   /** Gross rental income received this year (0 once the property is sold). */
   rentalIncome: number;
   /** Taxable part-time ("Barista") income received this year. */
   partTimeIncome: number;
-  /** Cash released into the GIA this year from a property sale or downsize. */
+  /** Cash released into the GIA this year from a property sale, downsize, or lump sum. */
   propertyCashReleased: number;
+  lumpSumCashReleased: number;
   rentalValueEnd: number;
   homeValueEnd: number;
   incomeTaxPaid: number;
@@ -226,6 +239,10 @@ function resolveInputs(inputs: FireInputs): ResolvedFireInputs {
     contributionsUntilAge: inputs.contributionsUntilAge ?? inputs.retirementAge,
     inflationRate: inputs.inflationRate ?? 0,
     growthRate,
+    dbPensionAnnualIncome: inputs.dbPensionAnnualIncome ?? 0,
+    dbPensionStartingAge: inputs.dbPensionStartingAge ?? 60,
+    dbPensionInflationIndex: inputs.dbPensionInflationIndex ?? true,
+    expectedLumpSums: inputs.expectedLumpSums ?? [],
     rentalValue: inputs.rentalValue ?? 0,
     rentalGrowth: inputs.rentalGrowth ?? growthRate,
     rentalMonthlyIncome: inputs.rentalMonthlyIncome ?? 0,
@@ -386,10 +403,14 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
   const partTimeAnnualIncome = inputs.partTimeAnnualIncome;
   const partTimeUntilAge = inputs.partTimeUntilAge;
 
+  const dbPensionAnnualIncome = inputs.dbPensionAnnualIncome;
+  const dbPensionStartingAge = inputs.dbPensionStartingAge;
+  const dbPensionInflationIndex = inputs.dbPensionInflationIndex;
+  const expectedLumpSums = inputs.expectedLumpSums ?? [];
+
   let lumpSumTaken = false;
-  const lumpSumAge = inputs.sippAccessAge ?? 57; // This is a bit UK specific, maybe configure via WrapperSpec? 
+  const lumpSumAge = inputs.sippAccessAge ?? 57;
   
-  // Actually, we can use the pack's taxFreeLifetimeCap
   const taxFreeCap = pack.wrappers.find(w => w.treatment === "tax-deferred")?.taxFreeLifetimeCap || 0;
   let taxFreeLumpSumAvailable = taxFreeCap;
   let totalLumpSumTaken = 0;
@@ -409,6 +430,22 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
 
   for (let age = currentAge; age <= lifeExpectancyAge; age++) {
     const isAccumulation = age < retirementAge;
+    const inflationFactor = (1 + inflationRate) ** (age - currentAge);
+
+    // Find the taxable wrapper to drop proceeds/lump sums into
+    const taxableWrapperId = pack.wrappers.find(w => w.treatment === "taxable")?.id;
+
+    // Check for expected lump sums arriving at this age
+    let lumpSumCashReleased = 0;
+    const lumpSumsThisYear = expectedLumpSums.filter(ls => ls.expectedAge === age);
+    for (const ls of lumpSumsThisYear) {
+      const infusion = ls.amount * inflationFactor;
+      lumpSumCashReleased += infusion;
+      if (taxableWrapperId) {
+        stateBalances[taxableWrapperId] = (stateBalances[taxableWrapperId] || 0) + infusion;
+        stateBases[taxableWrapperId] = (stateBases[taxableWrapperId] || 0) + infusion;
+      }
+    }
     
     // 1. Snapshot Start Balances
     const potsSnap: Record<string, { start: number; end: number }> = {};
@@ -443,9 +480,11 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
         pots: potsSnap,
         potWithdrawals,
         statePensionIncome: 0,
+        dbPensionIncome: 0,
         rentalIncome: 0,
         partTimeIncome: 0,
         propertyCashReleased: 0,
+        lumpSumCashReleased,
         rentalValueEnd: rentalValue,
         homeValueEnd: homeValue,
         incomeTaxPaid: 0,
@@ -460,36 +499,33 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     lumpThisYear = 0;
     
     // DRAWDOWN PHASE
-    const inflationFactor = (1 + inflationRate) ** (age - currentAge);
     const yearTarget = targetAnnualIncome * inflationFactor;
     
-    // UK Tax Bands are currently frozen until April 2028. Assuming current year is 2024/2025, that's roughly 3-4 years. 
-    // We will assume 4 years of frozen bands before they start inflating again.
     const taxBandsFrozenYears = 4; 
     const yearsOfTaxInflation = Math.max(0, (age - currentAge) - taxBandsFrozenYears);
     const taxInflationFactor = (1 + inflationRate) ** yearsOfTaxInflation;
 
-    // Use UK flat state pension or US calculated
-    const statePensionAnnual = pack.statePension({ yearsContributed: age - 22 }, age); // Simplification for now
-    // Actually, UK State Pension was passed in via inputs.statePensionAnnual. We should use that if available, else fallback to pack.
+    const statePensionAnnual = pack.statePension({ yearsContributed: age - 22 }, age);
     const statePensionIncomeAmount = inputs.statePensionAnnual ?? statePensionAnnual;
-    
     const statePensionIncome = age >= statePensionAge ? statePensionIncomeAmount * inflationFactor : 0;
+
+    let dbPensionIncome = 0;
+    if (age >= dbPensionStartingAge && dbPensionAnnualIncome > 0) {
+      dbPensionIncome = dbPensionInflationIndex
+        ? dbPensionAnnualIncome * inflationFactor
+        : dbPensionAnnualIncome;
+    }
 
     let propertyCashReleased = 0;
     let propertyCgt = 0;
-    
-    // Find the taxable wrapper to drop proceeds into
-    const taxableWrapperId = pack.wrappers.find(w => w.treatment === "taxable")?.id;
 
     if (!rentalSold && rentalSaleAge > 0 && age >= rentalSaleAge && rentalValue > 0) {
       const gain = Math.max(0, rentalValue - rentalBasis);
-      // Property CGT is independent of portfolio CGT, but they stack on total income.
       const rentalIncomeCurrent = rentalMonthlyIncome * 12;
       const partTimeIncomeCurrent = partTimeAnnualIncome > 0 && age < partTimeUntilAge ? partTimeAnnualIncome * inflationFactor : 0;
       
       const combinedIncomes: Partial<Record<string, number>> = {
-        "employment": statePensionIncome + rentalIncomeCurrent + partTimeIncomeCurrent,
+        "employment": statePensionIncome + dbPensionIncome + rentalIncomeCurrent + partTimeIncomeCurrent,
         "realised-gains": gain,
       };
       
@@ -521,8 +557,8 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
     const rentalIncome = rentalSold ? 0 : rentalMonthlyIncome * 12 * inflationFactor;
     const partTimeIncome = partTimeAnnualIncome > 0 && age < partTimeUntilAge ? partTimeAnnualIncome * inflationFactor : 0;
     
-    // Other taxable income
-    const otherTaxableIncome = statePensionIncome + rentalIncome + partTimeIncome;
+    // Other taxable income (includes DB pension)
+    const otherTaxableIncome = statePensionIncome + dbPensionIncome + rentalIncome + partTimeIncome;
     const otherTaxableTax = calculateTax({ "employment": otherTaxableIncome }, taxSystem, age, taxInflationFactor).totalTax;
     const otherTaxableNet = otherTaxableIncome - otherTaxableTax;
     const potNeed = Math.max(0, yearTarget - otherTaxableNet);
@@ -626,9 +662,11 @@ export function simulateFire(rawInputs: FireInputs): FireSimulationResult {
       pots: potsSnap,
       potWithdrawals: finalPotWithdrawals,
       statePensionIncome,
+      dbPensionIncome,
       rentalIncome,
       partTimeIncome,
       propertyCashReleased,
+      lumpSumCashReleased,
       rentalValueEnd: rentalValue,
       homeValueEnd: homeValue,
       incomeTaxPaid: drawdownResult.incomeTaxPaid + otherTaxableTax,

@@ -274,11 +274,15 @@ export function PortfolioEditor({
                 {!showImport && (
                   <button
                     type="button"
-                    onClick={() => setShowImport(true)}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    disabled
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground opacity-50 cursor-not-allowed"
+                    title="Import with AI is coming soon"
                   >
-                    <Sparkles className="size-3.5" />
+                    <Sparkles className="size-3.5 text-brand" />
                     Import with AI
+                    <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-amber-500">
+                      Coming Soon
+                    </span>
                   </button>
                 )}
               </div>
