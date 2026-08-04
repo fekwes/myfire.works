@@ -7,6 +7,7 @@ export interface PdfStreamInfo {
 
 export async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> {
   if (!buffer || buffer.length === 0) return "";
+  let primaryText = "";
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pdfParse = require("pdf-parse");
@@ -14,17 +15,22 @@ export async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> 
     if (typeof fn === "function") {
       const parsed = await fn(buffer);
       if (parsed && typeof parsed.text === "string" && parsed.text.trim().length > 0) {
-        const clean = parsed.text
+        primaryText = parsed.text
           .replace(/(\d+),(\d{3})\s*o\s*(\d{2})/g, "$1,$2.$3")
           .replace(/(\d+)\s*o\s*(\d{2}\b)/g, "$1.$2")
-          .replace(/\b([A-Za-z])\s+(?=[A-Za-z]\b)/g, "$1");
-        return clean;
+          .replace(/\b([A-Za-z])\s+(?=[A-Za-z]\b)/g, "$1")
+          .trim();
       }
     }
   } catch (err) {
-    console.warn("pdf-parse primary extraction failed, using fallback stream parser", err);
+    console.warn("pdf-parse primary extraction failed, using stream parser", err);
   }
-  return extractPdfText(buffer);
+
+  const streamText = extractPdfText(buffer).trim();
+  if (primaryText && streamText && primaryText !== streamText) {
+    return `${primaryText}\n\n${streamText}`;
+  }
+  return primaryText || streamText;
 }
 
 /**
