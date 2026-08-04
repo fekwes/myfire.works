@@ -542,29 +542,6 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
             />
           </Field>
         </Block>
-
-        <Block
-          title="Part-time transition"
-          tooltip={pack.labels.partTimeTooltip}
-        >
-          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
-            <Field label="Part-time until age">
-              <NumberInput
-                value={num(value.partTimeUntilAge, 0)}
-                onChange={(v) => set("partTimeUntilAge", v)}
-                suffix="0 = none"
-              />
-            </Field>
-            <Field label="Part-time income">
-              <NumberInput
-                value={num(value.partTimeAnnualIncome, 0)}
-                onChange={(v) => set("partTimeAnnualIncome", v)}
-                prefix={pack.currency.symbol}
-                step={1000}
-              />
-            </Field>
-          </div>
-        </Block>
       </Section>
 
       <Section
@@ -694,24 +671,33 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
       </Section>
 
       <Section
-        id="scenario"
-        title="Withdrawals"
-        description="How you take your pension, and any part-time work."
-        hidden={activeSection !== "scenario"}
+        id="income"
+        title="Income & cashflows"
+        description="Guaranteed pensions, part-time work, state benefits, and expected future lump sums."
+        hidden={activeSection !== "income"}
       >
-        {pack.labels.hasPensionStrategyToggle && (
-          <Field
-            label="Pension access"
-            tooltip="Gradual (UFPLS): 25% of every withdrawal is tax-free — usually the most tax-efficient. Lump sum: take the 25% tax-free cash up front (it goes into your GIA)."
-          >
-            <PensionStrategyToggle
-              value={value.pensionStrategy ?? DEFAULT_ASSUMPTIONS.pensionStrategy}
-              onChange={(v) => {
-                set("pensionStrategy", v);
-              }}
+        <Block
+          title="Defined Benefit (Final Salary) Pension"
+          dotClass="bg-brand/60"
+          tooltip="Guaranteed annual pension income starting at a designated age (e.g. NHS, Teachers, Civil Service, Armed Forces, or corporate DB schemes). It directly reduces your required drawdown from investment pots."
+        >
+          <Field label="Annual pension income">
+            <NumberInput
+              value={num(value.dbPensionAnnualIncome, 0)}
+              onChange={(v) => set("dbPensionAnnualIncome", v)}
+              prefix={pack.currency.symbol}
+              suffix="/ yr"
+              step={1000}
             />
           </Field>
-        )}
+          <Field label="Starts at age">
+            <NumberInput
+              value={num(value.dbPensionStartingAge, 60)}
+              onChange={(v) => set("dbPensionStartingAge", v)}
+              suffix="yrs"
+            />
+          </Field>
+        </Block>
 
         <Block
           title="Part-time work — Barista FIRE"
@@ -755,23 +741,29 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
         </Block>
 
         <Block
-          title="Defined Benefit (Final Salary) Pension"
+          title={country === "us" ? "Social Security Benefit" : "State Pension"}
           dotClass="bg-brand/60"
-          tooltip="Guaranteed annual pension income starting at a designated age (e.g. NHS, Teachers, Civil Service, Armed Forces, or corporate DB schemes). It directly reduces your required drawdown from investment pots."
+          tooltip={country === "us" ? "Expected Social Security income starting at full retirement age." : "Full new State Pension for 2026/27 is £12,548/yr. Lower it if your National Insurance record is incomplete."}
         >
-          <Field label="Annual pension income">
+          <Field label="Annual income">
             <NumberInput
-              value={num(value.dbPensionAnnualIncome, 0)}
-              onChange={(v) => set("dbPensionAnnualIncome", v)}
+              value={num(
+                value.statePensionAnnual,
+                DEFAULT_ASSUMPTIONS.statePensionAnnual,
+              )}
+              onChange={(v) => set("statePensionAnnual", v)}
               prefix={pack.currency.symbol}
               suffix="/ yr"
-              step={1000}
+              step={500}
             />
           </Field>
           <Field label="Starts at age">
             <NumberInput
-              value={num(value.dbPensionStartingAge, 60)}
-              onChange={(v) => set("dbPensionStartingAge", v)}
+              value={num(
+                value.statePensionAge,
+                DEFAULT_ASSUMPTIONS.statePensionAge,
+              )}
+              onChange={(v) => set("statePensionAge", v)}
               suffix="yrs"
             />
           </Field>
@@ -853,6 +845,27 @@ export function FireForm({ value, onChange, activeSection }: FireFormProps) {
             </button>
           </div>
         </Block>
+      </Section>
+
+      <Section
+        id="scenario"
+        title="Withdrawals & strategy"
+        description="How you access your pension and draw down investment pots."
+        hidden={activeSection !== "scenario"}
+      >
+        {pack.labels.hasPensionStrategyToggle && (
+          <Field
+            label="Pension access"
+            tooltip="Gradual (UFPLS): 25% of every withdrawal is tax-free — usually the most tax-efficient. Lump sum: take the 25% tax-free cash up front (it goes into your GIA)."
+          >
+            <PensionStrategyToggle
+              value={value.pensionStrategy ?? DEFAULT_ASSUMPTIONS.pensionStrategy}
+              onChange={(v) => {
+                set("pensionStrategy", v);
+              }}
+            />
+          </Field>
+        )}
       </Section>
 
       <Section
